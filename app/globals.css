@@ -1,26 +1,287 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Formatos de tela (mobile first: sem prefixo = celular pequeno, 320–374px).
+ *   xs  375px  celular comum (iPhone SE/13 mini, a maioria dos Android em 360–412px fica entre xs e sm)
+ *   sm  640px  celular deitado e tablet pequeno
+ *   md  768px  tablet em pé; a sidebar deixa de ser gaveta e passa a ocupar 16rem (use-mobile.ts)
+ *   lg 1024px  tablet deitado e notebook pequeno (com a sidebar, sobram ~720px de conteúdo)
+ *   xl 1280px  desktop
+ * Componentes que mudam conforme o espaço que sobra ao lado da sidebar usam container query (@container).
+ */
+@theme {
+  --breakpoint-xs: 23.4375rem;
 }
 
+/* Celular deitado: pouca altura, então nada que fique fixo ocupando a tela. */
+@custom-variant deitado (@media (orientation: landscape) and (max-height: 32rem));
+
+/*
+ * Logoisum Video Agency Hero, monocromático (ver DESIGN.md)
+ * Charcoal #222 = primary/foco/link · #F5F5F5 = superfícies · verde #2F6B47 = success · vermelho #B3362F = destructive.
+ * Contraste conferido nos dois temas: texto ≥ 15:1, secundário ≥ 5.3:1, texto sobre cor ≥ 4.5:1, bordas de input e foco ≥ 3:1.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-barlow), var(--font-system);
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-heading: var(--font-barlow), var(--font-system);
+  --font-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-link: var(--link);
+  /* Cores das seções (ver bloco "Cores das seções" abaixo e DESIGN.md). */
+  --color-secao: var(--secao);
+  --color-secao-suave: var(--secao-suave);
+  --color-secao-empresas: var(--secao-empresas);
+  --color-secao-parlamentares: var(--secao-parlamentares);
+  --color-secao-cidades: var(--secao-cidades);
+  --color-secao-orcamento: var(--secao-orcamento);
+  --color-secao-glossario: var(--secao-glossario);
+  /* Base de 12px; navbar flutuante e hero em 16px (rounded-2xl). */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: var(--radius);
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+  --shadow-soft: var(--elevation-soft);
+  --shadow-lift: var(--elevation-lift);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --font-system: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Branco e charcoal; o Logoisum proíbe preto puro. */
+  --background: #ffffff;
+  --foreground: #222222;
+  --card: #ffffff;
+  --card-foreground: #222222;
+  --popover: #ffffff;
+  --popover-foreground: #222222;
+  /* Charcoal #222 (texto branco 15.9:1) */
+  --primary: #222222;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #222222;
+  --muted: #f5f5f5;
+  /* #666 = 5.7:1 no branco, 5.3:1 no #F5F5F5 */
+  --muted-foreground: #666666;
+  --accent: #ededed;
+  --accent-foreground: #222222;
+  --destructive: #b3362f;
+  /* Verde #2F6B47 (texto branco 6.4:1): valor pago, situação positiva */
+  --success: #2f6b47;
+  --success-foreground: #ffffff;
+  --link: #222222;
+  --border: #e5e5e5;
+  --input: #8a8a8a;
+  --ring: #222222;
+  --chart-1: #222222;
+  --chart-2: #2f6b47;
+  --chart-3: #b3362f;
+  --chart-4: #666666;
+  --chart-5: #8a8a8a;
+  --radius: 0.75rem;
+  --elevation-soft: 0 1px 3px rgb(0 0 0 / 0.06);
+  --elevation-lift: 0 2px 8px rgb(0 0 0 / 0.08);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #222222;
+  --sidebar-primary: #222222;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #222222;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #222222;
+}
+
+/* Charcoal, nunca preto puro; o destaque inverte para off-white. */
+.dark {
+  --background: #1a1a1a;
+  --foreground: #f5f5f5;
+  --card: #222222;
+  --card-foreground: #f5f5f5;
+  --popover: #262626;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #222222;
+  --secondary: #2b2b2b;
+  --secondary-foreground: #f5f5f5;
+  --muted: #262626;
+  /* #A6A6A6 = 7.5:1 no #1A1A1A */
+  --muted-foreground: #a6a6a6;
+  --accent: #333333;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ee8c82;
+  --success: #7cc497;
+  --success-foreground: #1a1a1a;
+  --link: #f5f5f5;
+  --border: #333333;
+  --input: #737373;
+  --ring: #f5f5f5;
+  --chart-1: #f5f5f5;
+  --chart-2: #7cc497;
+  --chart-3: #ee8c82;
+  --chart-4: #a6a6a6;
+  --chart-5: #737373;
+  --elevation-soft: 0 1px 3px rgb(0 0 0 / 0.3);
+  --elevation-lift: 0 2px 8px rgb(0 0 0 / 0.4);
+  --sidebar: #222222;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #f5f5f5;
+  --sidebar-primary-foreground: #222222;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #333333;
+  --sidebar-ring: #f5f5f5;
+}
+
+/*
+ * Cores das seções: cada área do portal tem um acento próprio, só em rótulo do topo, ícone e borda
+ * (nunca fundo grande nem gradiente) e sempre junto do nome da seção em texto. Matizes longe do verde
+ * de sucesso e do vermelho de erro; saturação até 80%. Contraste do acento: claro ≥ 6,4:1 no branco e
+ * ≥ 5,6:1 no fundo suave; escuro ≥ 7,7:1 no fundo e ≥ 6,6:1 no suave.
+ */
+:root {
+  --secao-empresas: #2453b3;
+  --secao-empresas-suave: #ebf0fa;
+  --secao-parlamentares: #6a3fb8;
+  --secao-parlamentares-suave: #f1ecfa;
+  --secao-cidades: #1d6683;
+  --secao-cidades-suave: #e6f2f7;
+  --secao-orcamento: #865418;
+  --secao-orcamento-suave: #fbf1e2;
+  --secao-glossario: #a12d6c;
+  --secao-glossario-suave: #fbeaf3;
+  /* Fora de uma seção, o acento é o próprio texto. */
+  --secao: var(--foreground);
+  --secao-suave: var(--muted);
+}
+
+.dark {
+  --secao-empresas: #93b1ec;
+  --secao-empresas-suave: #1f2940;
+  --secao-parlamentares: #b9a0ee;
+  --secao-parlamentares-suave: #2a2340;
+  --secao-cidades: #79bfdc;
+  --secao-cidades-suave: #172c36;
+  --secao-orcamento: #e3ad5c;
+  --secao-orcamento-suave: #352816;
+  --secao-glossario: #ee93c2;
+  --secao-glossario-suave: #3a1f2d;
+}
+
+/* Cada página marca a sua seção no elemento raiz (data-secao); text-secao, border-secao e bg-secao-suave leem daqui. */
+[data-secao="empresas"] { --secao: var(--secao-empresas); --secao-suave: var(--secao-empresas-suave); }
+[data-secao="parlamentares"] { --secao: var(--secao-parlamentares); --secao-suave: var(--secao-parlamentares-suave); }
+[data-secao="cidades"] { --secao: var(--secao-cidades); --secao-suave: var(--secao-cidades-suave); }
+[data-secao="orcamento"] { --secao: var(--secao-orcamento); --secao-suave: var(--secao-orcamento-suave); }
+[data-secao="glossario"] { --secao: var(--secao-glossario); --secao-suave: var(--secao-glossario-suave); }
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Âncoras (ex.: seções do perfil) rolam suave; quem pede menos movimento continua com o salto direto. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Entrada: fade + translate-Y 16px → 0 em 480ms. Use style={{ "--stagger": i }} para cascata de 100ms. */
+@keyframes soft-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes soft-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes soft-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@utility animate-enter {
+  animation: soft-enter 480ms var(--ease-soft) both;
+  animation-delay: calc(var(--stagger, 0) * 100ms);
+}
+
+@utility animate-page {
+  animation: soft-fade 200ms ease-out both;
+}
+
+@utility animate-shimmer {
+  animation: soft-shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
