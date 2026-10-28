@@ -1,0 +1,417 @@
+// Banco público do portal: dados sincronizados da Câmara, do Senado e do Portal da Transparência.
+// A sincronização roda fora das requisições (scripts/sync-*), as páginas só leem daqui.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../lib/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Casa {
+  CAMARA
+  SENADO
+}
+
+enum Uf {
+  AC
+  AL
+  AP
+  AM
+  BA
+  CE
+  DF
+  ES
+  GO
+  MA
+  MT
+  MS
+  MG
+  PA
+  PB
+  PR
+  PE
+  PI
+  RJ
+  RN
+  RS
+  RO
+  RR
+  SC
+  SP
+  SE
+  TO
+}
+
+/// Voto normalizado entre as duas casas; o texto original fica em `Voto.votoOriginal`.
+enum TipoVoto {
+  SIM
+  NAO
+  ABSTENCAO
+  OBSTRUCAO
+  /// Presidente da sessão não vota (art. 17 do RICD na Câmara, art. 51 do RISF no Senado).
+  PRESIDENTE
+  /// Presente na sessão, mas sem voto registrado (P-NRV no Senado).
+  PRESENTE_SEM_VOTO
+  /// Votação secreta: só se sabe que votou ("Votou"/VO no Senado).
+  VOTO_SECRETO
+  AUSENTE
+  /// Ausência com justificativa registrada (licença, missão oficial, atestado...).
+  AUSENCIA_JUSTIFICADA
+  OUTRO
+}
+
+enum SituacaoPresenca {
+  PRESENTE
+  AUSENTE
+  AUSENCIA_JUSTIFICADA
+}
+
+/// Onde o recurso da emenda será gasto, interpretado a partir de `localidadeDoGasto`.
+enum AbrangenciaEmenda {
+  MUNICIPIO
+  ESTADO
+  REGIAO
+  NACIONAL
+  EXTERIOR
+  /// "MÚLTIPLO" no Portal: vários locais, sem detalhamento por município/UF.
+  MULTIPLA
+  NAO_INFORMADA
+}
+
+enum FonteSync {
+  CAMARA
+  SENADO
+  EMENDAS
+  MUNICIPIOS
+  TSE
+}
+
+enum StatusSync {
+  EXECUTANDO
+  SUCESSO
+  ERRO
+}
+
+model Parlamentar {
+  id        String  @id @default(cuid())
+  casa      Casa
+  /// Id do deputado na API da Câmara ou código do senador na API do Senado.
+  idExterno String
+  nome      String
+  nomeCivil String?
+  /// Nome sem acento e em maiúsculas, usado para casar com o autor das emendas.
+  nomeBusca String
+  partido   String?
+  uf        Uf?
+  fotoUrl   String?
+  email     String?
+  emExercicio Boolean @default(true)
+  atualizadoEm DateTime @updatedAt
+
+  votos      Voto[]
+  presencas  Presenca[]
+  despesas   DespesaCota[]
+  emendas    Emenda[]
+  proposicoes ProposicaoAutor[]
+  candidaturas Candidatura[]
+
+  @@unique([casa, idExterno])
+  @@index([nomeBusca])
+  @@index([uf, casa])
+}
+
+model Votacao {
+  id        String   @id @default(cuid())
+  casa      Casa
+  idExterno String
+  data      DateTime
+  descricao String
+  /// Sigla do órgão onde ocorreu (PLEN, CCJC...).
+  orgaoSigla String?
+  aprovada  Boolean?
+  resultado String?
+  proposicaoId String?
+  proposicao   Proposicao? @relation(fields: [proposicaoId], references: [id], onDelete: SetNull)
+
+  votos Voto[]
+
+  @@unique([casa, idExterno])
+  @@index([data])
+}
+
+model Voto {
+  votacaoId     String
+  parlamentarId String
+  tipo          TipoVoto
+  votoOriginal  String
+  /// Partido do parlamentar na data da votação.
+  partido       String?
+
+  votacao     Votacao     @relation(fields: [votacaoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([votacaoId, parlamentarId])
+  @@index([parlamentarId, tipo])
+}
+
+/// Sessões do plenário e reuniões de comissões.
+model Evento {
+  id         String    @id @default(cuid())
+  casa       Casa
+  idExterno  String
+  inicio     DateTime
+  fim        DateTime?
+  tipo       String
+  situacao   String?
+  descricao  String?
+  orgaoSigla String?
+  orgaoNome  String?
+  local      String?
+  url        String?
+
+  presencas Presenca[]
+
+  @@unique([casa, idExterno])
+  @@index([inicio])
+}
+
+model Presenca {
+  eventoId      String
+  parlamentarId String
+  situacao      SituacaoPresenca
+  justificativa String?
+
+  evento      Evento      @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([eventoId, parlamentarId])
+  @@index([parlamentarId, situacao])
+}
+
+model Proposicao {
+  id               String    @id @default(cuid())
+  casa             Casa
+  idExterno        String
+  siglaTipo        String
+  numero           Int
+  ano              Int
+  ementa           String
+  dataApresentacao DateTime?
+  situacao         String?
+  url              String?
+
+  autores  ProposicaoAutor[]
+  votacoes Votacao[]
+
+  @@unique([casa, idExterno])
+  @@index([siglaTipo, numero, ano])
+}
+
+model ProposicaoAutor {
+  proposicaoId  String
+  parlamentarId String
+  proponente    Boolean @default(true)
+
+  proposicao  Proposicao  @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([proposicaoId, parlamentarId])
+  @@index([parlamentarId])
+}
+
+/// Gastos da cota parlamentar (CEAP na Câmara, CEAPS no Senado).
+model DespesaCota {
+  id            String    @id @default(cuid())
+  parlamentarId String
+  /// Identificador do documento na fonte; único por parlamentar.
+  idExterno     String
+  ano           Int
+  mes           Int
+  tipoDespesa   String
+  fornecedor    String?
+  cpfCnpjFornecedor String?
+  valorLiquido  Decimal   @db.Decimal(14, 2)
+  dataDocumento DateTime?
+  urlDocumento  String?
+
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@unique([parlamentarId, idExterno])
+  @@index([parlamentarId, ano, mes])
+}
+
+model Municipio {
+  /// Código IBGE de 7 dígitos.
+  ibge      Int    @id
+  nome      String
+  /// Nome sem acento e em maiúsculas, usado para interpretar `localidadeDoGasto`.
+  nomeBusca String
+  uf        Uf
+  /// Estimativa de população do IBGE (SIDRA, agregado 6579), base de "emenda por habitante" nos rankings.
+  populacao    Int?
+  /// Ano de referência da estimativa em `populacao`.
+  populacaoAno Int?
+
+  emendas Emenda[]
+
+  @@unique([uf, nomeBusca])
+  @@index([nomeBusca])
+}
+
+/// Emendas parlamentares do Portal da Transparência (/api-de-dados/emendas).
+model Emenda {
+  /// Chave sintética "ano|codigoEmenda|hash": o Portal devolve uma linha por emenda × localidade × função.
+  codigo       String  @id
+  /// Código da emenda como o Portal publica (não é único, ver `codigo`).
+  codigoEmenda String
+  ano          Int
+  tipo         String
+  numero       String?
+  autorNome    String
+  /// Preenchido quando o autor casa com um parlamentar sincronizado; bancadas e comissões ficam nulas.
+  parlamentarId String?
+  localidadeOriginal String?
+  abrangencia  AbrangenciaEmenda
+  uf           Uf?
+  municipioIbge Int?
+  funcao       String?
+  subfuncao    String?
+  valorEmpenhado     Decimal @db.Decimal(18, 2)
+  valorLiquidado     Decimal @db.Decimal(18, 2)
+  valorPago          Decimal @db.Decimal(18, 2)
+  valorRestoInscrito Decimal @db.Decimal(18, 2)
+  valorRestoCancelado Decimal @db.Decimal(18, 2)
+  valorRestoPago     Decimal @db.Decimal(18, 2)
+  atualizadoEm DateTime @updatedAt
+
+  parlamentar Parlamentar? @relation(fields: [parlamentarId], references: [id], onDelete: SetNull)
+  municipio   Municipio?   @relation(fields: [municipioIbge], references: [ibge], onDelete: SetNull)
+
+  @@index([uf, ano])
+  @@index([municipioIbge, ano])
+  @@index([parlamentarId, ano])
+  @@index([autorNome])
+  @@index([codigoEmenda])
+}
+
+/// Registro de cada execução de sincronização, exibido como "dados atualizados em".
+model SyncRun {
+  id          String     @id @default(cuid())
+  fonte       FonteSync
+  /// Escopo da execução, ex.: "2025" ou "votacoes:2025-01".
+  escopo      String?
+  status      StatusSync @default(EXECUTANDO)
+  iniciadoEm  DateTime   @default(now())
+  finalizadoEm DateTime?
+  registros   Int        @default(0)
+  erro        String?
+
+  @@index([fonte, iniciadoEm])
+}
+
+/// Candidatura do TSE (Dados Abertos) que casou com um parlamentar sincronizado.
+model Candidatura {
+  id            String @id @default(cuid())
+  parlamentarId String
+  ano           Int
+  /// SQ_CANDIDATO: id do candidato naquela eleição; liga bens, receitas e votos.
+  sqCandidato   String
+  uf            Uf
+  /// DS_CARGO como o TSE publica (DEPUTADO FEDERAL, SENADOR, 1º SUPLENTE...).
+  cargo         String
+  numero        Int
+  nomeUrna      String
+  partido       String
+  /// DS_SITUACAO_CANDIDATURA (APTO, INAPTO...).
+  situacao      String
+  /// DS_SIT_TOT_TURNO (ELEITO POR QP, SUPLENTE...).
+  resultado     String?
+  /// Só para casar registros entre fontes. Nunca exibir.
+  cpf           String?
+  totalBens     Decimal @db.Decimal(18, 2)
+  totalReceitas Decimal @db.Decimal(18, 2)
+  totalVotos    Int     @default(0)
+  atualizadoEm  DateTime @updatedAt
+
+  parlamentar Parlamentar      @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+  bens        BemDeclarado[]
+  receitas    ReceitaCampanha[]
+  votos       VotoMunicipio[]
+
+  @@unique([ano, sqCandidato])
+  @@index([parlamentarId, ano])
+}
+
+model BemDeclarado {
+  candidaturaId String
+  /// NR_ORDEM_BEM_CANDIDATO.
+  ordem         Int
+  tipo          String
+  descricao     String
+  valor         Decimal @db.Decimal(18, 2)
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@id([candidaturaId, ordem])
+}
+
+/// Receitas de campanha somadas por origem, fonte e doador (o TSE publica um lançamento por recibo).
+model ReceitaCampanha {
+  id            String @id @default(cuid())
+  candidaturaId String
+  /// DS_ORIGEM_RECEITA: pessoas físicas, partido político, outros candidatos, recursos próprios...
+  origem        String
+  /// DS_FONTE_RECEITA: FUNDO PARTIDARIO, FUNDO ESPECIAL (FEFC) ou OUTROS RECURSOS.
+  fonte         String
+  /// Nome do doador; de pessoa física guarda só o nome, nunca o CPF.
+  doador        String
+  valor         Decimal @db.Decimal(18, 2)
+  lancamentos   Int
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@unique([candidaturaId, origem, fonte, doador])
+  @@index([candidaturaId, valor])
+}
+
+/// Votação nominal por município (soma das zonas e do voto em trânsito), 1º turno.
+model VotoMunicipio {
+  candidaturaId String
+  /// Código do município no TSE (não é o IBGE).
+  municipioTse  Int
+  /// Código IBGE pela tabela de equivalência do TSE; cruza com `Emenda.municipioIbge`.
+  municipioIbge Int?
+  votos         Int
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@id([candidaturaId, municipioTse])
+  @@index([municipioIbge])
+}
+
+enum TipoFixado {
+  PARLAMENTAR
+  PARTIDO
+  BANCADA
+}
+
+/// Atalho fixado por quem está logado: um parlamentar, um partido ou a bancada de um estado.
+/// Também vira critério de filtro em /parlamentares. Dado pessoal: nunca ler em "use cache".
+model Fixado {
+  id       String     @id @default(cuid())
+  /// E-mail do Google em minúsculas. O login é stateless (sem tabela de usuários), e o e-mail é o identificador estável.
+  usuario  String
+  tipo     TipoFixado
+  /// PARLAMENTAR: "camara-204379" ou "senado-5672" · PARTIDO: sigla ("PL") · BANCADA: UF ("SP").
+  chave    String
+  /// Nome mostrado no atalho (ex.: "Acácio Favacho"), guardado para não depender da API para listar.
+  rotulo   String
+  criadoEm DateTime   @default(now())
+
+  /// Também serve de índice por usuario (primeira coluna).
+  @@unique([usuario, tipo, chave])
+}
