@@ -37,8 +37,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portal da Transparência",
-  description: "Consultas à API de dados do Portal da Transparência",
+  title: "Jabuti",
+  description:
+    "Acompanhe e cobre os políticos com dados públicos oficiais: emendas, gastos de gabinete, presença, campanhas e as contas de estados e municípios.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

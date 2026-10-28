@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { UFS } from "@/lib/ufs";
 
-export const metadata: Metadata = { title: "Estados · Portal da Transparência" };
+export const metadata: Metadata = { title: "Estados · Jabuti" };
 
 export default function EstadosPage() {
   return (

@@ -2,12 +2,14 @@
   <img src="app/icon.svg" width="72" alt="" />
 </p>
 
-# Portal da Transparência
+# Jabuti
 
 [![Licença: AGPL-3.0](https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-blue)](LICENSE)
 [![Contribuições bem-vindas](https://img.shields.io/badge/contribui%C3%A7%C3%B5es-bem--vindas-brightgreen)](#como-contribuir)
 
 Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públicos oficiais: emendas parlamentares, gastos de gabinete, presença, campanhas eleitorais e as contas de estados e municípios. Ele foi feito para quem não é especialista. Todo termo técnico tem uma explicação a um clique (veja [Glossário](#glossário)), e a acessibilidade vem antes de tudo.
+
+**Por que Jabuti?** Na política brasileira, "jabuti" é o trecho enfiado num projeto de lei que não tem nada a ver com ele. O nome vem do ditado: *jabuti não sobe em árvore; se está lá, foi enchente ou mão de gente*. O portal existe para isso: mostrar quem colocou cada coisa onde está.
 
 > **Projeto open-source, sob a licença [AGPL-3.0](LICENSE), e aberto a contribuições.** O código é público para que qualquer pessoa possa conferir de onde vem cada número, apontar erros e ajudar a melhorar o portal. Você pode usar, estudar, modificar e publicar sua própria versão, desde que ela também continue aberta. Não é preciso ser especialista: dá para contribuir com código, com textos do glossário, testando a acessibilidade ou avisando quando um dado parece errado. Veja [Como contribuir](#como-contribuir).
 

@@ -11,7 +11,7 @@ import { getEmendas } from "@/lib/transparencia/queries";
 import { filtrosOrcamento, lerUrlOrcamento, linkOrcamento, PRIMEIRO_ANO } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 
-export const metadata: Metadata = { title: "Orçamento · Portal da Transparência" };
+export const metadata: Metadata = { title: "Orçamento · Jabuti" };
 
 const ULTIMO_ANO = new Date().getFullYear();
 const ANOS = Array.from({ length: ULTIMO_ANO - PRIMEIRO_ANO + 1 }, (_, i) => ULTIMO_ANO - i);

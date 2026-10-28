@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: PageProps<"/estados/[uf]/[ibg
   const municipio = await municipioDaUrl(params);
   return {
     title: municipio
-      ? `Emendas para ${municipio.nome} (${municipio.uf}) · Portal da Transparência`
-      : "Cidade · Portal da Transparência",
+      ? `Emendas para ${municipio.nome} (${municipio.uf}) · Jabuti`
+      : "Cidade · Jabuti",
   };
 }
 

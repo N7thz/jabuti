@@ -240,6 +240,17 @@ export const GLOSSARIO = [
     ],
   },
   {
+    id: "jabuti",
+    termo: "Jabuti",
+    tema: "congresso",
+    curto: "Trecho incluído num projeto de lei ou medida provisória que não tem nada a ver com o assunto dele.",
+    explicacao: [
+      "O nome vem do ditado \"jabuti não sobe em árvore: se está lá, foi enchente ou mão de gente\". Quando um tema estranho aparece no meio de uma lei, alguém o colocou ali de propósito.",
+      "O jabuti costuma pegar carona numa proposta com votação rápida ou com apoio garantido, para passar sem o debate que teria sozinho. O Supremo Tribunal Federal já decidiu que essa prática é inconstitucional em medidas provisórias, mas ela continua aparecendo.",
+    ],
+    importancia: "É também o nome deste portal: a ideia é ajudar a perguntar quem colocou cada coisa onde está.",
+  },
+  {
     id: "suplente",
     termo: "Suplente",
     tema: "congresso",
