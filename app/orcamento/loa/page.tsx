@@ -13,7 +13,7 @@ import { getLoaUniao } from "@/lib/siconfi/queries";
 import { mesesDoBimestre } from "@/lib/siconfi/rreo";
 
 export const metadata: Metadata = {
-  title: "Orçamento federal (LOA) · Portal da Transparência",
+  title: "Orçamento federal (LOA) · Jabuti",
   description: "Quanto a Lei Orçamentária Anual autorizou o governo federal a gastar, em cada área, e quanto já foi executado.",
 };
 

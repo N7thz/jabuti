@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { filtrosParlamentares, lerUrlParlamentares, linkParlamentares, paginaParlamentares } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 
-export const metadata: Metadata = { title: "Parlamentares · Portal da Transparência" };
+export const metadata: Metadata = { title: "Parlamentares · Jabuti" };
 
 const POR_PAGINA = 30;
 

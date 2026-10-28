@@ -13,7 +13,7 @@ import { filtrosGlossario, lerUrlGlossario, linkGlossario, navegacaoGlossario } 
 import { FiltrosForm } from "./filtros-form";
 
 export const metadata: Metadata = {
-  title: "Entenda os termos · Portal da Transparência",
+  title: "Entenda os termos · Jabuti",
   description: "O que significam empenho, emenda Pix, cota parlamentar, fundo eleitoral, inabilitação no TCU e outros termos do portal.",
 };
 

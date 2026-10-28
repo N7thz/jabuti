@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: PageProps<"/emendas-pix/[id]"
   const emenda = id ? await getEmendaPix(id) : null;
   return {
     title: emenda
-      ? `Emenda Pix de ${emenda.autor} para ${emenda.beneficiario} · Portal da Transparência`
-      : "Emenda Pix · Portal da Transparência",
+      ? `Emenda Pix de ${emenda.autor} para ${emenda.beneficiario} · Jabuti`
+      : "Emenda Pix · Jabuti",
   };
 }
 

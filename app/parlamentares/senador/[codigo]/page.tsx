@@ -26,7 +26,7 @@ import {
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/senador/[codigo]">): Promise<Metadata> {
   const senador = await getSenador((await params).codigo);
-  return { title: `${senador?.nome ?? "Senador"} · Portal da Transparência` };
+  return { title: `${senador?.nome ?? "Senador"} · Jabuti` };
 }
 
 export default function SenadorPage({ params }: PageProps<"/parlamentares/senador/[codigo]">) {

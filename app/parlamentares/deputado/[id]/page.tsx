@@ -26,7 +26,7 @@ import {
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/deputado/[id]">): Promise<Metadata> {
   const deputado = await getDeputado((await params).id);
-  return { title: `${deputado?.ultimoStatus.nome ?? "Deputado"} · Portal da Transparência` };
+  return { title: `${deputado?.ultimoStatus.nome ?? "Deputado"} · Jabuti` };
 }
 
 export default function DeputadoPage({ params }: PageProps<"/parlamentares/deputado/[id]">) {

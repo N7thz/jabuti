@@ -18,7 +18,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/estados/[uf]">): Promise<Metadata> {
   const { uf } = await params;
-  return { title: `${isUf(uf) ? UFS[uf] : "Estado"} · Portal da Transparência` };
+  return { title: `${isUf(uf) ? UFS[uf] : "Estado"} · Jabuti` };
 }
 
 export default function EstadoPage({ params, searchParams }: PageProps<"/estados/[uf]">) {

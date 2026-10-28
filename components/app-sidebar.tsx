@@ -18,6 +18,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { LogoJabuti } from "@/components/logo-jabuti";
 
 // `cor`: acento da seção no ícone (ver "Cores das seções" no DESIGN.md); o nome continua em texto.
 const LINKS = [
@@ -69,13 +70,11 @@ export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="Portal da Transparência"
+              tooltip="Jabuti"
               render={<Link href="/" onClick={() => isMobile && setOpenMobile(false)} />}
             >
-              <span className="flex size-8 shrink-0 items-center justify-center" aria-hidden="true">
-                <span className="size-3 rounded-full bg-primary shadow-soft" />
-              </span>
-              <span className="font-bold tracking-tight">Portal da Transparência</span>
+              <LogoJabuti className="shrink-0" />
+              <span className="font-bold tracking-tight">Jabuti</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
