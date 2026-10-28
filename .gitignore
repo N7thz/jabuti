@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# prisma client gerado (bun run db:generate)
+/lib/generated/
+.neon
+
+# configuração local de agentes de IA (não versionada)
+/.claude/
+/.mcp.json
+/skills-lock.json
+
+# scripts temporários
+*.tmp.ts
