@@ -4,13 +4,14 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/lib/db";
 import type { Casa, Uf } from "@/lib/generated/prisma/enums";
+import { NA_PAGINA } from "@/lib/sync/run";
 
 import { centavos, municipioDoBeneficiario, padraoBeneficiarioMunicipio } from "./beneficiario";
 import { createTransferegovClient, emLista } from "./client";
 import type { Empenho, Executor, Meta, PlanoAcao, PlanoTrabalho, RelatorioGestao } from "./types";
 
 // Leitura ao vivo (política de dados): a API filtra por emenda e por beneficiário, então nada vai para o banco.
-const transferegov = createTransferegovClient();
+const transferegov = createTransferegovClient(NA_PAGINA);
 
 const CAMPOS_PLANO = [
   "id_plano_acao",

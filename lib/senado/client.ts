@@ -1,4 +1,4 @@
-import { createFetcher } from "../sync/run";
+import { createFetcher, type OpcoesFetcher } from "../sync/run";
 import type {
   AgendaComissaoApi,
   AgendaPlenarioApi,
@@ -160,8 +160,8 @@ function normalizarReuniao(r: ReuniaoApi): ReuniaoComissao {
  * (https://legis.senado.leg.br/dadosabertos/v3/api-docs) e devolve tudo normalizado
  * (arrays de verdade, números como number, strings aparadas).
  */
-export function createSenadoClient({ minIntervalMs = 250 } = {}) {
-  const fetchJson = createFetcher({ minIntervalMs });
+export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFetcher = {}) {
+  const fetchJson = createFetcher({ minIntervalMs, ...opcoes });
   const get = <T>(caminho: string, params?: Record<string, string>) => {
     const url = new URL(`${BASE_URL}${caminho}`);
     for (const [k, v] of Object.entries(params ?? {})) url.searchParams.set(k, v);

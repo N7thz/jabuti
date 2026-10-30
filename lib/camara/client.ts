@@ -1,4 +1,4 @@
-import { createFetcher } from "../sync/run";
+import { createFetcher, type OpcoesFetcher } from "../sync/run";
 import type {
   Despesa,
   DeputadoResumo,
@@ -16,8 +16,8 @@ import type {
 const BASE = "https://dadosabertos.camara.leg.br/api/v2";
 
 /** Cliente tipado da API de Dados Abertos da Câmara. Chamadas simultâneas respeitam o mesmo intervalo mínimo. */
-export function createCamaraClient({ minIntervalMs = 150 } = {}) {
-  const get = createFetcher({ minIntervalMs });
+export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFetcher = {}) {
+  const get = createFetcher({ minIntervalMs, ...opcoes });
 
   function montar(caminho: string, params: Record<string, string | number | undefined> = {}) {
     const url = new URL(BASE + caminho);

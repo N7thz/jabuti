@@ -9,6 +9,7 @@ import { ParlamentarItem } from "@/components/parlamentar-item";
 import { Badge } from "@/components/ui/badge";
 import { ItemGroup } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AvisoFonte } from "@/components/aviso-fonte";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { isUf, UFS } from "@/lib/ufs";
 
@@ -55,7 +56,8 @@ export default function EstadoPage({ params, searchParams }: PageProps<"/estados
 
 async function Bancada({ uf }: { uf: string }) {
   if (!isUf(uf)) notFound();
-  const bancada = (await listarParlamentares()).filter((p) => p.uf === uf);
+  const { lista, indisponiveis } = await listarParlamentares();
+  const bancada = lista.filter((p) => p.uf === uf);
   const senadores = bancada.filter((p) => p.casa === "senado");
   const deputados = bancada.filter((p) => p.casa === "camara");
 
@@ -71,6 +73,7 @@ async function Bancada({ uf }: { uf: string }) {
         <p className="text-lg text-muted-foreground">
           {deputados.length} deputados e {senadores.length} senadores em exercício
         </p>
+        <AvisoFonte fontes={indisponiveis} consequencia="A bancada abaixo está incompleta." />
         <ul aria-label="Parlamentares por partido" className="flex flex-wrap gap-2">
           {partidos.map(({ partido, total }) => (
             <li key={partido}>

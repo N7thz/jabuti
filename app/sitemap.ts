@@ -7,7 +7,7 @@ import { urlDoSite } from "@/lib/site";
 import { UFS } from "@/lib/ufs";
 
 // Páginas fixas, das mais importantes para as menos.
-const FIXAS = ["/", "/parlamentares", "/estados", "/orcamento", "/orcamento/loa", "/rankings/cota", "/comparar", "/glossario"];
+const FIXAS = ["/", "/parlamentares", "/empresas", "/estados", "/orcamento", "/orcamento/loa", "/rankings/cota", "/comparar", "/glossario"];
 
 async function listarMunicipios() {
   "use cache";
@@ -23,7 +23,7 @@ async function listarMunicipios() {
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [parlamentares, municipios] = await Promise.all([
-    listarParlamentares().catch(() => []),
+    listarParlamentares().then((r) => r.lista).catch(() => []),
     listarMunicipios().catch(() => []),
   ]);
 

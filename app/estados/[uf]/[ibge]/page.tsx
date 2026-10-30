@@ -12,6 +12,7 @@ import { SeletorAno } from "@/components/emendas/seletor-ano";
 import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos, ResumoValores } from "@/components/emendas/valores";
 import { TipoEmenda } from "@/components/emendas/tipo-emenda";
+import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { linkAno } from "@/lib/filtros/formularios";
@@ -159,17 +160,17 @@ async function Cidade({
           )}
 
           {/* Fontes ao vivo (Transferegov e Tesouro): cada uma carrega no seu tempo sem segurar a página. */}
-          <Suspense fallback={<PixSkeleton />}>
+          <SecaoProtegida titulo="Emendas Pix" fonte="do Transferegov" carregando={<PixSkeleton />}>
             <PixMunicipio municipio={municipio} ano={ano} />
-          </Suspense>
-          <Suspense fallback={<ContasEnteSkeleton />}>
+          </SecaoProtegida>
+          <SecaoProtegida titulo="Contas da prefeitura" fonte="do Tesouro Nacional (Siconfi)" carregando={<ContasEnteSkeleton />}>
             <ContasEnte
               idEnte={municipio.ibge}
               nome={municipio.nome}
               ano={ano}
               emendasPagas={{ ano, valor: dados.totais.pago }}
             />
-          </Suspense>
+          </SecaoProtegida>
         </>
       )}
 

@@ -54,3 +54,19 @@ export function respostaCsv(arquivo: string, conteudo: string) {
     },
   });
 }
+
+/**
+ * Embrulha o GET de um CSV: se a fonte falhar, responde 503 com a explicação em texto (o navegador
+ * mostra a mensagem em vez de baixar um arquivo vazio ou uma página de erro genérica).
+ */
+export async function csvOuErro(fonte: string, gerar: () => Promise<Response>) {
+  try {
+    return await gerar();
+  } catch (error) {
+    console.error(`[csv] ${fonte}:`, error);
+    return new Response(
+      `Não conseguimos gerar a planilha agora: ${fonte} não respondeu. Tente de novo em alguns minutos.\n`,
+      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "Retry-After": "120" } },
+    );
+  }
+}

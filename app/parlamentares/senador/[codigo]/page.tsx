@@ -9,7 +9,8 @@ import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
-import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, SecaoSkeleton, Voltar } from "@/components/perfil-parlamentar";
+import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
+import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { HistoricoVotos } from "@/components/votacoes/historico";
 import { Badge } from "@/components/ui/badge";
@@ -81,37 +82,37 @@ async function Senador({ codigo }: { codigo: string }) {
 
       <NavSecoes />
 
-      <Suspense fallback={<ResumoSkeleton />}>
+      <SecaoProtegida titulo="Resumo" id="resumo" fonte="das APIs do Senado e do Portal da Transparência" carregando={<ResumoSkeleton />}>
         <ResumoSenador codigo={codigo} nome={senador.nome} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Como votou" />}>
+      <SecaoProtegida titulo="Como votou" id="votacoes" fonte="da API do Senado">
         <VotosSenador codigo={codigo} />
-      </Suspense>
+      </SecaoProtegida>
 
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<SecaoSkeleton titulo="Cota parlamentar" />}>
+        <SecaoProtegida titulo="Cota parlamentar" id="cota" fonte="da API de transparência do Senado">
           <Cota codigo={codigo} />
-        </Suspense>
-        <Suspense fallback={<SecaoSkeleton titulo="Proposições" />}>
+        </SecaoProtegida>
+        <SecaoProtegida titulo="Proposições" id="proposicoes" fonte="da API do Senado">
           <Processos codigo={codigo} />
-        </Suspense>
+        </SecaoProtegida>
       </div>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Emendas" />}>
+      <SecaoProtegida titulo="Emendas" id="emendas" fonte="do Portal da Transparência">
         <Emendas nome={senador.nome} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Votos e emendas" />}>
+      <SecaoProtegida titulo="Votos e emendas" id="votos-e-emendas" fonte="do TSE e do Portal da Transparência, guardados no portal">
         <VotosEEmendasParlamentar casa="SENADO" idExterno={codigo} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Eleição e campanha" />}>
+      <SecaoProtegida titulo="Eleição e campanha" id="campanha" fonte="do TSE, guardados no portal">
         <CampanhaParlamentar casa="SENADO" idExterno={codigo} nome={senador.nome} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Fiscalização" />}>
+      <SecaoProtegida titulo="Fiscalização" id="fiscalizacao" fonte="do TCU e do Transferegov">
         <FiscalizacaoParlamentar
           casa="SENADO"
           idExterno={codigo}
@@ -119,7 +120,7 @@ async function Senador({ codigo }: { codigo: string }) {
           nomeCivil={senador.nomeCompleto}
           uf={senador.uf}
         />
-      </Suspense>
+      </SecaoProtegida>
     </>
   );
 }
