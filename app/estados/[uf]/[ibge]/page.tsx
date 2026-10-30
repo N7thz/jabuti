@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { BaixarCsv } from "@/components/baixar-csv";
 import { PixMunicipio, PixSkeleton } from "@/components/emendas-pix/pix-municipio";
 import { SobreOsDados } from "@/components/emendas/emendas-estado";
 import { ContasEnte, ContasEnteSkeleton } from "@/components/fiscalizacao/contas-ente";
@@ -121,6 +122,7 @@ async function Cidade({
               <h2 id="lista-emendas" className="text-xl font-bold">
                 Emendas de {ano}
               </h2>
+              <BaixarCsv href={`/api/csv/emendas-municipio?ibge=${municipio.ibge}&ano=${ano}`} rotulo="Baixar as emendas" />
               <Tabela legenda={`Emendas de ${ano} para ${municipio.nome}, da maior para a menor em valor pago`}>
                 <THead>
                   <Tr>

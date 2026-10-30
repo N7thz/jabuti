@@ -19,12 +19,15 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | --- | --- | --- |
 | Início | `/` | Consulta de empresas por CNPJ: contratos e sanções (CEIS e CNEP) |
 | Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
-| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, despesas da cota, proposições, emendas e campanha (TSE) |
+| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, despesas da cota, proposições, emendas, votos × emendas por cidade e campanha (TSE) |
 | Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS e matérias) |
 | Estados | `/estados`, `/estados/[uf]` | Emendas por estado |
 | Município | `/estados/[uf]/[ibge]` | Emendas recebidas, emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
+| Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
+| Comparar | `/comparar` | Dois parlamentares lado a lado, com a concordância nos votos |
+| Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano, no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
 
 O login com Google é **opcional**: serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`.
@@ -38,6 +41,8 @@ O login com Google é **opcional**: serve só para fixar os parlamentares, parti
 - [Siconfi (Tesouro)](https://siconfi.tesouro.gov.br/): contas e relatórios fiscais de estados e municípios
 - [TCU](https://portal.tcu.gov.br/): quem está inabilitado para cargo público ou declarado inidôneo para licitar
 - [IBGE](https://servicodados.ibge.gov.br/): municípios e estimativa de população
+
+As tabelas principais (votos, gastos da cota, ranking e emendas de cada cidade) podem ser baixadas em CSV, pronto para abrir numa planilha.
 
 Sempre que possível, o app consulta a API oficial direto. O banco guarda só o que a API não oferece: rankings, filtros que cruzam fontes e históricos.
 
@@ -72,6 +77,7 @@ Para ver se o app alcança o banco, abra `GET /api/health`.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Login Google. Redirect URI: `http://localhost:3000/api/auth/callback/google` |
 | `BETTER_AUTH_SECRET` | Segredo das sessões (`openssl rand -base64 32`) |
 | `BETTER_AUTH_URL` | URL base do app (`http://localhost:3000` no dev) |
+| `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`) |
 | `DATABASE_URL` | Conexão do Neon **com pooling** (host com `-pooler`), usada pelo app |
 | `DIRECT_URL` | Conexão **direta**, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
 
@@ -91,6 +97,25 @@ bun scripts/sync-tse.ts                             # precisa de Câmara e Senad
 
 Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas, `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
 
+### Carga automática
+
+O workflow [`.github/workflows/sync.yml`](.github/workflows/sync.yml) roda as cargas no GitHub Actions:
+
+| Quando | Fontes |
+| --- | --- |
+| Todo dia, 06:00 UTC | Câmara e Senado (últimos 30 dias) e emendas do ano corrente |
+| Domingo, 09:00 UTC | Municípios (IBGE) e TSE |
+
+Cada fonte é um job separado, e duas cargas da mesma fonte nunca rodam ao mesmo tempo (a segunda espera a primeira). Para rodar na mão, use **Actions → Carga de dados → Run workflow**, escolha a fonte e, se quiser, passe argumentos extras (ex.: `--anos 2020-2025` para emendas).
+
+Secrets necessários no repositório (**Settings → Secrets and variables → Actions**):
+
+| Secret | Para quê |
+| --- | --- |
+| `DATABASE_URL` | Conexão do Neon com pooling, onde os scripts gravam |
+| `DIRECT_URL` | Conexão direta do Neon |
+| `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência (emendas) |
+
 ## Scripts do projeto
 
 | Comando | O que faz |
@@ -98,7 +123,8 @@ Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `
 | `bun dev` | Servidor de desenvolvimento |
 | `bun run build` / `bun start` | Build e servidor de produção |
 | `bun run check` | Checagem de tipos + ESLint |
-| `bun test` | Testes (`*.test.ts`, com `bun:test`) |
+| `bun test` (ou `bun run test`) | Testes unitários (`lib/**/*.test.ts`, com `bun:test`) |
+| `bun run test:a11y` | Acessibilidade (axe, WCAG 2 A e AA) nas páginas principais, temas claro e escuro. Precisa do banco e das chaves, então roda só local: sobe o `bun dev` ou usa o que já estiver na porta `PORTA_E2E` (padrão 3000). Na primeira vez: `bunx playwright install chromium` |
 | `bun run db:migrate` | Cria e aplica uma migration no desenvolvimento |
 | `bun run db:deploy` | Aplica as migrations pendentes |
 | `bun run db:studio` | Abre o Prisma Studio |

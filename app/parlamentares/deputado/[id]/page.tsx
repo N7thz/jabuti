@@ -3,12 +3,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { BaixarCsv } from "@/components/baixar-csv";
+import { Compartilhar } from "@/components/compartilhar";
+import { VotosEEmendasParlamentar } from "@/components/cruzamentos/votos-emendas";
 import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, SecaoSkeleton, Voltar } from "@/components/perfil-parlamentar";
 import { Termo } from "@/components/termo";
+import { HistoricoVotos } from "@/components/votacoes/historico";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
@@ -23,6 +27,7 @@ import {
   getPresencaDeputado,
   getProposicoesDeputado,
 } from "@/lib/parlamentares/queries";
+import { getVotosDeputado, ultimaCarga } from "@/lib/votacoes/queries";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/deputado/[id]">): Promise<Metadata> {
   const deputado = await getDeputado((await params).id);
@@ -94,6 +99,10 @@ async function Deputado({ id }: { id: string }) {
         />
       </Suspense>
 
+      <Suspense fallback={<SecaoSkeleton titulo="Como votou" />}>
+        <VotosDeputado id={String(deputado.id)} />
+      </Suspense>
+
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<SecaoSkeleton titulo="Cota parlamentar" />}>
@@ -106,6 +115,10 @@ async function Deputado({ id }: { id: string }) {
 
       <Suspense fallback={<SecaoSkeleton titulo="Emendas" />}>
         <Emendas nome={s.nomeEleitoral || s.nome} />
+      </Suspense>
+
+      <Suspense fallback={<SecaoSkeleton titulo="Votos e emendas" />}>
+        <VotosEEmendasParlamentar casa="CAMARA" idExterno={String(deputado.id)} />
       </Suspense>
 
       <Suspense fallback={<SecaoSkeleton titulo="Eleição e campanha" />}>
@@ -147,61 +160,80 @@ async function ResumoDeputado({
   const tipos = classificarProposicoes(proposicoes.map((p) => p.siglaTipo));
   const empenhado = somar(emendas.emendas.map((e) => reaisDoTexto(e.valorEmpenhado)));
   const pago = somar(emendas.emendas.map((e) => reaisDoTexto(e.valorPago)));
+  const gastoCota = formatarReais(somar(cota.despesas.map((d) => reais(d.valorLiquido))));
 
   return (
-    <Resumo
-      titulo={`Resumo de ${cota.ano}`}
-      indicadores={[
-        {
-          rotulo: "Presença no plenário",
-          termo: "presenca",
-          valor: porcentagem(presenca.presencas, presenca.sessoes),
-          medidor: { parte: presenca.presencas, total: presenca.sessoes },
-          detalhe: `Esteve em ${presenca.presencas} de ${presenca.sessoes} sessões deliberativas`,
-        },
-        {
-          rotulo: "Sessões sem registro de presença",
-          termo: "presenca",
-          valor: String(faltas),
-          detalhe: "A Câmara não informa quais ausências foram justificadas",
-        },
-        {
-          rotulo: "Gasto da cota parlamentar",
-          termo: "cota-parlamentar",
-          valor: formatarReais(somar(cota.despesas.map((d) => reais(d.valorLiquido)))),
-          detalhe: `${cota.despesas.length} reembolsos em ${cota.ano}`,
-        },
-        {
-          rotulo: "Proposições em 12 meses",
-          termo: "proposicao",
-          valor: String(proposicoes.length),
-          detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos e indicações · ${tipos.outros} outras`,
-        },
-        {
-          rotulo: "Emendas empenhadas",
-          termo: "empenho",
-          valor: formatarReais(empenhado),
-          detalhe: `${emendas.emendas.length} emendas · ${formatarReais(pago)} já pagos`,
-        },
-      ]}
-      metodologia={
-        <>
-          <p>
-            <strong>Presença:</strong> contamos as sessões deliberativas encerradas do plenário desde{" "}
-            {formatarData(presenca.desde)} e verificamos em quais o deputado aparece como presente na
-            API da Câmara. Audiências, sessões solenes e comissões ficam fora. A Câmara não publica as
-            justificativas, então uma sessão sem registro pode ter sido falta justificada (licença,
-            missão oficial).
-          </p>
-          <p>
-            <strong>Cota:</strong> soma dos valores líquidos reembolsados no ano. <strong>Proposições:</strong>{" "}
-            projetos são PL, PLP, PEC e PDL; requerimentos incluem REQ, RIC e INC.{" "}
-            <strong>Emendas:</strong> emendas do ano no Portal da Transparência com o nome parlamentar
-            exato.
-          </p>
-          <p>Dados consultados nas APIs oficiais em {formatarData(presenca.consultadoEm)}.</p>
-        </>
-      }
+    <>
+      <Resumo
+        titulo={`Resumo de ${cota.ano}`}
+        indicadores={[
+          {
+            rotulo: "Presença no plenário",
+            termo: "presenca",
+            valor: porcentagem(presenca.presencas, presenca.sessoes),
+            medidor: { parte: presenca.presencas, total: presenca.sessoes },
+            detalhe: `Esteve em ${presenca.presencas} de ${presenca.sessoes} sessões deliberativas`,
+          },
+          {
+            rotulo: "Sessões sem registro de presença",
+            termo: "presenca",
+            valor: String(faltas),
+            detalhe: "A Câmara não informa quais ausências foram justificadas",
+          },
+          {
+            rotulo: "Gasto da cota parlamentar",
+            termo: "cota-parlamentar",
+            valor: gastoCota,
+            detalhe: `${cota.despesas.length} reembolsos em ${cota.ano}`,
+          },
+          {
+            rotulo: "Proposições em 12 meses",
+            termo: "proposicao",
+            valor: String(proposicoes.length),
+            detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos e indicações · ${tipos.outros} outras`,
+          },
+          {
+            rotulo: "Emendas empenhadas",
+            termo: "empenho",
+            valor: formatarReais(empenhado),
+            detalhe: `${emendas.emendas.length} emendas · ${formatarReais(pago)} já pagos`,
+          },
+        ]}
+        metodologia={
+          <>
+            <p>
+              <strong>Presença:</strong> contamos as sessões deliberativas encerradas do plenário desde{" "}
+              {formatarData(presenca.desde)} e verificamos em quais o deputado aparece como presente na
+              API da Câmara. Audiências, sessões solenes e comissões ficam fora. A Câmara não publica as
+              justificativas, então uma sessão sem registro pode ter sido falta justificada (licença,
+              missão oficial).
+            </p>
+            <p>
+              <strong>Cota:</strong> soma dos valores líquidos reembolsados no ano. <strong>Proposições:</strong>{" "}
+              projetos são PL, PLP, PEC e PDL; requerimentos incluem REQ, RIC e INC.{" "}
+              <strong>Emendas:</strong> emendas do ano no Portal da Transparência com o nome parlamentar
+              exato.
+            </p>
+            <p>Dados consultados nas APIs oficiais em {formatarData(presenca.consultadoEm)}.</p>
+          </>
+        }
+      />
+      <Compartilhar
+        caminho={`/parlamentares/deputado/${id}`}
+        texto={`${nome} esteve em ${porcentagem(presenca.presencas, presenca.sessoes)} das sessões deliberativas do plenário em ${cota.ano} e gastou ${gastoCota} da cota parlamentar. Veja os votos, gastos e emendas:`}
+      />
+    </>
+  );
+}
+
+async function VotosDeputado({ id }: { id: string }) {
+  const [votos, atualizadoEm] = await Promise.all([getVotosDeputado(id), ultimaCarga("CAMARA")]);
+  return (
+    <HistoricoVotos
+      casa="camara"
+      idExterno={id}
+      votos={votos}
+      origem={atualizadoEm ? `dados da Câmara carregados em ${formatarData(atualizadoEm)}` : "dados da Câmara"}
     />
   );
 }
@@ -266,6 +298,8 @@ async function Cota({ id, idLegislatura }: { id: number; idLegislatura: number }
               ))}
             </TableBody>
           </Table>
+
+          <BaixarCsv href={`/api/csv/cota?id=${id}&legislatura=${idLegislatura}`} rotulo="Baixar os gastos" />
 
           <div className="flex flex-1 flex-col gap-3">
             <h3 className="font-semibold">Lançamentos, do mais recente</h3>
