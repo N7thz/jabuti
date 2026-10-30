@@ -36,7 +36,9 @@ export default function CompararPage({ searchParams }: PageProps<"/comparar">) {
         </p>
       </header>
 
-      <Suspense fallback={<Skeleton className="h-20" />}>
+      {/* O fallback é o próprio formulário, vazio e com a lista de nomes (em cache): vai no HTML estático e
+          funciona sem JavaScript. Com os filtros da URL, a versão preenchida substitui a vazia. */}
+      <Suspense fallback={<Filtros />}>
         <Filtros searchParams={searchParams} />
       </Suspense>
 
@@ -58,8 +60,8 @@ export default function CompararPage({ searchParams }: PageProps<"/comparar">) {
   );
 }
 
-async function Filtros({ searchParams }: Pick<PageProps<"/comparar">, "searchParams">) {
-  const [params, { lista: todos, indisponiveis }] = await Promise.all([searchParams, listarParlamentares()]);
+async function Filtros({ searchParams }: Partial<Pick<PageProps<"/comparar">, "searchParams">>) {
+  const [params, { lista: todos, indisponiveis }] = await Promise.all([searchParams ?? {}, listarParlamentares()]);
   const opcao = (p: (typeof todos)[number]) => ({
     chave: `${p.casa}-${p.id}`,
     rotulo: `${p.nome} (${p.partido ?? "sem partido"}/${p.uf ?? "—"})`,
@@ -151,18 +153,23 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
         ))}
       </div>
 
-      <Tabela legenda={`Indicadores de ${a.ano} lado a lado`}>
+      <Tabela legenda={`Indicadores de ${a.ano} lado a lado`} classeTabela="@2xl:table-fixed">
         <THead>
           <Tr>
             <Th>Indicador ({a.ano})</Th>
-            <Th numero>{a.nome}</Th>
-            <Th numero>{b.nome}</Th>
+            {/* Larguras iguais: nenhum dos dois ganha mais espaço por ter números maiores. */}
+            <Th numero className="w-2/5">
+              {a.nome}
+            </Th>
+            <Th numero className="w-2/5">
+              {b.nome}
+            </Th>
           </Tr>
         </THead>
         <TBody>
           {linhas.map((l, i) => (
             <Tr key={i}>
-              <Th scope="row" className="font-normal">
+              <Th scope="row" className="font-normal whitespace-normal">
                 {l.rotulo}
               </Th>
               <Td numero rotulo={a.nome}>
