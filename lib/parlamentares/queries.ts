@@ -252,11 +252,8 @@ export async function getPresencaDeputado(id: number, inicioMandato: string | nu
   };
 }
 
-/**
- * Votações nominais do plenário do Senado no ano corrente, só com o registro do senador.
- * O comparecimento usa a mesma classificação do sync (`mapearComparecimento`).
- */
-export async function getVotacoesSenador(codigo: string) {
+/** Votações nominais do plenário do Senado no ano corrente, só com o registro do senador, mais recentes primeiro. */
+async function votacoesDoSenadorNoAno(codigo: string) {
   "use cache";
   cacheLife("hours");
   cacheTag("parlamentares", `senador:${codigo}`);
@@ -270,17 +267,63 @@ export async function getVotacoesSenador(codigo: string) {
   }).toString();
 
   const votacoes = asArray(await fetchJson<VotacaoApi[]>(url));
+  return {
+    consultadoEm: new Date().toISOString(),
+    total: votacoes.length,
+    votos: votacoes
+      .flatMap((v) => {
+        const voto = asArray(v.votos).find((o) => String(o.codigoParlamentar) === codigo);
+        if (!voto) return [];
+        return [
+          {
+            votacaoId: String(v.codigoSessaoVotacao),
+            data: v.dataSessao,
+            descricao: v.descricaoVotacao,
+            resultado: v.resultadoVotacao === "A" ? "Aprovada" : v.resultadoVotacao === "R" ? "Rejeitada" : null,
+            proposicao: v.identificacao
+              ? {
+                  rotulo: v.identificacao,
+                  ementa: v.ementa,
+                  url: v.codigoMateria
+                    ? `https://www25.senado.leg.br/web/atividade/materias/-/materia/${v.codigoMateria}`
+                    : null,
+                }
+              : null,
+            sigla: voto.siglaVotoParlamentar,
+            votoOriginal: voto.descricaoVotoParlamentar
+              ? `${voto.siglaVotoParlamentar} - ${voto.descricaoVotoParlamentar}`
+              : voto.siglaVotoParlamentar,
+          },
+        ];
+      })
+      .sort((a, b) => b.data.localeCompare(a.data)),
+  };
+}
+
+/** Votos do senador no ano no formato do histórico do perfil (ver `VotoNoPerfil`). */
+export async function getVotosSenador(codigo: string) {
+  const { votos, consultadoEm } = await votacoesDoSenadorNoAno(codigo);
+  return {
+    consultadoEm,
+    votos: votos.map(({ sigla, ...v }) => ({ ...v, tipo: mapearComparecimento(sigla).tipo })),
+  };
+}
+
+/**
+ * Comparecimento do senador nas votações nominais do ano.
+ * Usa a mesma classificação do sync (`mapearComparecimento`).
+ */
+export async function getVotacoesSenador(codigo: string) {
+  const { consultadoEm, total, votos } = await votacoesDoSenadorNoAno(codigo);
   const contagem: Record<string, number> = {};
   const presenca = { PRESENTE: 0, AUSENCIA_JUSTIFICADA: 0, AUSENTE: 0, naoConta: 0 };
 
-  for (const v of votacoes) {
-    const voto = asArray(v.votos).find((o) => String(o.codigoParlamentar) === codigo);
-    if (!voto) continue;
-    const { tipo, presenca: situacao } = mapearComparecimento(voto.siglaVotoParlamentar);
+  for (const v of votos) {
+    const { tipo, presenca: situacao } = mapearComparecimento(v.sigla);
     contagem[tipo] = (contagem[tipo] ?? 0) + 1;
     if (situacao) presenca[situacao]++;
     else presenca.naoConta++;
   }
 
-  return { consultadoEm: new Date().toISOString(), votacoes: votacoes.length, votos: contagem, presenca };
+  return { consultadoEm, votacoes: total, votos: contagem, presenca };
 }

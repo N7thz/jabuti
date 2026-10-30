@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenIcon, LandmarkIcon, MapIcon, SearchIcon, UsersIcon } from "lucide-react";
+import { BookOpenIcon, ChartNoAxesColumnIcon, GitCompareArrowsIcon, LandmarkIcon, MapIcon, SearchIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -24,6 +24,8 @@ import { LogoJabuti } from "@/components/logo-jabuti";
 const LINKS = [
   { href: "/", label: "Consulta CNPJ", icon: SearchIcon, cor: "text-secao-empresas" },
   { href: "/parlamentares", label: "Parlamentares", icon: UsersIcon, cor: "text-secao-parlamentares" },
+  { href: "/comparar", label: "Comparar parlamentares", icon: GitCompareArrowsIcon, cor: "text-secao-parlamentares" },
+  { href: "/rankings/cota", label: "Ranking da cota", icon: ChartNoAxesColumnIcon, cor: "text-secao-parlamentares" },
   { href: "/estados", label: "Estados e cidades", icon: MapIcon, cor: "text-secao-cidades" },
   { href: "/orcamento", label: "Orçamento", icon: LandmarkIcon, cor: "text-secao-orcamento" },
   { href: "/glossario", label: "Entenda os termos", icon: BookOpenIcon, cor: "text-secao-glossario" },

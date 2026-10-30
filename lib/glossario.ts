@@ -2,7 +2,7 @@
 // os conceitos de orçamento, Congresso, eleição e controle que aparecem nas páginas.
 // Cada termo vira uma âncora em /glossario#<id> e pode ser explicado no meio do texto com <Termo id="...">.
 
-export type Tema = "orcamento" | "emendas" | "congresso" | "eleicoes" | "controle";
+export type Tema = "orcamento" | "emendas" | "congresso" | "eleicoes" | "controle" | "dados";
 
 export const TEMAS: Record<Tema, { titulo: string; descricao: string }> = {
   orcamento: {
@@ -24,6 +24,10 @@ export const TEMAS: Record<Tema, { titulo: string; descricao: string }> = {
   controle: {
     titulo: "Controle e fiscalização",
     descricao: "Quem fiscaliza o uso do dinheiro público e o que significam as punições.",
+  },
+  dados: {
+    titulo: "Como usar os dados",
+    descricao: "De onde vêm os números do portal e como levá-los para a sua própria análise.",
   },
 };
 
@@ -289,6 +293,27 @@ export const GLOSSARIO = [
     ],
   },
   {
+    id: "votacao-simbolica",
+    termo: "Votação simbólica",
+    tema: "congresso",
+    curto: "Votação em que o presidente da sessão só anuncia o resultado, sem registrar como cada parlamentar votou.",
+    explicacao: [
+      "Quem é a favor fica como está e quem é contra se manifesta. O presidente olha o plenário e declara o resultado. Por isso não existe uma lista de quem votou sim ou não.",
+      "Qualquer parlamentar pode pedir verificação, e aí a votação vira nominal, com o voto de cada um registrado no painel.",
+    ],
+    importancia: "Assuntos polêmicos às vezes passam em votação simbólica justamente para ninguém ficar com o nome ligado ao voto.",
+  },
+  {
+    id: "obstrucao",
+    termo: "Obstrução",
+    tema: "congresso",
+    curto: "Estratégia de quem é contra uma proposta: marcar presença sem votar, para tentar impedir que a votação atinja o número mínimo.",
+    explicacao: [
+      "Na Câmara, o parlamentar pode registrar \"obstrução\" em vez de sim ou não, seguindo a orientação do partido. Para a votação valer, é preciso que um número mínimo de parlamentares vote (o quórum).",
+      "Na prática, obstruir é uma forma de ser contra sem deixar a decisão acontecer naquele momento.",
+    ],
+  },
+  {
     id: "presenca",
     termo: "Presença e falta",
     tema: "congresso",
@@ -449,6 +474,17 @@ export const GLOSSARIO = [
     explicacao: [
       "Quando o portal só consegue encontrar um registro pelo nome, avisa que pode ser outra pessoa. Com o CPF o resultado é exato, mas o portal nunca mostra o CPF.",
     ],
+  },
+  {
+    id: "csv",
+    termo: "CSV (planilha)",
+    tema: "dados",
+    curto: "Arquivo de texto com os dados em linhas e colunas, que abre em qualquer programa de planilha.",
+    explicacao: [
+      "Cada linha é um registro e as colunas são separadas por ponto e vírgula. O Excel, o LibreOffice e o Google Planilhas abrem o arquivo direto, prontos para filtrar, somar e fazer gráficos.",
+      "Os valores em reais saem sem o símbolo e com vírgula decimal, para a planilha conseguir fazer contas.",
+    ],
+    importancia: "Com a planilha, qualquer pessoa pode conferir os números do portal e fazer as próprias análises.",
   },
 ] as const satisfies readonly Verbete[];
 

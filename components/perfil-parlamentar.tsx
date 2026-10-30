@@ -73,9 +73,11 @@ export function Cabecalho({
 /** Âncoras do perfil, na ordem em que as seções aparecem. Funcionam sem JavaScript. */
 export const SECOES = [
   { id: "resumo", rotulo: "Resumo" },
+  { id: "votacoes", rotulo: "Como votou" },
   { id: "cota", rotulo: "Cota parlamentar" },
   { id: "proposicoes", rotulo: "Proposições" },
   { id: "emendas", rotulo: "Emendas" },
+  { id: "votos-e-emendas", rotulo: "Votos e emendas" },
   { id: "campanha", rotulo: "Eleição e campanha" },
   { id: "fiscalizacao", rotulo: "Fiscalização" },
 ] as const;

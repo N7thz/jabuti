@@ -3,12 +3,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { Compartilhar } from "@/components/compartilhar";
+import { VotosEEmendasParlamentar } from "@/components/cruzamentos/votos-emendas";
 import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, SecaoSkeleton, Voltar } from "@/components/perfil-parlamentar";
 import { Termo } from "@/components/termo";
+import { HistoricoVotos } from "@/components/votacoes/historico";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
@@ -22,7 +25,9 @@ import {
   getProcessosSenador,
   getSenador,
   getVotacoesSenador,
+  getVotosSenador,
 } from "@/lib/parlamentares/queries";
+import { votacoesSenadoNoBanco } from "@/lib/votacoes/queries";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/senador/[codigo]">): Promise<Metadata> {
   const senador = await getSenador((await params).codigo);
@@ -80,6 +85,10 @@ async function Senador({ codigo }: { codigo: string }) {
         <ResumoSenador codigo={codigo} nome={senador.nome} />
       </Suspense>
 
+      <Suspense fallback={<SecaoSkeleton titulo="Como votou" />}>
+        <VotosSenador codigo={codigo} />
+      </Suspense>
+
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<SecaoSkeleton titulo="Cota parlamentar" />}>
@@ -92,6 +101,10 @@ async function Senador({ codigo }: { codigo: string }) {
 
       <Suspense fallback={<SecaoSkeleton titulo="Emendas" />}>
         <Emendas nome={senador.nome} />
+      </Suspense>
+
+      <Suspense fallback={<SecaoSkeleton titulo="Votos e emendas" />}>
+        <VotosEEmendasParlamentar casa="SENADO" idExterno={codigo} />
       </Suspense>
 
       <Suspense fallback={<SecaoSkeleton titulo="Eleição e campanha" />}>
@@ -126,73 +139,92 @@ async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string })
   const pago = somar(emendas.emendas.map((e) => reaisDoTexto(e.valorPago)));
 
   return (
-    <Resumo
-      titulo={`Resumo de ${cota.ano}`}
-      indicadores={[
-        {
-          rotulo: "Presença nas votações",
-          termo: "votacao-nominal",
-          valor: porcentagem(PRESENTE, contadas),
-          medidor: { parte: PRESENTE, total: contadas },
-          detalhe: `Presente em ${PRESENTE} de ${contadas} votações nominais do plenário${
-            AUSENCIA_JUSTIFICADA ? `; nas outras ${AUSENCIA_JUSTIFICADA}${AUSENTE ? ", parte" : ""} a ausência foi justificada` : ""
-          }`,
-        },
-        {
-          rotulo: "Faltas sem justificativa",
-          termo: "presenca",
-          valor: String(AUSENTE),
-          detalhe: "Registradas como “não compareceu”",
-        },
-        {
-          rotulo: "Ausências justificadas",
-          termo: "presenca",
-          valor: String(AUSENCIA_JUSTIFICADA),
-          detalhe: "Licença, missão oficial ou atividade parlamentar",
-        },
-        {
-          rotulo: "Como votou",
-          termo: "votacao-nominal",
-          valor: `${v("SIM")} sim · ${v("NAO")} não`,
-          detalhe: `${v("ABSTENCAO")} abstenções · ${v("VOTO_SECRETO")} votos secretos · ${v("PRESENTE_SEM_VOTO")} presente sem votar`,
-        },
-        {
-          rotulo: "Gasto da cota parlamentar",
-          termo: "cota-parlamentar",
-          valor: cota.resumo ? formatarReais(deCentavos(cota.resumo.total)) : formatarReais(reais(0)),
-          detalhe: `${cota.resumo?.quantidade ?? 0} reembolsos em ${cota.ano}`,
-        },
-        {
-          rotulo: "Proposições em 12 meses",
-          termo: "proposicao",
-          valor: String(processos.length),
-          detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos · ${tipos.outros} outras`,
-        },
-        {
-          rotulo: "Emendas empenhadas",
-          termo: "empenho",
-          valor: formatarReais(empenhado),
-          detalhe: `${emendas.emendas.length} emendas · ${formatarReais(pago)} já pagos`,
-        },
-      ]}
-      metodologia={
-        <>
-          <p>
-            <strong>Presença:</strong> usamos as {votacoes.votacoes} votações nominais do plenário em{" "}
-            {cota.ano}. Contam como presença os votos (sim, não, abstenção, secreto), presidir a sessão e
-            estar presente sem votar. Faltas sem justificativa e ausências justificadas aparecem separadas
-            e nunca são somadas.
-            {votacoes.presenca.naoConta > 0 &&
-              ` ${votacoes.presenca.naoConta} registros ficaram fora da conta por indicarem que o senador não estava em exercício no dia.`}
-          </p>
-          <p>
-            <strong>Cota:</strong> soma dos reembolsos da CEAPS no ano. <strong>Proposições:</strong> projetos
-            são PL, PEC, PDL e PRS; requerimentos incluem REQ e RQS. <strong>Emendas:</strong> emendas do ano
-            no Portal da Transparência com o nome parlamentar exato.
-          </p>
-          <p>Dados consultados nas APIs oficiais em {formatarData(votacoes.consultadoEm)}.</p>
-        </>
-      }
+    <>
+      <Resumo
+        titulo={`Resumo de ${cota.ano}`}
+        indicadores={[
+          {
+            rotulo: "Presença nas votações",
+            termo: "votacao-nominal",
+            valor: porcentagem(PRESENTE, contadas),
+            medidor: { parte: PRESENTE, total: contadas },
+            detalhe: `Presente em ${PRESENTE} de ${contadas} votações nominais do plenário${
+              AUSENCIA_JUSTIFICADA ? `; nas outras ${AUSENCIA_JUSTIFICADA}${AUSENTE ? ", parte" : ""} a ausência foi justificada` : ""
+            }`,
+          },
+          {
+            rotulo: "Faltas sem justificativa",
+            termo: "presenca",
+            valor: String(AUSENTE),
+            detalhe: "Registradas como “não compareceu”",
+          },
+          {
+            rotulo: "Ausências justificadas",
+            termo: "presenca",
+            valor: String(AUSENCIA_JUSTIFICADA),
+            detalhe: "Licença, missão oficial ou atividade parlamentar",
+          },
+          {
+            rotulo: "Como votou",
+            termo: "votacao-nominal",
+            valor: `${v("SIM")} sim · ${v("NAO")} não`,
+            detalhe: `${v("ABSTENCAO")} abstenções · ${v("VOTO_SECRETO")} votos secretos · ${v("PRESENTE_SEM_VOTO")} presente sem votar`,
+          },
+          {
+            rotulo: "Gasto da cota parlamentar",
+            termo: "cota-parlamentar",
+            valor: cota.resumo ? formatarReais(deCentavos(cota.resumo.total)) : formatarReais(reais(0)),
+            detalhe: `${cota.resumo?.quantidade ?? 0} reembolsos em ${cota.ano}`,
+          },
+          {
+            rotulo: "Proposições em 12 meses",
+            termo: "proposicao",
+            valor: String(processos.length),
+            detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos · ${tipos.outros} outras`,
+          },
+          {
+            rotulo: "Emendas empenhadas",
+            termo: "empenho",
+            valor: formatarReais(empenhado),
+            detalhe: `${emendas.emendas.length} emendas · ${formatarReais(pago)} já pagos`,
+          },
+        ]}
+        metodologia={
+          <>
+            <p>
+              <strong>Presença:</strong> usamos as {votacoes.votacoes} votações nominais do plenário em{" "}
+              {cota.ano}. Contam como presença os votos (sim, não, abstenção, secreto), presidir a sessão e
+              estar presente sem votar. Faltas sem justificativa e ausências justificadas aparecem separadas
+              e nunca são somadas.
+              {votacoes.presenca.naoConta > 0 &&
+                ` ${votacoes.presenca.naoConta} registros ficaram fora da conta por indicarem que o senador não estava em exercício no dia.`}
+            </p>
+            <p>
+              <strong>Cota:</strong> soma dos reembolsos da CEAPS no ano. <strong>Proposições:</strong> projetos
+              são PL, PEC, PDL e PRS; requerimentos incluem REQ e RQS. <strong>Emendas:</strong> emendas do ano
+              no Portal da Transparência com o nome parlamentar exato.
+            </p>
+            <p>Dados consultados nas APIs oficiais em {formatarData(votacoes.consultadoEm)}.</p>
+          </>
+        }
+      />
+      <Compartilhar
+        caminho={`/parlamentares/senador/${codigo}`}
+        texto={`${nome} esteve presente em ${porcentagem(PRESENTE, contadas)} das votações nominais do plenário do Senado em ${cota.ano}, com ${AUSENTE} faltas sem justificativa. Veja os votos, gastos e emendas:`}
+      />
+    </>
+  );
+}
+
+async function VotosSenador({ codigo }: { codigo: string }) {
+  const { votos, consultadoEm } = await getVotosSenador(codigo);
+  const noBanco = await votacoesSenadoNoBanco(votos.map((v) => v.votacaoId));
+  return (
+    <HistoricoVotos
+      casa="senado"
+      idExterno={codigo}
+      votos={votos.map((v) => ({ ...v, temPagina: noBanco.has(v.votacaoId) }))}
+      origem={`API do Senado, consultada em ${formatarData(consultadoEm)}`}
     />
   );
 }
