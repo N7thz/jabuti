@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { donoDa } from "@/lib/fixados";
+import { donoDa, LIMITE_FIXADOS } from "@/lib/fixados";
 import { requireSession } from "@/lib/session";
 import { UFS } from "@/lib/ufs";
 
@@ -28,7 +28,12 @@ export async function alternarFixado(formData: FormData) {
   const existente = await db.fixado.findUnique({ where: chaveUnica, select: { id: true } });
 
   if (existente) await db.fixado.delete({ where: { id: existente.id } });
-  else await db.fixado.create({ data: { usuario: donoDa(sessao), tipo, chave, rotulo } });
+  else {
+    // No limite, recusa em silêncio: o botão já aparece desabilitado com o aviso (components/fixar.tsx).
+    const total = await db.fixado.count({ where: { usuario: donoDa(sessao) } });
+    if (total >= LIMITE_FIXADOS) return;
+    await db.fixado.create({ data: { usuario: donoDa(sessao), tipo, chave, rotulo } });
+  }
 
   refresh();
 }

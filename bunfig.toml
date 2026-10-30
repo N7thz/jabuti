@@ -1,0 +1,3 @@
+[test]
+# Só os testes unitários; o e2e/ (Playwright) roda com `bun run test:a11y`.
+root = "lib"

@@ -1,0 +1,93 @@
+name: Carga de dados
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # diária: Câmara, Senado e emendas do ano corrente
+    - cron: "0 9 * * 0" # semanal (domingo): municípios e TSE, depois da diária
+  workflow_dispatch:
+    inputs:
+      fonte:
+        description: Fonte a carregar
+        type: choice
+        default: diaria
+        options:
+          - diaria
+          - semanal
+          - camara
+          - senado
+          - emendas
+          - municipios
+          - tse
+      argumentos:
+        description: "Argumentos extras do script, ex.: --anos 2020-2025 (só com uma fonte escolhida)"
+        type: string
+        required: false
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DIRECT_URL: ${{ secrets.DIRECT_URL }}
+  PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
+  ARGUMENTOS: ${{ inputs.argumentos }}
+
+jobs:
+  camara:
+    if: github.event.schedule == '0 6 * * *' || contains(fromJSON('["diaria","camara"]'), inputs.fonte)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Uma carga por fonte de cada vez; a seguinte espera a atual terminar.
+    concurrency: { group: sync-camara, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/sync-camara.ts $ARGUMENTOS
+
+  senado:
+    if: github.event.schedule == '0 6 * * *' || contains(fromJSON('["diaria","senado"]'), inputs.fonte)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency: { group: sync-senado, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/sync-senado.ts $ARGUMENTOS
+
+  emendas:
+    if: github.event.schedule == '0 6 * * *' || contains(fromJSON('["diaria","emendas"]'), inputs.fonte)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    concurrency: { group: sync-emendas, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      # Sem argumentos, carrega o ano corrente.
+      - run: bun scripts/sync-emendas.ts $ARGUMENTOS
+
+  municipios:
+    if: github.event.schedule == '0 9 * * 0' || contains(fromJSON('["semanal","municipios"]'), inputs.fonte)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency: { group: sync-municipios, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/sync-municipios.ts
+
+  tse:
+    if: github.event.schedule == '0 9 * * 0' || contains(fromJSON('["semanal","tse"]'), inputs.fonte)
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    concurrency: { group: sync-tse, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/sync-tse.ts $ARGUMENTOS

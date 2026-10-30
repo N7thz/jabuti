@@ -10,6 +10,9 @@ import { getSession } from "@/lib/session";
 
 export type { TipoFixado };
 
+/** Máximo de fixados por pessoa: mantém a barra de atalhos e os filtros utilizáveis. */
+export const LIMITE_FIXADOS = 50;
+
 /** Chave do parlamentar no Fixado: a mesma usada na lista ("camara-204379", "senado-5672"). */
 export const chaveParlamentar = (p: { casa: "camara" | "senado"; id: number | string }) => `${p.casa}-${p.id}`;
 
@@ -20,6 +23,8 @@ export interface Fixados {
   parlamentares: { chave: string; rotulo: string }[];
   partidos: { chave: string; rotulo: string }[];
   bancadas: { chave: string; rotulo: string }[];
+  /** Já chegou a `LIMITE_FIXADOS`: só dá para desafixar. */
+  noLimite: boolean;
   /** Consulta rápida: `tem("PARTIDO", "PL")`. */
   tem: (tipo: TipoFixado, chave: string) => boolean;
 }
@@ -41,6 +46,7 @@ export async function getFixados(): Promise<Fixados | null> {
     parlamentares: doTipo("PARLAMENTAR"),
     partidos: doTipo("PARTIDO"),
     bancadas: doTipo("BANCADA"),
+    noLimite: linhas.length >= LIMITE_FIXADOS,
     tem: (tipo, chave) => chaves.has(`${tipo}:${chave}`),
   };
 }

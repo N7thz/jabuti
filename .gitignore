@@ -52,3 +52,7 @@ next-env.d.ts
 
 # scripts temporários
 *.tmp.ts
+
+# playwright
+/test-results/
+/playwright-report/

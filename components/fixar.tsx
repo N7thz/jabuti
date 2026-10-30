@@ -1,5 +1,5 @@
 import { alternarFixado } from "@/app/fixados/actions";
-import { chaveParlamentar, getFixados, type Fixados, type TipoFixado } from "@/lib/fixados";
+import { chaveParlamentar, getFixados, LIMITE_FIXADOS, type Fixados, type TipoFixado } from "@/lib/fixados";
 
 import { EnviarFixado } from "./fixar-enviar";
 
@@ -28,24 +28,36 @@ export async function BotoesFixar({
   const fixados = jaLidos === undefined ? await getFixados() : jaLidos;
   if (!fixados) return null;
 
+  // Id do aviso de limite, único por grupo de botões (a página pode ter mais de um grupo).
+  const idAviso = `limite-fixados-${alvos.map((a) => a.chave).join("-").replace(/[^\w-]/g, "")}`;
+  const algumBloqueado = fixados.noLimite && alvos.some((a) => !fixados.tem(a.tipo, a.chave));
+
   return (
-    <ul aria-label="Fixar para acesso rápido" className="flex flex-wrap gap-2">
-      {alvos.map((alvo) => {
-        const fixado = fixados.tem(alvo.tipo, alvo.chave);
-        return (
-          <li key={`${alvo.tipo}:${alvo.chave}`}>
-            <form action={alternarFixado}>
-              <input type="hidden" name="tipo" value={alvo.tipo} />
-              <input type="hidden" name="chave" value={alvo.chave} />
-              <input type="hidden" name="rotulo" value={alvo.rotulo} />
-              <EnviarFixado fixado={fixado}>
-                {fixado ? "Desafixar" : "Fixar"} {alvo.nome}
-              </EnviarFixado>
-            </form>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex flex-col gap-2">
+      <ul aria-label="Fixar para acesso rápido" className="flex flex-wrap gap-2">
+        {alvos.map((alvo) => {
+          const fixado = fixados.tem(alvo.tipo, alvo.chave);
+          const bloqueado = !fixado && fixados.noLimite;
+          return (
+            <li key={`${alvo.tipo}:${alvo.chave}`}>
+              <form action={alternarFixado}>
+                <input type="hidden" name="tipo" value={alvo.tipo} />
+                <input type="hidden" name="chave" value={alvo.chave} />
+                <input type="hidden" name="rotulo" value={alvo.rotulo} />
+                <EnviarFixado fixado={fixado} bloqueado={bloqueado} descritoPor={bloqueado ? idAviso : undefined}>
+                  {fixado ? "Desafixar" : "Fixar"} {alvo.nome}
+                </EnviarFixado>
+              </form>
+            </li>
+          );
+        })}
+      </ul>
+      {algumBloqueado && (
+        <p id={idAviso} className="text-sm text-muted-foreground">
+          Você já tem {LIMITE_FIXADOS} fixados, o máximo. Desafixe algum para fixar outro.
+        </p>
+      )}
+    </div>
   );
 }
 
