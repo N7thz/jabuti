@@ -6,7 +6,7 @@ import { cn } from "cn"
 
 import { Separator } from "@/components/ui/separator"
 
-function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
+function ItemGroup({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       role="list"
@@ -16,7 +16,19 @@ function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
         className
       )}
       {...props}
-    />
+    >
+      {/* role="list" exige filhos role="listitem" (axe: aria-required-children). O invólucro com
+          display: contents não mexe no layout e não tira a semântica de um Item que é link. */}
+      {React.Children.map(children, (filho) =>
+        React.isValidElement(filho) && filho.type !== ItemSeparator ? (
+          <div role="listitem" className="contents">
+            {filho}
+          </div>
+        ) : (
+          filho
+        )
+      )}
+    </div>
   )
 }
 
