@@ -6,6 +6,7 @@ import { createCamaraClient } from "@/lib/camara/client";
 import { mapearTipoVoto } from "@/lib/camara/mapear";
 import type { ProposicaoResumo } from "@/lib/camara/types";
 import { db } from "@/lib/db";
+import { NA_PAGINA, naoEncontrado } from "@/lib/sync/run";
 import type { Casa, TipoVoto } from "@/lib/generated/prisma/enums";
 
 // Votações nominais. A API da Câmara não tem "votos de um deputado": o histórico por deputado sai do
@@ -13,7 +14,7 @@ import type { Casa, TipoVoto } from "@/lib/generated/prisma/enums";
 // completa. No Senado é o contrário: a API filtra por senador, mas não busca uma votação pelo código,
 // então o perfil usa a API e a página da votação usa o banco (sync-senado).
 
-const camara = createCamaraClient();
+const camara = createCamaraClient(NA_PAGINA);
 
 export type CasaUrl = "camara" | "senado";
 export const casaDaUrl = (casa: CasaUrl): Casa => (casa === "camara" ? "CAMARA" : "SENADO");
@@ -165,7 +166,11 @@ export async function getVotacaoCamara(id: string): Promise<VotacaoCompleta | nu
   cacheLife("days");
   cacheTag("votacoes", `votacao:camara:${id}`);
 
-  const detalhe = await camara.votacao(id).catch(() => null);
+  // Só o 404 vira "não encontrada"; com a Câmara fora do ar o erro sobe e não fica guardado no cache.
+  const detalhe = await camara.votacao(id).catch((error) => {
+    if (naoEncontrado(error)) return null;
+    throw error;
+  });
   if (!detalhe) return null;
   const votos = await camara.votos(id);
   const proposicao = proposicaoDaVotacao(detalhe.proposicoesAfetadas ?? [], detalhe.objetosPossiveis ?? []);

@@ -2,12 +2,13 @@ import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
 
-import { createFetcher } from "@/lib/sync/run";
+import { createFetcher, NA_PAGINA } from "@/lib/sync/run";
 
 import { inabilitacoesDaPessoa, inidoneidadesDe, type InabilitadoTcu, type InidoneoTcu } from "./sancoes";
 
 const BASE = "https://contas.tcu.gov.br/ords/condenacao/consulta";
-const get = createFetcher({ minIntervalMs: 200, timeoutMs: 60_000 });
+// Listas e relatórios grandes: timeout maior que o padrão das páginas, mas desiste logo se a fonte estiver fora.
+const get = createFetcher({ minIntervalMs: 200, ...NA_PAGINA, timeoutMs: 60_000 });
 
 type PaginaOrds<T> = { items: T[]; hasMore: boolean };
 

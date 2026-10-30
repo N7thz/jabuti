@@ -1,4 +1,4 @@
-import { createFetcher } from "../sync/run";
+import { createFetcher, type OpcoesFetcher } from "../sync/run";
 
 const BASE = "https://api.transferegov.gestao.gov.br/transferenciasespeciais";
 const POR_PAGINA = 1000;
@@ -11,8 +11,8 @@ export const emLista = (valores: (string | number)[]) =>
   `in.(${valores.map((v) => `"${String(v).replace(/"/g, '\\"')}"`).join(",")})`;
 
 /** Cliente da API de Transferências Especiais do Transferegov (aberta, sem chave). */
-export function createTransferegovClient({ minIntervalMs = 100 } = {}) {
-  const get = createFetcher({ minIntervalMs });
+export function createTransferegovClient({ minIntervalMs = 100, ...opcoes }: OpcoesFetcher = {}) {
+  const get = createFetcher({ minIntervalMs, ...opcoes });
 
   /** Todas as linhas do recurso que passam nos filtros, paginando por offset. */
   async function listar<T>(recurso: string, filtros: Filtros = {}, select?: (keyof T & string)[]) {

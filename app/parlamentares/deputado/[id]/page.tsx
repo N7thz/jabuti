@@ -10,7 +10,8 @@ import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
-import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, SecaoSkeleton, Voltar } from "@/components/perfil-parlamentar";
+import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
+import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { HistoricoVotos } from "@/components/votacoes/historico";
 import { Badge } from "@/components/ui/badge";
@@ -90,42 +91,42 @@ async function Deputado({ id }: { id: string }) {
 
       <NavSecoes />
 
-      <Suspense fallback={<ResumoSkeleton />}>
+      <SecaoProtegida titulo="Resumo" id="resumo" fonte="das APIs da Câmara e do Portal da Transparência" carregando={<ResumoSkeleton />}>
         <ResumoDeputado
           id={deputado.id}
           idLegislatura={s.idLegislatura}
           inicio={s.data}
           nome={s.nomeEleitoral || s.nome}
         />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Como votou" />}>
+      <SecaoProtegida titulo="Como votou" id="votacoes" fonte="das votações da Câmara guardadas no portal">
         <VotosDeputado id={String(deputado.id)} />
-      </Suspense>
+      </SecaoProtegida>
 
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<SecaoSkeleton titulo="Cota parlamentar" />}>
+        <SecaoProtegida titulo="Cota parlamentar" id="cota" fonte="da API da Câmara">
           <Cota id={deputado.id} idLegislatura={s.idLegislatura} />
-        </Suspense>
-        <Suspense fallback={<SecaoSkeleton titulo="Proposições" />}>
+        </SecaoProtegida>
+        <SecaoProtegida titulo="Proposições" id="proposicoes" fonte="da API da Câmara">
           <Proposicoes id={deputado.id} />
-        </Suspense>
+        </SecaoProtegida>
       </div>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Emendas" />}>
+      <SecaoProtegida titulo="Emendas" id="emendas" fonte="do Portal da Transparência">
         <Emendas nome={s.nomeEleitoral || s.nome} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Votos e emendas" />}>
+      <SecaoProtegida titulo="Votos e emendas" id="votos-e-emendas" fonte="do TSE e do Portal da Transparência, guardados no portal">
         <VotosEEmendasParlamentar casa="CAMARA" idExterno={String(deputado.id)} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Eleição e campanha" />}>
+      <SecaoProtegida titulo="Eleição e campanha" id="campanha" fonte="do TSE, guardados no portal">
         <CampanhaParlamentar casa="CAMARA" idExterno={String(deputado.id)} nome={s.nome} />
-      </Suspense>
+      </SecaoProtegida>
 
-      <Suspense fallback={<SecaoSkeleton titulo="Fiscalização" />}>
+      <SecaoProtegida titulo="Fiscalização" id="fiscalizacao" fonte="do TCU e do Transferegov">
         <FiscalizacaoParlamentar
           casa="CAMARA"
           idExterno={String(deputado.id)}
@@ -134,7 +135,7 @@ async function Deputado({ id }: { id: string }) {
           cpf={deputado.cpf}
           uf={s.siglaUf}
         />
-      </Suspense>
+      </SecaoProtegida>
     </>
   );
 }

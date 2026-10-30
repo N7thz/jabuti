@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { AvisoFonte } from "@/components/aviso-fonte";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { UFS } from "@/lib/ufs";
 
@@ -35,30 +36,41 @@ export default function EstadosPage() {
 }
 
 async function Estados() {
-  const parlamentares = await listarParlamentares();
-  const contar = (uf: string, casa: "camara" | "senado") =>
-    parlamentares.filter((p) => p.uf === uf && p.casa === casa).length;
+  const { lista: parlamentares, indisponiveis } = await listarParlamentares();
+  const temCasa = (casa: "camara" | "senado") => parlamentares.some((p) => p.casa === casa);
+  // Casa fora do ar: some da contagem em vez de aparecer como "0 senadores".
+  const contagem = (uf: string) =>
+    (["camara", "senado"] as const)
+      .filter(temCasa)
+      .map((casa) => {
+        const n = parlamentares.filter((p) => p.uf === uf && p.casa === casa).length;
+        return `${n} ${casa === "camara" ? "deputados" : "senadores"}`;
+      })
+      .join(" · ");
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {Object.entries(UFS).map(([sigla, nome], i) => (
-        <li key={sigla} className="animate-enter" style={{ "--stagger": Math.min(i, 12) } as React.CSSProperties}>
-          <Link
-            href={`/estados/${sigla}`}
-            className="flex items-center gap-4 rounded-lg border bg-card p-4 outline-none transition-shadow duration-200 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <span aria-hidden="true" className="grid size-12 place-items-center rounded-lg bg-accent font-mono font-bold text-accent-foreground">
-              {sigla}
-            </span>
-            <span className="flex flex-col">
-              <span className="font-semibold">{nome}</span>
-              <span className="text-sm text-muted-foreground">
-                {contar(sigla, "camara")} deputados · {contar(sigla, "senado")} senadores
+    <>
+      <AvisoFonte fontes={indisponiveis} consequencia="A contagem de parlamentares por estado está incompleta." />
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Object.entries(UFS).map(([sigla, nome], i) => (
+          <li key={sigla} className="animate-enter" style={{ "--stagger": Math.min(i, 12) } as React.CSSProperties}>
+            <Link
+              href={`/estados/${sigla}`}
+              className="flex items-center gap-4 rounded-lg border bg-card p-4 outline-none transition-shadow duration-200 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <span aria-hidden="true" className="grid size-12 place-items-center rounded-lg bg-accent font-mono font-bold text-accent-foreground">
+                {sigla}
               </span>
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+              <span className="flex flex-col">
+                <span className="font-semibold">{nome}</span>
+                <span className="text-sm text-muted-foreground">
+                  {contagem(sigla)}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

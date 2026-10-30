@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { gerarCsv, nomeArquivo, respostaCsv } from "@/lib/csv";
+import { csvOuErro, gerarCsv, nomeArquivo, respostaCsv } from "@/lib/csv";
 import { getDespesasDeputado } from "@/lib/parlamentares/queries";
 
 /** GET /api/csv/cota?id=204379&legislatura=57: gastos da cota do deputado no ano corrente (API da Câmara). */
@@ -11,18 +11,20 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Informe o id do deputado e a legislatura" }, { status: 400 });
   }
 
-  const { ano, despesas } = await getDespesasDeputado(Number(id), Number(legislatura));
-  const csv = gerarCsv(
-    ["Data", "Tipo de gasto", "Fornecedor", "CNPJ do fornecedor", "Valor líquido (R$)", "Documento"],
-    despesas.map((d) => [
-      d.dataDocumento?.slice(0, 10),
-      d.tipoDespesa,
-      d.nomeFornecedor,
-      // CPF de pessoa física fica de fora, mesmo que a Câmara publique.
-      d.cnpjCpfFornecedor?.replace(/\D/g, "").length === 14 ? d.cnpjCpfFornecedor : null,
-      d.valorLiquido,
-      d.urlDocumento,
-    ]),
-  );
-  return respostaCsv(nomeArquivo("cota", "deputado", id, ano), csv);
+  return csvOuErro("a API da Câmara", async () => {
+    const { ano, despesas } = await getDespesasDeputado(Number(id), Number(legislatura));
+    const csv = gerarCsv(
+      ["Data", "Tipo de gasto", "Fornecedor", "CNPJ do fornecedor", "Valor líquido (R$)", "Documento"],
+      despesas.map((d) => [
+        d.dataDocumento?.slice(0, 10),
+        d.tipoDespesa,
+        d.nomeFornecedor,
+        // CPF de pessoa física fica de fora, mesmo que a Câmara publique.
+        d.cnpjCpfFornecedor?.replace(/\D/g, "").length === 14 ? d.cnpjCpfFornecedor : null,
+        d.valorLiquido,
+        d.urlDocumento,
+      ]),
+    );
+    return respostaCsv(nomeArquivo("cota", "deputado", id, ano), csv);
+  });
 }

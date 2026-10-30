@@ -6,48 +6,68 @@ import { createCamaraClient } from "@/lib/camara/client";
 import { asArray, createSenadoClient } from "@/lib/senado/client";
 import { mapearComparecimento } from "@/lib/senado/mapear";
 import type { VotacaoApi } from "@/lib/senado/types";
+import { fontesQueFalharam, tentar } from "@/lib/erros";
 import { centavos, reais, somar } from "@/lib/format/dinheiro";
-import { createFetcher, normalizarNome } from "@/lib/sync/run";
+import { createFetcher, NA_PAGINA, naoEncontrado, normalizarNome } from "@/lib/sync/run";
 import { getEmendas } from "@/lib/transparencia/queries";
 
-const camara = createCamaraClient();
-const senado = createSenadoClient();
-const fetchJson = createFetcher({ minIntervalMs: 150 });
+const camara = createCamaraClient(NA_PAGINA);
+// O JSON anual da CEAPS tem ~10 MB: precisa de mais tempo que o padrão das páginas.
+const senado = createSenadoClient({ ...NA_PAGINA, timeoutMs: 45_000 });
+const fetchJson = createFetcher({ minIntervalMs: 150, ...NA_PAGINA });
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-/** Deputados e senadores em exercício, no mesmo formato, ordenados por nome. */
-export async function listarParlamentares() {
+// Cada casa tem o seu cache: se uma API cair, a outra continua servindo, e a falha não fica guardada.
+async function deputadosEmExercicio() {
   "use cache";
   cacheLife("days");
   cacheTag("parlamentares");
 
-  const [deputados, senadores] = await Promise.all([
-    camara.deputadosEmExercicio(),
-    senado.senadoresEmExercicio(),
-  ]);
-
-  return [
-    ...deputados.map((d) => ({
-      casa: "camara" as const,
-      id: String(d.id),
-      nome: d.nome,
-      partido: d.siglaPartido,
-      uf: d.siglaUf,
-      fotoUrl: d.urlFoto,
-    })),
-    ...senadores.map((s) => ({
-      casa: "senado" as const,
-      id: s.codigo,
-      nome: s.nome,
-      partido: s.partido,
-      uf: s.uf,
-      fotoUrl: s.fotoUrl,
-    })),
-  ].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return (await camara.deputadosEmExercicio()).map((d) => ({
+    casa: "camara" as const,
+    id: String(d.id),
+    nome: d.nome,
+    partido: d.siglaPartido,
+    uf: d.siglaUf,
+    fotoUrl: d.urlFoto,
+  }));
 }
 
-export type ParlamentarResumo = Awaited<ReturnType<typeof listarParlamentares>>[number];
+async function senadoresEmExercicio() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("parlamentares");
+
+  return (await senado.senadoresEmExercicio()).map((s) => ({
+    casa: "senado" as const,
+    id: s.codigo,
+    nome: s.nome,
+    partido: s.partido,
+    uf: s.uf,
+    fotoUrl: s.fotoUrl,
+  }));
+}
+
+/**
+ * Deputados e senadores em exercício, no mesmo formato, ordenados por nome. Se uma das casas não
+ * responder, a lista vem só com a outra e `indisponiveis` diz qual faltou (ver lib/erros).
+ */
+export async function listarParlamentares() {
+  const [deputados, senadores] = await Promise.all([
+    tentar("a Câmara dos Deputados", deputadosEmExercicio),
+    tentar("o Senado", senadoresEmExercicio),
+  ]);
+
+  return {
+    lista: [...(deputados.ok ? deputados.dados : []), ...(senadores.ok ? senadores.dados : [])].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR"),
+    ),
+    indisponiveis: fontesQueFalharam(deputados, senadores),
+  };
+}
+
+export type ParlamentarResumo = Awaited<ReturnType<typeof listarParlamentares>>["lista"][number];
 
 interface DeputadoDetalhe {
   id: number;
@@ -75,7 +95,10 @@ interface DeputadoDetalhe {
   };
 }
 
-/** Cadastro do deputado, ou `null` se o id não existir. */
+/**
+ * Cadastro do deputado, ou `null` se o id não existir. Só o 404 vira `null`: com a Câmara fora do ar o
+ * erro sobe (e não entra no cache), para a página mostrar "fonte indisponível" em vez de "não existe".
+ */
 export async function getDeputado(id: string) {
   "use cache";
   cacheLife("days");
@@ -86,8 +109,9 @@ export async function getDeputado(id: string) {
       `https://dadosabertos.camara.leg.br/api/v2/deputados/${encodeURIComponent(id)}`,
     );
     return dados;
-  } catch {
-    return null;
+  } catch (error) {
+    if (naoEncontrado(error)) return null;
+    throw error;
   }
 }
 
@@ -123,16 +147,13 @@ export async function getProposicoesDeputado(id: number) {
   return proposicoes.sort((a, b) => (b.dataApresentacao ?? "").localeCompare(a.dataApresentacao ?? ""));
 }
 
+/** Cadastro do senador, ou `null` se o código não existir (a API responde 200 sem o parlamentar). */
 export async function getSenador(codigo: string) {
   "use cache";
   cacheLife("days");
   cacheTag("parlamentares", `senador:${codigo}`);
 
-  try {
-    return await senado.senador(codigo);
-  } catch {
-    return null;
-  }
+  return senado.senador(codigo);
 }
 
 /** Processos de autoria do senador nos últimos 12 meses, mais recentes primeiro. */

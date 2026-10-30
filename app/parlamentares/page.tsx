@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AvisoFonte } from "@/components/aviso-fonte";
 import { BotoesFixar, type AlvoFixado } from "@/components/fixar";
 import { Paginacao } from "@/components/paginacao";
 import { hrefParlamentar, ParlamentarItem } from "@/components/parlamentar-item";
@@ -55,7 +56,7 @@ export default function ParlamentaresPage({ searchParams }: PageProps<"/parlamen
 }
 
 async function Filtros({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
-  const [params, todos, fixados] = await Promise.all([searchParams, listarParlamentares(), getFixados()]);
+  const [params, { lista: todos }, fixados] = await Promise.all([searchParams, listarParlamentares(), getFixados()]);
   const partidos = [...new Set(todos.map((p) => p.partido).filter((p): p is string => Boolean(p)))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
@@ -136,7 +137,23 @@ function ListaSkeleton() {
 }
 
 async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
-  const [params, todos, fixados] = await Promise.all([searchParams, listarParlamentares(), getFixados()]);
+  const [params, { lista: todos, indisponiveis }, fixados] = await Promise.all([
+    searchParams,
+    listarParlamentares(),
+    getFixados(),
+  ]);
+  const aviso = (
+    <AvisoFonte
+      fontes={indisponiveis}
+      consequencia={
+        todos.length === 0
+          ? "Sem as listas oficiais, não há como mostrar os parlamentares agora."
+          : `A lista mostra só os ${todos[0].casa === "camara" ? "deputados" : "senadores"}.`
+      }
+    />
+  );
+  // As duas casas fora do ar: "ninguém encontrado" seria falso.
+  if (todos.length === 0) return aviso;
   // Filtro inválido: o erro aparece no formulário e a lista vem completa.
   const { nome, casa, uf, partido, fixados: soFixados } = lerFiltros(filtrosParlamentares, params).valores ?? {};
   // "Só os fixados": o parlamentar fixado, ou de um partido ou bancada fixados. Sem login, o filtro não vale.
@@ -161,19 +178,22 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
 
   if (lista.length === 0) {
     return (
-      <Empty className="rounded-lg border bg-card">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <UsersIcon aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle>Ninguém encontrado</EmptyTitle>
-          <EmptyDescription>
-            {soFixados && fixados
-              ? "Nada que você fixou combina com esses filtros. Fixe parlamentares, partidos ou bancadas no perfil de cada um."
-              : "Nenhum parlamentar em exercício com esses filtros."}
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <>
+        {aviso}
+        <Empty className="rounded-lg border bg-card">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <UsersIcon aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>Ninguém encontrado</EmptyTitle>
+            <EmptyDescription>
+              {soFixados && fixados
+                ? "Nada que você fixou combina com esses filtros. Fixe parlamentares, partidos ou bancadas no perfil de cada um."
+                : "Nenhum parlamentar em exercício com esses filtros."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </>
     );
   }
 
@@ -186,6 +206,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
 
   return (
     <section id="resultados" aria-labelledby="resultado" className="flex scroll-mt-24 flex-col gap-4">
+      {aviso}
       <RolarAoMudar alvo="resultados" chave={`${nome ?? ""}|${casa ?? ""}|${uf ?? ""}|${partido ?? ""}|${soFixados ?? ""}|${pagina}`} />
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b pb-3">
         <h2 id="resultado" className="text-lg font-semibold" aria-live="polite">

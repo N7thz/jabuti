@@ -50,17 +50,58 @@ function isErroDeRede(error: unknown) {
   );
 }
 
+/** Resposta HTTP de erro de uma API externa. `status` permite separar "não existe" (404) de "fora do ar". */
+export class ErroHttp extends Error {
+  constructor(
+    readonly status: number,
+    readonly url: string,
+    statusText: string,
+  ) {
+    super(`${status} ${statusText} em ${url}`);
+    this.name = "ErroHttp";
+  }
+}
+
+/** A API não respondeu: DNS, conexão recusada ou timeout, mesmo depois das novas tentativas. */
+export class FalhaDeRede extends Error {
+  constructor(readonly url: string, options?: ErrorOptions) {
+    super(`Falha de rede em ${url}`, options);
+    this.name = "FalhaDeRede";
+  }
+}
+
+/** O recurso não existe na fonte (404). Qualquer outro erro é falha da fonte, não ausência de dado. */
+export const naoEncontrado = (error: unknown) => error instanceof ErroHttp && error.status === 404;
+
+/**
+ * Para consultas feitas durante a renderização de uma página: uma nova tentativa só, timeout curto e
+ * espera máxima pequena. Quem está na página prefere ver o aviso de fonte fora do ar a esperar minutos.
+ * Os scripts de carga usam o padrão, mais paciente.
+ */
+export const NA_PAGINA = { retries: 1, timeoutMs: 15_000, esperaMaximaMs: 3_000 } as const;
+
+export interface OpcoesFetcher {
+  minIntervalMs?: number;
+  retries?: number;
+  timeoutMs?: number;
+  /** Teto para a espera entre tentativas, inclusive a pedida em `Retry-After`. */
+  esperaMaximaMs?: number;
+  headers?: HeadersInit;
+}
+
 /**
  * `fetch` de JSON com timeout, novas tentativas para falha de rede e 429/5xx (respeitando
  * `Retry-After`) e intervalo mínimo entre chamadas, inclusive concorrentes, para respeitar o
  * limite das APIs públicas (Portal: 90 req/min no horário comercial). Outros 4xx falham na hora.
+ * Falhas saem como `ErroHttp` ou `FalhaDeRede`.
  */
 export function createFetcher({
   minIntervalMs = 0,
   retries = 4,
   timeoutMs = 30_000,
-  headers = {} as HeadersInit,
-} = {}) {
+  esperaMaximaMs = RETRY_AFTER_MAX_MS,
+  headers = {},
+}: OpcoesFetcher = {}) {
   // Horário reservado para a próxima chamada; reservar antes de esperar serializa chamadas simultâneas.
   let proximo = 0;
   async function aguardarVez() {
@@ -69,6 +110,7 @@ export function createFetcher({
     const espera = inicio - Date.now();
     if (espera > 0) await sleep(espera);
   }
+  const esperar = (ms: number) => sleep(Math.min(ms, esperaMaximaMs));
 
   return async function fetchJson<T>(url: string | URL): Promise<T> {
     for (let attempt = 0; ; attempt++) {
@@ -83,16 +125,16 @@ export function createFetcher({
         if (response.ok) return (await response.json()) as T;
       } catch (error) {
         if (!isErroDeRede(error)) throw error;
-        if (attempt >= retries) throw new Error(`Falha de rede em ${url}`, { cause: error });
-        await sleep(2 ** attempt * 1000);
+        if (attempt >= retries) throw new FalhaDeRede(String(url), { cause: error });
+        await esperar(2 ** attempt * 1000);
         continue;
       }
 
       const retryable = response.status === 429 || response.status >= 500;
       if (!retryable || attempt >= retries) {
-        throw new Error(`${response.status} ${response.statusText} em ${url}`);
+        throw new ErroHttp(response.status, String(url), response.statusText);
       }
-      await sleep(retryAfterMs(response) ?? 2 ** attempt * 1000);
+      await esperar(retryAfterMs(response) ?? 2 ** attempt * 1000);
     }
   };
 }

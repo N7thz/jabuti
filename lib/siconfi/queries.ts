@@ -2,13 +2,14 @@ import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
 
-import { createFetcher } from "@/lib/sync/run";
+import { createFetcher, NA_PAGINA } from "@/lib/sync/run";
 
 import { despesaPorFuncao, receitaRealizada, type LinhaDca } from "./contas";
 import { balancoOrcamentario, despesaPorFuncaoLoa, type LinhaRreo } from "./rreo";
 
 const BASE = "https://apidatalake.tesouro.gov.br/ords/siconfi/tt";
-const get = createFetcher({ minIntervalMs: 200, timeoutMs: 60_000 });
+// Listas e relatórios grandes: timeout maior que o padrão das páginas, mas desiste logo se a fonte estiver fora.
+const get = createFetcher({ minIntervalMs: 200, ...NA_PAGINA, timeoutMs: 60_000 });
 
 type RespostaOrds<T> = { items: T[]; hasMore: boolean };
 

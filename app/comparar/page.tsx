@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AvisoFonte } from "@/components/aviso-fonte";
 import { Compartilhar } from "@/components/compartilhar";
+import { ErroSecao } from "@/components/erro-secao";
 import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos } from "@/components/emendas/valores";
 import { iniciais } from "@/components/parlamentar-item";
@@ -38,34 +40,40 @@ export default function CompararPage({ searchParams }: PageProps<"/comparar">) {
         <Filtros searchParams={searchParams} />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <div role="status" aria-label="Carregando comparação" className="grid gap-4 md:grid-cols-2">
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
-            <Skeleton className="h-80 md:col-span-2" />
-          </div>
-        }
-      >
-        <Resultado searchParams={searchParams} />
-      </Suspense>
+      {/* Se a consulta falhar, o formulário continua na tela para tentar outra combinação. */}
+      <ErroSecao titulo="Comparação" fonte="das APIs da Câmara, do Senado e do Portal da Transparência">
+        <Suspense
+          fallback={
+            <div role="status" aria-label="Carregando comparação" className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-40" />
+              <Skeleton className="h-40" />
+              <Skeleton className="h-80 md:col-span-2" />
+            </div>
+          }
+        >
+          <Resultado searchParams={searchParams} />
+        </Suspense>
+      </ErroSecao>
     </div>
   );
 }
 
 async function Filtros({ searchParams }: Pick<PageProps<"/comparar">, "searchParams">) {
-  const [params, todos] = await Promise.all([searchParams, listarParlamentares()]);
+  const [params, { lista: todos, indisponiveis }] = await Promise.all([searchParams, listarParlamentares()]);
   const opcao = (p: (typeof todos)[number]) => ({
     chave: `${p.casa}-${p.id}`,
     rotulo: `${p.nome} (${p.partido ?? "sem partido"}/${p.uf ?? "—"})`,
   });
   return (
-    <FiltrosForm
-      deputados={todos.filter((p) => p.casa === "camara").map(opcao)}
-      senadores={todos.filter((p) => p.casa === "senado").map(opcao)}
-      valores={lerUrlComparar(params)}
-      erros={lerFiltros(filtrosComparar, params).erros}
-    />
+    <>
+      <AvisoFonte fontes={indisponiveis} consequencia="A lista de escolha está incompleta." />
+      <FiltrosForm
+        deputados={todos.filter((p) => p.casa === "camara").map(opcao)}
+        senadores={todos.filter((p) => p.casa === "senado").map(opcao)}
+        valores={lerUrlComparar(params)}
+        erros={lerFiltros(filtrosComparar, params).erros}
+      />
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { BaixarCsv } from "@/components/baixar-csv";
+import { ErroSecao } from "@/components/erro-secao";
 import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos } from "@/components/emendas/valores";
 import { Termo } from "@/components/termo";
@@ -35,16 +36,19 @@ export default function RankingCotaPage({ searchParams }: PageProps<"/rankings/c
         <Filtros searchParams={searchParams} />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <div role="status" aria-label="Carregando ranking" className="flex flex-col gap-3">
-            <Skeleton className="h-12" />
-            <Skeleton className="h-96" />
-          </div>
-        }
-      >
-        <Resultado searchParams={searchParams} />
-      </Suspense>
+      {/* Se a consulta falhar, o formulário continua na tela para tentar outra combinação. */}
+      <ErroSecao titulo="Ranking" fonte="do banco do portal">
+        <Suspense
+          fallback={
+            <div role="status" aria-label="Carregando ranking" className="flex flex-col gap-3">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-96" />
+            </div>
+          }
+        >
+          <Resultado searchParams={searchParams} />
+        </Suspense>
+      </ErroSecao>
     </div>
   );
 }
