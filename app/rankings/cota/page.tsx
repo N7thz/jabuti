@@ -32,7 +32,8 @@ export default function RankingCotaPage({ searchParams }: PageProps<"/rankings/c
         </p>
       </header>
 
-      <Suspense fallback={<Skeleton className="h-20" />}>
+      {/* O fallback é o próprio formulário com as opções (em cache): vai no HTML estático e funciona sem JavaScript. */}
+      <Suspense fallback={<Filtros />}>
         <Filtros searchParams={searchParams} />
       </Suspense>
 
@@ -53,8 +54,8 @@ export default function RankingCotaPage({ searchParams }: PageProps<"/rankings/c
   );
 }
 
-async function Filtros({ searchParams }: Pick<PageProps<"/rankings/cota">, "searchParams">) {
-  const [params, opcoes] = await Promise.all([searchParams, getOpcoesCota()]);
+async function Filtros({ searchParams }: Partial<Pick<PageProps<"/rankings/cota">, "searchParams">>) {
+  const [params, opcoes] = await Promise.all([searchParams ?? {}, getOpcoesCota()]);
   return (
     <FiltrosForm
       anos={opcoes.anos}
