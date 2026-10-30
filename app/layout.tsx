@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/user-menu";
 
+import { SITE_URL } from "@/lib/site";
+
 import "./globals.css";
 
 // Barlow no texto, Instrument Serif itálico só como destaque em títulos (DESIGN.md); JetBrains Mono para valores técnicos.
@@ -36,10 +38,17 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const DESCRICAO =
+  "Acompanhe e cobre os políticos com dados públicos oficiais: emendas, gastos de gabinete, presença, campanhas e as contas de estados e municípios.";
+
 export const metadata: Metadata = {
+  metadataBase: SITE_URL,
   title: "Jabuti",
-  description:
-    "Acompanhe e cobre os políticos com dados públicos oficiais: emendas, gastos de gabinete, presença, campanhas e as contas de estados e municípios.",
+  description: DESCRICAO,
+  applicationName: "Jabuti",
+  // As imagens vêm dos opengraph-image.tsx de cada rota.
+  openGraph: { type: "website", locale: "pt_BR", siteName: "Jabuti", title: "Jabuti", description: DESCRICAO },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -85,10 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                         className="flex h-10 min-w-0 items-center gap-2 rounded-lg font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
                       >
                         <span aria-hidden="true" className="size-3 shrink-0 rounded-full bg-primary shadow-soft" />
-                        {/* Abaixo de 375px some "Portal da" da tela, mas continua no nome do link. */}
-                        <span className="truncate">
-                          <span className="max-xs:sr-only">Portal da </span>Transparência
-                        </span>
+                        <span className="truncate">Jabuti</span>
                       </Link>
                       <div className="ml-auto flex shrink-0 items-center gap-1 xs:gap-2">
                         <ThemeToggle />
