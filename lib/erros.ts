@@ -1,14 +1,21 @@
 import { unstable_rethrow } from "next/navigation";
 
-// Regra do portal: fonte fora do ar não é lista vazia. Quando uma consulta falha, a página diz qual
-// fonte não respondeu, em vez de mostrar "nenhum registro" (o que, num portal de cobrança, seria
-// afirmar algo falso sobre alguém).
+import { descreverErro, type MotivoErro } from "./erros-motivos";
 
-export type Resultado<T> = { ok: true; dados: T } | { ok: false; fonte: string };
+export * from "./erros-motivos";
+
+// Regra do portal: fonte fora do ar não é lista vazia. Quando uma consulta falha, a página diz qual
+// fonte não respondeu e por quê, em vez de mostrar "nenhum registro" (o que, num portal de cobrança,
+// seria afirmar algo falso sobre alguém).
+
+/** Fonte que não respondeu e o motivo, já em português. */
+export type Falha = { fonte: string } & MotivoErro;
+
+export type Resultado<T> = { ok: true; dados: T } | ({ ok: false } & Falha);
 
 /**
- * Roda a consulta e devolve o resultado ou a falha com o nome da fonte, sem derrubar o resto da página.
- * notFound(), redirect() e os sinais internos do Next continuam subindo.
+ * Roda a consulta e devolve o resultado ou a falha com o nome da fonte e o motivo, sem derrubar o resto
+ * da página. notFound(), redirect() e os sinais internos do Next continuam subindo.
  *
  * Use fora de "use cache": a função cacheada lança, nada fica guardado, e quem chama decide o que mostrar.
  */
@@ -18,14 +25,21 @@ export async function tentar<T>(fonte: string, consulta: Promise<T> | (() => Pro
   } catch (error) {
     unstable_rethrow(error);
     console.error(`[fonte indisponível] ${fonte}:`, error);
-    return { ok: false, fonte };
+    return { ok: false, fonte, ...descreverErro(error) };
   }
 }
 
-/** Nomes das fontes que falharam, sem repetição, para o aviso "não conseguimos consultar X". */
-export const fontesQueFalharam = (...resultados: Resultado<unknown>[]) => [
-  ...new Set(resultados.filter((r) => !r.ok).map((r) => (r as { fonte: string }).fonte)),
-];
+/** Falhas sem repetir a fonte, para o aviso "não conseguimos consultar X". */
+export function fontesQueFalharam(...resultados: Resultado<unknown>[]): Falha[] {
+  const falhas = new Map<string, Falha>();
+  for (const r of resultados) {
+    if (!r.ok && !falhas.has(r.fonte)) {
+      const { ok: _ok, ...falha } = r;
+      falhas.set(r.fonte, falha);
+    }
+  }
+  return [...falhas.values()];
+}
 
 /** "o TCU", "o TCU e o Senado", "o TCU, o Senado e a Câmara". */
 export function listarFontes(fontes: string[]) {

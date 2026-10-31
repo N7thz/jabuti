@@ -1,7 +1,8 @@
 "use client";
 
 import { LogInIcon, LogOutIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,34 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { authClient } from "@/lib/auth-client";
 
-/** `compacto`: abaixo de 640px mostra só "Entrar"; o nome acessível continua "Entrar com Google". */
-export function SignInButton({ label = "Entrar com Google", compacto = false }: { label?: string; compacto?: boolean }) {
+/**
+ * Leva a /entrar (Google ou email e senha), guardando a página atual em `?de=` para voltar a ela depois.
+ * `compacto`: abaixo de 640px mostra só o ícone e "Entrar".
+ */
+export function BotaoEntrar({ compacto = false }: { compacto?: boolean }) {
+  const pathname = usePathname();
+  const href = pathname === "/entrar" || pathname === "/" ? "/entrar" : `/entrar?de=${encodeURIComponent(pathname)}`;
+  return (
+    <Button variant="outline" render={<Link href={href} />}>
+      <LogInIcon data-icon="inline-start" aria-hidden="true" />
+      Entrar{!compacto && " ou criar conta"}
+    </Button>
+  );
+}
+
+/**
+ * Entra pelo Google. `destino`: para onde voltar depois (padrão: a página atual).
+ * `compacto`: abaixo de 640px mostra só "Entrar"; o nome acessível continua "Entrar com Google".
+ */
+export function SignInButton({
+  label = "Entrar com Google",
+  compacto = false,
+  destino,
+}: {
+  label?: string;
+  compacto?: boolean;
+  destino?: string;
+}) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -30,7 +57,7 @@ export function SignInButton({ label = "Entrar com Google", compacto = false }: 
         startTransition(async () => {
           await authClient.signIn.social({
             provider: "google",
-            callbackURL: window.location.pathname + window.location.search,
+            callbackURL: destino ?? window.location.pathname + window.location.search,
           });
         })
       }

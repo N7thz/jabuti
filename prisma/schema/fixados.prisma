@@ -1,0 +1,24 @@
+// Atalhos fixados por quem está logado.
+
+enum TipoFixado {
+  PARLAMENTAR
+  PARTIDO
+  BANCADA
+}
+
+/// Atalho fixado por quem está logado: um parlamentar, um partido ou a bancada de um estado.
+/// Também vira critério de filtro em /parlamentares. Dado pessoal: nunca ler em "use cache".
+model Fixado {
+  id       String     @id @default(cuid())
+  /// E-mail do Google em minúsculas. O login é stateless (sem tabela de usuários), e o e-mail é o identificador estável.
+  usuario  String
+  tipo     TipoFixado
+  /// PARLAMENTAR: "camara-204379" ou "senado-5672" · PARTIDO: sigla ("PL") · BANCADA: UF ("SP").
+  chave    String
+  /// Nome mostrado no atalho (ex.: "Acácio Favacho"), guardado para não depender da API para listar.
+  rotulo   String
+  criadoEm DateTime   @default(now())
+
+  /// Também serve de índice por usuario (primeira coluna).
+  @@unique([usuario, tipo, chave])
+}

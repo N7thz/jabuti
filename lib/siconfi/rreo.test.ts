@@ -1,7 +1,7 @@
 // @ts-expect-error -- o projeto não tem @types/bun; o Bun resolve "bun:test" em tempo de execução.
 import { expect, test } from "bun:test";
 
-import { balancoOrcamentario, despesaPorFuncaoLoa, mesesDoBimestre, type LinhaRreo } from "./rreo";
+import { balancoOrcamentario, despesaPorFuncaoLoa, mesesDoBimestre, receitaCorrenteLiquida, type LinhaRreo } from "./rreo";
 
 const linha = (conta: string, coluna: string, valor: number, rotulo = "Padrão"): LinhaRreo => ({
   exercicio: 2026,
@@ -51,4 +51,16 @@ test("mesesDoBimestre", () => {
   expect(mesesDoBimestre(1)).toBe("janeiro e fevereiro");
   expect(mesesDoBimestre(4)).toBe("julho e agosto");
   expect(mesesDoBimestre(6)).toBe("novembro e dezembro");
+});
+
+test("receitaCorrenteLiquida lê a previsão do ano e o acumulado de 12 meses", () => {
+  const rcl = (coluna: string, valor: number) => ({ ...linha("RECEITA CORRENTE LÍQUIDA (III) = (I - II)", coluna, valor), cod_conta: "RREO3ReceitaCorrenteLiquida" });
+  const anexo3 = [
+    { ...linha("DEDUÇÕES (II)", "PREVISÃO ATUALIZADA 2026", 50), cod_conta: "DeducoesDaReceitaCorrenteLiquida" },
+    rcl("<MR>", 10),
+    rcl("TOTAL (ÚLTIMOS 12 MESES)", 1500.25),
+    rcl("PREVISÃO ATUALIZADA 2026", 1600),
+  ];
+  expect(receitaCorrenteLiquida(anexo3, 2026)).toEqual({ prevista: 160000, ultimos12Meses: 150025 });
+  expect(receitaCorrenteLiquida(anexo3, 2025).prevista).toBe(0);
 });

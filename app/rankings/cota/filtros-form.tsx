@@ -1,9 +1,9 @@
 "use client";
 
+import { CampoSelect } from "@/components/form/campo-select";
+import { BotaoFiltro } from "@/components/form/botao-filtro";
 import { useFiltroForm } from "@/components/form/use-filtro-form";
-import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 import { filtrosRankingCota, linkRankingCota } from "./filtros";
 
@@ -18,7 +18,7 @@ export function FiltrosForm({
   valores?: { ano?: number | null; casa?: string | null; categoria?: string | null };
   erros?: Record<string, string>;
 }) {
-  const { form, onSubmit, acao } = useFiltroForm(filtrosRankingCota, {
+  const { form, onSubmit, acao, pendente } = useFiltroForm(filtrosRankingCota, {
     defaultValues: {
       ano: String(valores.ano ?? anos[0] ?? ""),
       casa: valores.casa ?? "",
@@ -35,6 +35,7 @@ export function FiltrosForm({
       method="get"
       action={acao}
       onSubmit={onSubmit}
+      aria-busy={pendente || undefined}
       noValidate
       role="search"
       aria-label="Filtrar ranking da cota"
@@ -42,32 +43,27 @@ export function FiltrosForm({
     >
       {(
         [
-          ["ano", "Ano", anos.map((a) => [String(a), String(a)])],
+          ["ano", "Ano", anos.map((a) => [String(a), String(a)] as const)],
           ["casa", "Casa", [["", "Câmara e Senado"], ["camara", "Câmara"], ["senado", "Senado"]]],
-          ["categoria", "Tipo de gasto", [["", "Todos os gastos"], ...categorias.map((c) => [c, c])]],
+          ["categoria", "Tipo de gasto", [["", "Todos os gastos"], ...categorias.map((c) => [c, c] as const)]],
         ] as const
       ).map(([campo, rotulo, opcoes]) => (
         <Field key={campo} data-invalid={erro(campo) ? true : undefined}>
           <FieldLabel htmlFor={campo}>{rotulo}</FieldLabel>
-          <NativeSelect
+          <CampoSelect
+            form={form}
+            nome={campo}
             id={campo}
-            className="w-full"
-            aria-invalid={erro(campo) ? true : undefined}
-            aria-describedby={erro(campo) ? `${campo}-erro` : undefined}
-            {...form.register(campo)}
-          >
-            {opcoes.map(([valor, texto]) => (
-              <NativeSelectOption key={valor} value={valor}>
-                {texto}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            opcoes={opcoes}
+            invalido={Boolean(erro(campo))}
+            descritoPor={erro(campo) ? `${campo}-erro` : undefined}
+          />
           {erro(campo) && <FieldError id={`${campo}-erro`}>{erro(campo)}</FieldError>}
         </Field>
       ))}
-      <Button type="submit" size="lg" className="md:mt-7" disabled={form.formState.isSubmitting}>
+      <BotaoFiltro pendente={pendente} className="md:mt-7">
         Ver ranking
-      </Button>
+      </BotaoFiltro>
     </form>
   );
 }

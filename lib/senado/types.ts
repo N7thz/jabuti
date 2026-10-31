@@ -119,6 +119,20 @@ export interface VotacaoApi {
   votos?: VotoParlamentarApi[];
 }
 
+// ---------- plenario/votacao/orientacaoBancada/{inicio}/{fim} ----------
+
+export interface OrientacaoBancadaApi {
+  sequencialVotacao: number;
+  /** AAAA-MM-DDTHH:mm:ss */
+  dataInicioVotacao: string;
+  orientacoesLideranca?: {
+    /** Nome curto: "PL", "Republica", "Podemos", "Governo", "Oposição", "Banc Fem". */
+    partido: string;
+    /** "SIM" | "NÃO" | "LIVRE" | "ABSTENÇÃO" | "OBSTRUÇÃO". */
+    voto: string;
+  }[];
+}
+
 // ---------- plenario/agenda/mes/{AAAAMMDD} ----------
 
 export interface SessaoAgendaApi {
@@ -185,9 +199,29 @@ export interface ProcessoApi {
   autoria: string | null;
   dataApresentacao: string | null;
   situacaoAtual?: string | null;
+  /** AAAA-MM-DD. */
+  dataSituacaoAtual?: string | null;
   tramitando?: string | null;
   tipoDocumento?: string | null;
   urlDocumento?: string | null;
+  /** "Iniciadora" (começou no Senado) ou "Revisora" (veio da Câmara). */
+  objetivo?: string | null;
+  /** Última decisão sobre o processo, ex.: "APROVADA_NO_PLENARIO" (ver /processo/tipos-decisao). */
+  siglaTipoDeliberacao?: string | null;
+  dataDeliberacao?: string | null;
+  /** Texto livre: "Lei nº 15.404 de 08/05/2026". Só vem quando o processo virou norma. */
+  normaGerada?: string | null;
+}
+
+/** Filtros de /processo usados pelo portal. Datas em AAAA-MM-DD; cada intervalo aceita no máximo 1 ano. */
+export interface FiltrosProcesso {
+  siglaSituacao?: string;
+  tramitouLegislaturaAtual?: "S" | "N";
+  anoNorma?: number;
+  dataInicioDeliberacao?: string;
+  dataFimDeliberacao?: string;
+  dataInicioApresentacao?: string;
+  dataFimApresentacao?: string;
 }
 
 // ---------- adm-dadosabertos/api/v1/senadores/despesas_ceaps/{ano} ----------
@@ -244,6 +278,8 @@ export interface MateriaVotada {
 
 export interface VotacaoPlenario {
   codigo: string;
+  /** Liga a votação à orientação de bancada, que não traz `codigoSessaoVotacao`. */
+  sequencial: number | null;
   codigoSessao: string;
   siglaTipoSessao: string;
   data: string;
@@ -286,3 +322,51 @@ export interface ReuniaoComissao {
 
 export type ProcessoAutoria = ProcessoApi;
 export type DespesaCeaps = DespesaCeapsApi;
+
+// ---------- senador/{codigo}/filiacoes ----------
+
+/** /senador/{codigo}/mandatos: mandatos no Senado, de titular ou de suplente, com os períodos em exercício. */
+export interface MandatosSenadorApi {
+  MandatoParlamentar: {
+    Parlamentar?: {
+      Mandatos?: {
+        Mandato?: UmOuVarios<{
+          UfParlamentar: string;
+          PrimeiraLegislaturaDoMandato?: { NumeroLegislatura: string; DataInicio: string; DataFim: string };
+          SegundaLegislaturaDoMandato?: { NumeroLegislatura: string; DataInicio: string; DataFim: string };
+          /** "Titular", "1º Suplente", "2º Suplente". */
+          DescricaoParticipacao: string;
+          /** Ausente quando o suplente nunca assumiu. */
+          Exercicios?: { Exercicio?: UmOuVarios<{ DataInicio: string; DataFim?: string }> };
+        }>;
+      };
+    };
+  };
+}
+
+/** Mandato no Senado já normalizado. */
+export interface MandatoSenado {
+  uf: string;
+  /** AAAA-MM-DD */
+  inicio: string;
+  /** AAAA-MM-DD do fim previsto do mandato. */
+  fim: string;
+  titular: boolean;
+  /** Suplente que assumiu a vaga em algum momento (titular conta como exercido). */
+  exerceu: boolean;
+}
+
+export interface FiliacoesSenadorApi {
+  FiliacaoParlamentar: {
+    Parlamentar?: {
+      Filiacoes?: {
+        Filiacao?: UmOuVarios<{
+          Partido: { SiglaPartido: string; NomePartido?: string };
+          /** AAAA-MM-DD */
+          DataFiliacao: string;
+          DataDesfiliacao?: string;
+        }>;
+      };
+    };
+  };
+}

@@ -5,7 +5,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { createFetcher, NA_PAGINA } from "@/lib/sync/run";
 
 import { despesaPorFuncao, receitaRealizada, type LinhaDca } from "./contas";
-import { balancoOrcamentario, despesaPorFuncaoLoa, type LinhaRreo } from "./rreo";
+import { balancoOrcamentario, despesaPorFuncaoLoa, receitaCorrenteLiquida, type LinhaRreo } from "./rreo";
 
 const BASE = "https://apidatalake.tesouro.gov.br/ords/siconfi/tt";
 // Listas e relatórios grandes: timeout maior que o padrão das páginas, mas desiste logo se a fonte estiver fora.
@@ -47,7 +47,7 @@ export async function getContasAnuais(idEnte: number, ano = new Date().getFullYe
   return null;
 }
 
-async function rreoUniao(ano: number, bimestre: number, anexo: "RREO-Anexo 01" | "RREO-Anexo 02") {
+async function rreoUniao(ano: number, bimestre: number, anexo: "RREO-Anexo 01" | "RREO-Anexo 02" | "RREO-Anexo 03") {
   const url = new URL(`${BASE}/rreo`);
   url.searchParams.set("an_exercicio", String(ano));
   url.searchParams.set("nr_periodo", String(bimestre));
@@ -72,8 +72,17 @@ export async function getLoaUniao(ano = new Date().getFullYear()) {
     for (let bimestre = 6; bimestre >= 1; bimestre--) {
       const anexo1 = await rreoUniao(exercicio, bimestre, "RREO-Anexo 01");
       if (!anexo1.length) continue;
-      const anexo2 = await rreoUniao(exercicio, bimestre, "RREO-Anexo 02");
-      return { ano: exercicio, bimestre, ...balancoOrcamentario(anexo1), funcoes: despesaPorFuncaoLoa(anexo2) };
+      const [anexo2, anexo3] = await Promise.all([
+        rreoUniao(exercicio, bimestre, "RREO-Anexo 02"),
+        rreoUniao(exercicio, bimestre, "RREO-Anexo 03"),
+      ]);
+      return {
+        ano: exercicio,
+        bimestre,
+        ...balancoOrcamentario(anexo1),
+        funcoes: despesaPorFuncaoLoa(anexo2),
+        rcl: receitaCorrenteLiquida(anexo3, exercicio),
+      };
     }
   }
   return null;

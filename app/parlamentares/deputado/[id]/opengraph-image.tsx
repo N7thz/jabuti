@@ -1,9 +1,9 @@
-import { ACENTO, cartao, fotoComoDataUri, ouNulo, porcentagem, TAMANHO } from "@/components/og/cartao";
+import { ACENTO, cartao, fotoComoDataUri, ouNulo, porcentagem, TAMANHO, TIPO } from "@/components/og/cartao";
 import { getDeputado, getPresencaDeputado } from "@/lib/parlamentares/queries";
 
 export const alt = "Cartão do deputado no Jabuti, com a presença no plenário no ano";
 export const size = TAMANHO;
-export const contentType = "image/png";
+export const contentType = TIPO;
 
 export default async function Imagem({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -1,0 +1,71 @@
+// Votações nominais, o voto de cada parlamentar e as orientações de bancada.
+
+/// Voto normalizado entre as duas casas; o texto original fica em `Voto.votoOriginal`.
+enum TipoVoto {
+  SIM
+  NAO
+  ABSTENCAO
+  OBSTRUCAO
+  /// Presidente da sessão não vota (art. 17 do RICD na Câmara, art. 51 do RISF no Senado).
+  PRESIDENTE
+  /// Presente na sessão, mas sem voto registrado (P-NRV no Senado).
+  PRESENTE_SEM_VOTO
+  /// Votação secreta: só se sabe que votou ("Votou"/VO no Senado).
+  VOTO_SECRETO
+  AUSENTE
+  /// Ausência com justificativa registrada (licença, missão oficial, atestado...).
+  AUSENCIA_JUSTIFICADA
+  OUTRO
+}
+
+model Votacao {
+  id           String      @id @default(cuid())
+  casa         Casa
+  idExterno    String
+  data         DateTime
+  descricao    String
+  /// Sigla do órgão onde ocorreu (PLEN, CCJC...).
+  orgaoSigla   String?
+  aprovada     Boolean?
+  resultado    String?
+  proposicaoId String?
+  proposicao   Proposicao? @relation(fields: [proposicaoId], references: [id], onDelete: SetNull)
+
+  votos       Voto[]
+  orientacoes Orientacao[]
+
+  @@unique([casa, idExterno])
+  @@index([data])
+}
+
+model Voto {
+  votacaoId     String
+  parlamentarId String
+  tipo          TipoVoto
+  votoOriginal  String
+  /// Partido do parlamentar na data da votação.
+  partido       String?
+
+  votacao     Votacao     @relation(fields: [votacaoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([votacaoId, parlamentarId])
+  @@index([parlamentarId, tipo])
+}
+
+/// Orientação de bancada: como o líder de um partido, bloco, federação ou do governo pediu que a
+/// bancada votasse. Base do índice de fidelidade ao partido e ao governo.
+model Orientacao {
+  votacaoId  String
+  /// Como a Casa publica: partido ("PL"), federação ("Fdr PT-PCdoB-PV"), bloco ("Bl MdbPsdRepPodePsc")
+  /// ou liderança ("Governo", "Oposição", "Maioria", "Minoria").
+  sigla      String
+  /// Texto original ("Sim", "Não", "Liberado", "LIVRE", "Obstrução").
+  orientacao String
+  /// null quando a bancada foi liberada (cada um vota como quiser).
+  tipo       TipoVoto?
+
+  votacao Votacao @relation(fields: [votacaoId], references: [id], onDelete: Cascade)
+
+  @@id([votacaoId, sigla])
+}

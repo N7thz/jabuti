@@ -7,6 +7,7 @@ import { asArray, createSenadoClient } from "@/lib/senado/client";
 import { mapearComparecimento } from "@/lib/senado/mapear";
 import type { VotacaoApi } from "@/lib/senado/types";
 import { fontesQueFalharam, tentar } from "@/lib/erros";
+import { mudancasCamara, periodosCamara, periodosSenado } from "@/lib/parlamentares/historico";
 import { centavos, reais, somar } from "@/lib/format/dinheiro";
 import { createFetcher, NA_PAGINA, naoEncontrado, normalizarNome } from "@/lib/sync/run";
 import { getEmendas } from "@/lib/transparencia/queries";
@@ -145,6 +146,25 @@ export async function getProposicoesDeputado(id: number) {
     await Promise.all(janelas.map((j) => camara.proposicoesDoAutor(id, j.desde, j.ate)))
   ).flat();
   return proposicoes.sort((a, b) => (b.dataApresentacao ?? "").localeCompare(a.dataApresentacao ?? ""));
+}
+
+/** Partidos por onde o deputado passou e as mudanças de situação (licenças, afastamentos), da API da Câmara. */
+export async function getHistoricoDeputado(id: number) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("parlamentares", `deputado:${id}`);
+
+  const historico = await camara.historico(id);
+  return { partidos: periodosCamara(historico), mudancas: mudancasCamara(historico) };
+}
+
+/** Filiações partidárias do senador, da API do Senado (não informa licenças). */
+export async function getHistoricoSenador(codigo: string) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("parlamentares", `senador:${codigo}`);
+
+  return { partidos: periodosSenado(await senado.filiacoes(codigo)), mudancas: [] };
 }
 
 /** Cadastro do senador, ou `null` se o código não existir (a API responde 200 sem o parlamentar). */

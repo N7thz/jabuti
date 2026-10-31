@@ -11,7 +11,14 @@ export async function getSession() {
   // A sessão é de cada visita: espera a requisição antes do Better Auth rodar. Sem isso, no pré-render
   // parcial (prefetch) os headers já estão disponíveis e o `new Date()` interno dele bloqueia a rota.
   await connection();
-  return auth.api.getSession({ headers: await headers() });
+  try {
+    return await auth.api.getSession({ headers: await headers() });
+  } catch (erro) {
+    // Cookie de sessão corrompido ou de um formato antigo não pode derrubar a página inteira (a sidebar
+    // lê a sessão no layout): segue como visitante. Quem precisa de login cai no 401 do requireSession.
+    console.error("[sessao] falha ao ler a sessão; seguindo como visitante", erro);
+    return null;
+  }
 }
 
 /**

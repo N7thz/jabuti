@@ -1,6 +1,6 @@
 import { LockIcon } from "lucide-react";
 
-import { SignInButton } from "@/components/auth-buttons";
+import { BotaoEntrar } from "@/components/auth-buttons";
 import {
   Empty,
   EmptyContent,
@@ -21,7 +21,7 @@ export default function Unauthorized() {
           <EmptyDescription>Esta ação precisa de uma conta. Entre com o Google para seguir.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <SignInButton />
+          <BotaoEntrar />
         </EmptyContent>
       </Empty>
     </div>

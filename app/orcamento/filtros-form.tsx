@@ -3,11 +3,11 @@
 import { SearchIcon } from "lucide-react";
 
 import { CampoTexto } from "@/components/form/campo-texto";
+import { CampoSelect } from "@/components/form/campo-select";
+import { BotaoFiltro } from "@/components/form/botao-filtro";
 import { useFiltroForm } from "@/components/form/use-filtro-form";
 import { mascaraNome } from "@/lib/filtros/mascaras";
-import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 import { filtrosOrcamento, linkOrcamento } from "./filtros";
 
@@ -20,10 +20,12 @@ export function FiltrosForm({
   valores?: { ano?: number | null; autor?: string | null };
   erros?: Record<string, string>;
 }) {
-  const { form, onSubmit, acao } = useFiltroForm(filtrosOrcamento, {
+  const { form, onSubmit, acao, pendente } = useFiltroForm(filtrosOrcamento, {
     defaultValues: { ano: String(valores.ano ?? anos[0]), autor: valores.autor ?? "" },
     acao: "/orcamento",
     link: linkOrcamento,
+    // A API só acha o nome completo: espera mais para não buscar no meio da palavra.
+    esperar: 900,
   });
   const erroAno = form.formState.errors.ano?.message?.toString() ?? erros.ano;
 
@@ -32,6 +34,7 @@ export function FiltrosForm({
       method="get"
       action={acao}
       onSubmit={onSubmit}
+      aria-busy={pendente || undefined}
       noValidate
       role="search"
       aria-label="Filtrar emendas"
@@ -39,18 +42,14 @@ export function FiltrosForm({
     >
       <Field data-invalid={erroAno ? true : undefined}>
         <FieldLabel htmlFor="ano">Ano</FieldLabel>
-        <NativeSelect
+        <CampoSelect
+          form={form}
+          nome="ano"
           id="ano"
-          aria-invalid={erroAno ? true : undefined}
-          aria-describedby={erroAno ? "ano-erro" : undefined}
-          {...form.register("ano")}
-        >
-          {anos.map((a) => (
-            <NativeSelectOption key={a} value={a}>
-              {a}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          opcoes={anos.map((a) => [a, String(a)] as const)}
+          invalido={Boolean(erroAno)}
+          descritoPor={erroAno ? "ano-erro" : undefined}
+        />
         {erroAno && <FieldError id="ano-erro">{erroAno}</FieldError>}
       </Field>
       <CampoTexto
@@ -63,9 +62,9 @@ export function FiltrosForm({
         icone={<SearchIcon aria-hidden="true" />}
         erroServidor={erros.autor}
       />
-      <Button type="submit" size="lg" className="sm:mt-7" disabled={form.formState.isSubmitting}>
+      <BotaoFiltro pendente={pendente} className="sm:mt-7">
         Buscar
-      </Button>
+      </BotaoFiltro>
     </form>
   );
 }

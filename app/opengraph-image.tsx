@@ -1,8 +1,8 @@
-import { ACENTO, cartao, TAMANHO } from "@/components/og/cartao";
+import { ACENTO, cartao, TAMANHO, TIPO } from "@/components/og/cartao";
 
 export const alt = "Jabuti: acompanhe e cobre os políticos com dados públicos oficiais";
 export const size = TAMANHO;
-export const contentType = "image/png";
+export const contentType = TIPO;
 
 export default function Imagem() {
   return cartao({

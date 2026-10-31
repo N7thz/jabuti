@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { AvisoPagina } from "@/components/aviso-pagina";
 import { Button } from "@/components/ui/button";
+import { codigoParaSuporte, descreverErro } from "@/lib/erros-motivos";
 
 /**
  * Corpo dos error.tsx. `fonte` nomeia de onde a página tira os dados, para o visitante saber quem
@@ -16,7 +17,8 @@ export function ErroDaPagina({ error, retry, fonte }: { error: unknown; retry: (
     console.error(error);
   }, [error]);
 
-  const codigo = error instanceof Error && "digest" in error ? String(error.digest) : null;
+  const codigo = codigoParaSuporte(error);
+  const { codigo: tipo, motivo, passageiro } = descreverErro(error);
 
   return (
     <AvisoPagina
@@ -33,8 +35,12 @@ export function ErroDaPagina({ error, retry, fonte }: { error: unknown; retry: (
         </>
       }
     >
-      {fonte ? `Os dados vêm ${fonte}, que pode estar fora do ar ou lento agora.` : "Uma das fontes oficiais de onde tiramos os dados pode estar fora do ar ou lenta agora."}{" "}
-      Isso costuma passar em alguns minutos. Tente de novo ou siga por outro caminho.
+      {tipo === "desconhecido"
+        ? fonte
+          ? `Os dados vêm ${fonte}, que pode estar fora do ar ou lento agora.`
+          : "Uma das fontes oficiais de onde tiramos os dados pode estar fora do ar ou lenta agora."
+        : `${fonte ? `Os dados vêm ${fonte}. ` : ""}${motivo}`}{" "}
+      {passageiro ? "Isso costuma passar em alguns minutos. Tente de novo ou siga por outro caminho." : "Siga por outro caminho enquanto resolvemos."}
     </AvisoPagina>
   );
 }

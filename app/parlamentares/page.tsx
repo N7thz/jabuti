@@ -1,5 +1,4 @@
 import { PinIcon, UsersIcon } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -20,8 +19,12 @@ import { cn } from "@/lib/utils";
 
 import { filtrosParlamentares, lerUrlParlamentares, linkParlamentares, paginaParlamentares } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = { title: "Parlamentares · Jabuti" };
+export const metadata = metadados({
+  titulo: "Parlamentares · Jabuti",
+  descricao: "Todos os deputados e senadores em exercício: presença, votos, gastos da cota, emendas e campanha de cada um.",
+});
 
 const POR_PAGINA = 30;
 

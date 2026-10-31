@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // Habilita unauthorized()/forbidden(), usados por requireSession().
     authInterrupts: true,
+    // Anexos do /feedback: até 10 MB no total (lib/feedback/schema.ts), mais a folga da codificação do envio.
+    serverActions: { bodySizeLimit: "12mb" },
   },
   turbopack: {
     rules: {

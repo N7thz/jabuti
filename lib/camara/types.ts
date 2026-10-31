@@ -76,7 +76,13 @@ export interface VotoApi {
 
 export interface ProposicaoDetalhe extends ProposicaoResumo {
   uri: string;
-  statusProposicao: { descricaoSituacao: string | null } | null;
+  statusProposicao: {
+    descricaoSituacao: string | null;
+    /** Último andamento ("Apresentação de Proposição"); serve de situação quando a Câmara ainda não deu uma. */
+    descricaoTramitacao: string | null;
+    /** AAAA-MM-DDTHH:mm sem fuso. */
+    dataHora: string | null;
+  } | null;
   urlInteiroTeor: string | null;
 }
 
@@ -106,4 +112,44 @@ export interface Despesa {
   nomeFornecedor: string | null;
   cnpjCpfFornecedor: string | null;
   valorLiquido: number;
+}
+
+export interface OrientacaoApi {
+  /** "Sim" | "Não" | "Liberado" | "Obstrução" | "Abstenção". */
+  orientacaoVoto: string;
+  /** "P" (partido) ou "B" (bloco, federação ou liderança como "Governo"). */
+  codTipoLideranca: string;
+  /** "PL", "Fdr PT-PCdoB-PV", "Bl MdbPsdRepPodePsc", "Governo"... */
+  siglaPartidoBloco: string;
+}
+
+/** Item de /deputados/{id}/historico: cada mudança de partido, situação ou condição no mandato. */
+/**
+ * Cargo eletivo fora da Câmara (vereador, prefeito, deputado estadual...) informado pelo próprio deputado.
+ * Incompleto: muitos deputados não preenchem, e o mesmo mandato às vezes aparece mais de uma vez.
+ */
+export interface MandatoExternoApi {
+  /** "Vereador(a)", "Prefeito(a)", "Deputado(a) Estadual"... */
+  cargo: string;
+  siglaUf: string | null;
+  municipio: string | null;
+  /** Ano como texto ("2013"). */
+  anoInicio: string | null;
+  /** Ano como texto; "0" ou vazio quando não informado. */
+  anoFim: string | null;
+  siglaPartidoEleicao: string | null;
+}
+
+export interface HistoricoDeputadoApi {
+  siglaPartido: string | null;
+  siglaUf: string | null;
+  idLegislatura: number;
+  /** AAAA-MM-DDTHH:mm */
+  dataHora: string;
+  /** "Exercício", "Licença", "Afastado", "Fim de Mandato"... */
+  situacao: string | null;
+  /** "Titular" | "Suplente". */
+  condicaoEleitoral: string | null;
+  /** Ex.: "Alteração de partido", "Entrada - Posse de Eleito Titular". */
+  descricaoStatus: string | null;
 }

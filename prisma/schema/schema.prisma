@@ -1,0 +1,48 @@
+// Banco público do portal: dados sincronizados da Câmara, do Senado e do Portal da Transparência.
+// A sincronização roda fora das requisições (scripts/sync-*), as páginas só leem daqui.
+// Os modelos ficam nos outros arquivos desta pasta, um por escopo; aqui ficam o gerador, a conexão e os enums usados por vários escopos.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../../lib/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Casa {
+  CAMARA
+  SENADO
+}
+
+enum Uf {
+  AC
+  AL
+  AP
+  AM
+  BA
+  CE
+  DF
+  ES
+  GO
+  MA
+  MT
+  MS
+  MG
+  PA
+  PB
+  PR
+  PE
+  PI
+  RJ
+  RN
+  RS
+  RO
+  RR
+  SC
+  SP
+  SE
+  TO
+}

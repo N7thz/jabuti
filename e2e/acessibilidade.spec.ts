@@ -5,6 +5,7 @@ import { expect, test } from "@playwright/test";
 
 const PAGINAS = [
   ["início", "/"],
+  ["consulta CNPJ", "/empresas"],
   ["parlamentares", "/parlamentares"],
   ["estados", "/estados"],
   ["orçamento", "/orcamento"],
@@ -15,6 +16,8 @@ const PAGINAS = [
   ["votação do Senado", "/votacoes/senado/6953"],
   ["comparar", "/comparar?a=camara-204511&b=camara-221328"],
   ["ranking da cota", "/rankings/cota"],
+  ["leis e projetos", "/leis"],
+  ["projetos prontos para votar", "/leis?etapa=plenario"],
 ] as const;
 
 for (const tema of ["light", "dark"] as const) {

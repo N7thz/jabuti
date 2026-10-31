@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -6,8 +5,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AvisoFonte } from "@/components/aviso-fonte";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { UFS } from "@/lib/ufs";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = { title: "Estados · Jabuti" };
+export const metadata = metadados({
+  titulo: "Estados · Jabuti",
+  descricao: "Quem representa cada estado na Câmara e no Senado, e as emendas que cada cidade recebeu.",
+});
 
 export default function EstadosPage() {
   return (
@@ -53,7 +56,7 @@ async function Estados() {
       <AvisoFonte fontes={indisponiveis} consequencia="A contagem de parlamentares por estado está incompleta." />
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Object.entries(UFS).map(([sigla, nome], i) => (
-          <li key={sigla} className="animate-enter" style={{ "--stagger": Math.min(i, 12) } as React.CSSProperties}>
+          <li data-revelar key={sigla} className="animate-enter" style={{ "--stagger": Math.min(i, 12) } as React.CSSProperties}>
             <Link
               href={`/estados/${sigla}`}
               className="flex items-center gap-4 rounded-lg border bg-card p-4 outline-none transition-shadow duration-200 hover:shadow-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"

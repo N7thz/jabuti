@@ -11,6 +11,7 @@ import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamen
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
+import { PartidoEFidelidade } from "@/components/partido-fidelidade";
 import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { HistoricoVotos } from "@/components/votacoes/historico";
@@ -29,10 +30,18 @@ import {
   getProposicoesDeputado,
 } from "@/lib/parlamentares/queries";
 import { getVotosDeputado, ultimaCarga } from "@/lib/votacoes/queries";
+import { metadados } from "@/lib/metadados";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/deputado/[id]">): Promise<Metadata> {
   const deputado = await getDeputado((await params).id);
-  return { title: `${deputado?.ultimoStatus.nome ?? "Deputado"} · Jabuti` };
+  if (!deputado) return metadados({ titulo: "Deputado · Jabuti", imagemPropria: true });
+  const s = deputado.ultimoStatus;
+  const partido = [s.siglaPartido, s.siglaUf].filter(Boolean).join("/");
+  return metadados({
+    titulo: `${s.nomeEleitoral || s.nome}${partido ? ` (${partido})` : ""} · Jabuti`,
+    descricao: "Presença no plenário, como votou, gastos da cota, emendas e campanha deste deputado federal, com dados oficiais.",
+    imagemPropria: true,
+  });
 }
 
 export default function DeputadoPage({ params }: PageProps<"/parlamentares/deputado/[id]">) {
@@ -102,6 +111,10 @@ async function Deputado({ id }: { id: string }) {
 
       <SecaoProtegida titulo="Como votou" id="votacoes" fonte="das votações da Câmara guardadas no portal">
         <VotosDeputado id={String(deputado.id)} />
+      </SecaoProtegida>
+
+      <SecaoProtegida titulo="Partido e fidelidade" id="fidelidade" fonte="das votações guardadas no portal">
+        <PartidoEFidelidade casa="CAMARA" idExterno={String(deputado.id)} nome={s.nomeEleitoral || s.nome} />
       </SecaoProtegida>
 
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}

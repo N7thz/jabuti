@@ -2,7 +2,7 @@
  * Sincroniza dados da Câmara dos Deputados com o Postgres.
  *
  *   bun scripts/sync-camara.ts [--desde AAAA-MM-DD] [--ate AAAA-MM-DD]
- *     [--so deputados,votacoes,eventos,despesas,proposicoes] [--limite-deputados N] [--dry-run]
+ *     [--so deputados,votacoes,orientacoes,eventos,despesas,proposicoes] [--limite-deputados N] [--dry-run]
  *
  * Padrão: últimos 30 dias, todas as etapas. Com --dry-run não abre conexão com o banco:
  * busca e mapeia de verdade e imprime contagens e 2 exemplos por etapa.
@@ -12,6 +12,7 @@ import {
   sincronizarDeputados,
   sincronizarDespesas,
   sincronizarEventos,
+  sincronizarOrientacoes,
   sincronizarProposicoes,
   sincronizarVotacoes,
   type Contexto,
@@ -20,7 +21,7 @@ import {
 import { createPrisma } from "../lib/prisma";
 import { registrarSync } from "../lib/sync/run";
 
-const ETAPAS = ["deputados", "votacoes", "eventos", "despesas", "proposicoes"] as const;
+const ETAPAS = ["deputados", "votacoes", "orientacoes", "eventos", "despesas", "proposicoes"] as const;
 type Etapa = (typeof ETAPAS)[number];
 
 const DIA = 24 * 60 * 60 * 1000;
@@ -78,6 +79,7 @@ async function main() {
   const execucoes: Record<Etapa, { escopo: string; rodar: (c: Contexto) => Promise<Resultado> }> = {
     deputados: { escopo: "deputados", rodar: (c) => sincronizarDeputados(c) },
     votacoes: { escopo: `votacoes:${desde}..${ate}`, rodar: (c) => sincronizarVotacoes(c, desde, ate) },
+    orientacoes: { escopo: `orientacoes:${desde}..${ate}`, rodar: (c) => sincronizarOrientacoes(c, desde, ate) },
     eventos: { escopo: `eventos:${desde}..${ate}`, rodar: (c) => sincronizarEventos(c, desde, ate) },
     despesas: { escopo: `despesas:${desde}..${ate}`, rodar: (c) => sincronizarDespesas(c, desde, ate) },
     proposicoes: { escopo: `proposicoes:${desde}..${ate}`, rodar: (c) => sincronizarProposicoes(c, desde, ate) },

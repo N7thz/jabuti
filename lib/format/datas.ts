@@ -11,3 +11,6 @@ export function formatarData(data?: string | Date | null) {
     : parseISO(texto.slice(0, 10));
   return isValid(dia) ? format(dia, "dd/MM/yyyy", { locale: ptBR }) : "—";
 }
+
+/** Mês e ano por extenso ("setembro de 2026"); `mes` de 1 a 12. */
+export const formatarMesAno = (ano: number, mes: number) => format(new Date(ano, mes - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });

@@ -1,0 +1,49 @@
+// Emendas parlamentares do Portal da Transparência.
+
+/// Onde o recurso da emenda será gasto, interpretado a partir de `localidadeDoGasto`.
+enum AbrangenciaEmenda {
+  MUNICIPIO
+  ESTADO
+  REGIAO
+  NACIONAL
+  EXTERIOR
+  /// "MÚLTIPLO" no Portal: vários locais, sem detalhamento por município/UF.
+  MULTIPLA
+  NAO_INFORMADA
+}
+
+/// Emendas parlamentares do Portal da Transparência (/api-de-dados/emendas).
+model Emenda {
+  /// Chave sintética "ano|codigoEmenda|hash": o Portal devolve uma linha por emenda × localidade × função.
+  codigo              String            @id
+  /// Código da emenda como o Portal publica (não é único, ver `codigo`).
+  codigoEmenda        String
+  ano                 Int
+  tipo                String
+  numero              String?
+  autorNome           String
+  /// Preenchido quando o autor casa com um parlamentar sincronizado; bancadas e comissões ficam nulas.
+  parlamentarId       String?
+  localidadeOriginal  String?
+  abrangencia         AbrangenciaEmenda
+  uf                  Uf?
+  municipioIbge       Int?
+  funcao              String?
+  subfuncao           String?
+  valorEmpenhado      Decimal           @db.Decimal(18, 2)
+  valorLiquidado      Decimal           @db.Decimal(18, 2)
+  valorPago           Decimal           @db.Decimal(18, 2)
+  valorRestoInscrito  Decimal           @db.Decimal(18, 2)
+  valorRestoCancelado Decimal           @db.Decimal(18, 2)
+  valorRestoPago      Decimal           @db.Decimal(18, 2)
+  atualizadoEm        DateTime          @updatedAt
+
+  parlamentar Parlamentar? @relation(fields: [parlamentarId], references: [id], onDelete: SetNull)
+  municipio   Municipio?   @relation(fields: [municipioIbge], references: [ibge], onDelete: SetNull)
+
+  @@index([uf, ano])
+  @@index([municipioIbge, ano])
+  @@index([parlamentarId, ano])
+  @@index([autorNome])
+  @@index([codigoEmenda])
+}

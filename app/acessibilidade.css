@@ -1,0 +1,22 @@
+/*
+ * Preferências de leitura (lib/acessibilidade.ts). Ficam fora de @layer de propósito: regra sem camada
+ * vence as utilidades do Tailwind, então o espaçamento amplo vale mesmo onde a classe pede "leading-tight".
+ */
+
+/* Tamanho do texto: o Tailwind mede tudo em rem, então mudar a fonte do <html> escala texto, espaços e alvos de toque juntos. */
+html[data-texto="grande"] {
+  font-size: 112.5%;
+}
+html[data-texto="maior"] {
+  font-size: 125%;
+}
+
+/* Espaçamento para leitura, perto do critério 1.4.12 do WCAG: entrelinha, letras e palavras mais abertas. */
+html[data-espacamento="amplo"] :where(p, li, dd, dt, td, th, label, blockquote, figcaption, summary) {
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+  word-spacing: 0.12em;
+}
+html[data-espacamento="amplo"] :where(p, li, blockquote) + :where(p, li, blockquote) {
+  margin-top: 0.75em;
+}

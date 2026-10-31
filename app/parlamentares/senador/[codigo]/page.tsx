@@ -10,6 +10,7 @@ import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamen
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
+import { PartidoEFidelidade } from "@/components/partido-fidelidade";
 import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { HistoricoVotos } from "@/components/votacoes/historico";
@@ -29,10 +30,17 @@ import {
   getVotosSenador,
 } from "@/lib/parlamentares/queries";
 import { votacoesSenadoNoBanco } from "@/lib/votacoes/queries";
+import { metadados } from "@/lib/metadados";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/senador/[codigo]">): Promise<Metadata> {
   const senador = await getSenador((await params).codigo);
-  return { title: `${senador?.nome ?? "Senador"} · Jabuti` };
+  if (!senador) return metadados({ titulo: "Senador · Jabuti", imagemPropria: true });
+  const partido = [senador.partido, senador.uf].filter(Boolean).join("/");
+  return metadados({
+    titulo: `${senador.nome}${partido ? ` (${partido})` : ""} · Jabuti`,
+    descricao: "Presença no plenário, como votou, gastos da cota, emendas e campanha deste senador, com dados oficiais.",
+    imagemPropria: true,
+  });
 }
 
 export default function SenadorPage({ params }: PageProps<"/parlamentares/senador/[codigo]">) {
@@ -88,6 +96,10 @@ async function Senador({ codigo }: { codigo: string }) {
 
       <SecaoProtegida titulo="Como votou" id="votacoes" fonte="da API do Senado">
         <VotosSenador codigo={codigo} />
+      </SecaoProtegida>
+
+      <SecaoProtegida titulo="Partido e fidelidade" id="fidelidade" fonte="das votações guardadas no portal">
+        <PartidoEFidelidade casa="SENADO" idExterno={codigo} nome={senador.nome} />
       </SecaoProtegida>
 
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}

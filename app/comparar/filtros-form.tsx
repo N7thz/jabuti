@@ -2,8 +2,8 @@
 
 import { Controller } from "react-hook-form";
 
+import { BotaoFiltro } from "@/components/form/botao-filtro";
 import { useFiltroForm } from "@/components/form/use-filtro-form";
-import { Button } from "@/components/ui/button";
 import {
   Combobox,
   ComboboxCollection,
@@ -40,7 +40,7 @@ export function FiltrosForm({
   valores?: { a?: string | null; b?: string | null };
   erros?: Record<string, string>;
 }) {
-  const { form, onSubmit, acao } = useFiltroForm(filtrosComparar, {
+  const { form, onSubmit, acao, pendente } = useFiltroForm(filtrosComparar, {
     defaultValues: { a: valores.a ?? "", b: valores.b ?? "" },
     acao: "/comparar",
     link: linkComparar,
@@ -59,6 +59,7 @@ export function FiltrosForm({
       method="get"
       action={acao}
       onSubmit={onSubmit}
+      aria-busy={pendente || undefined}
       noValidate
       aria-label="Escolher parlamentares para comparar"
       className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-start"
@@ -141,9 +142,9 @@ export function FiltrosForm({
           {erro(campo) && <FieldError id={`${campo}-erro`}>{erro(campo)}</FieldError>}
         </Field>
       ))}
-      <Button type="submit" size="lg" className="md:mt-7" disabled={form.formState.isSubmitting}>
+      <BotaoFiltro pendente={pendente} className="md:mt-7">
         Comparar
-      </Button>
+      </BotaoFiltro>
     </form>
   );
 }

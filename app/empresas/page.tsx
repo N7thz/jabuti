@@ -10,7 +10,10 @@ import {
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AvisoFonte } from "@/components/aviso-fonte";
+import { ErroSecao } from "@/components/erro-secao";
 import { BuscaCnpj } from "@/components/form/busca-cnpj";
+import { HeroFundo } from "@/components/hero-fundo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Termo } from "@/components/termo";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +36,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fontesQueFalharam, tentar } from "@/lib/erros";
 import { mascaraCnpj } from "@/lib/filtros/mascaras";
 import { buscaCnpjSchema } from "@/lib/filtros/formularios";
 import { lerFiltros } from "@/lib/filtros/schemas";
@@ -46,6 +50,12 @@ import {
   getSancoesCeis,
   getSancoesCnep,
 } from "@/lib/transparencia/queries";
+import { metadados } from "@/lib/metadados";
+
+export const metadata = metadados({
+  titulo: "Consulta CNPJ · Jabuti",
+  descricao: "Digite um CNPJ e veja os contratos da empresa com o governo federal e se ela tem sanções no CEIS, no CNEP ou no TCU.",
+});
 
 const stagger = (i: number) => ({ "--stagger": i }) as React.CSSProperties;
 
@@ -82,7 +92,7 @@ const FONTES = [
   },
 ] as const;
 
-export default function Home({ searchParams }: PageProps<"/">) {
+export default function ConsultaCnpj({ searchParams }: PageProps<"/empresas">) {
   return (
     <div data-secao="empresas" className="mx-auto flex w-full max-w-7xl flex-col gap-[clamp(3rem,6vw,5rem)] px-4 xs:px-6 py-[clamp(2.5rem,6vw,5rem)]">
       {/* Hero do Logoisum sem vídeo: bloco charcoal (tokens escuros via .dark nos dois temas) com SVG estático. */}
@@ -161,31 +171,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
   );
 }
 
-/** Linhas de grade e círculos concêntricos no lugar do vídeo do original; só decoração. */
-function HeroFundo() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 size-full text-border"
-      preserveAspectRatio="xMidYMid slice"
-      viewBox="0 0 1200 800"
-    >
-      <defs>
-        <pattern id="hero-grade" width="80" height="80" patternUnits="userSpaceOnUse">
-          <path d="M80 0H0V80" fill="none" stroke="currentColor" strokeWidth="1" />
-        </pattern>
-      </defs>
-      <rect width="1200" height="800" fill="url(#hero-grade)" opacity="0.5" />
-      <g fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="600" cy="400" r="220" />
-        <circle cx="600" cy="400" r="340" />
-        <circle cx="600" cy="400" r="460" />
-      </g>
-    </svg>
-  );
-}
-
-async function readCnpj(searchParams: PageProps<"/">["searchParams"]) {
+async function readCnpj(searchParams: PageProps<"/empresas">["searchParams"]) {
   const params = await searchParams;
   const valor = typeof params.cnpj === "string" ? params.cnpj : "";
   if (!valor) return { valor, cnpj: null, erro: undefined };
@@ -195,19 +181,22 @@ async function readCnpj(searchParams: PageProps<"/">["searchParams"]) {
   return { valor, cnpj: valores?.cnpj ?? null, erro: erros.cnpj };
 }
 
-async function SearchFromParams({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+async function SearchFromParams({ searchParams }: Pick<PageProps<"/empresas">, "searchParams">) {
   const { valor, erro } = await readCnpj(searchParams);
   return <BuscaCnpj valor={valor} erroServidor={erro} />;
 }
 
-async function Resultado({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
+async function Resultado({ searchParams }: Pick<PageProps<"/empresas">, "searchParams">) {
   const { cnpj } = await readCnpj(searchParams);
   if (!cnpj) return null;
 
   return (
-    <Suspense key={cnpj} fallback={<EmpresaSkeleton />}>
-      <Empresa cnpj={cnpj} />
-    </Suspense>
+    // Portal fora do ar: o aviso fica no lugar do resultado e o campo de busca continua na tela.
+    <ErroSecao key={cnpj} titulo="Consulta do CNPJ" fonte="do Portal da Transparência">
+      <Suspense fallback={<EmpresaSkeleton />}>
+        <Empresa cnpj={cnpj} />
+      </Suspense>
+    </ErroSecao>
   );
 }
 
@@ -224,12 +213,13 @@ function EmpresaSkeleton() {
 }
 
 async function Empresa({ cnpj }: { cnpj: string }) {
-  const [pj, ceis, cnep, tcu, contratos] = await Promise.all([
+  // Sem o cadastro não há o que mostrar: esse erro sobe. As outras fontes falham sozinhas, com aviso.
+  const [pj, ceisR, cnepR, tcuR, contratosR] = await Promise.all([
     getPessoaJuridica(cnpj),
-    getSancoesCeis(cnpj),
-    getSancoesCnep(cnpj),
-    getInidoneidadesTcu(cnpj),
-    getContratosPorFornecedor(cnpj),
+    tentar("o CEIS", getSancoesCeis(cnpj)),
+    tentar("o CNEP", getSancoesCnep(cnpj)),
+    tentar("o TCU", getInidoneidadesTcu(cnpj)),
+    tentar("os contratos do Portal da Transparência", getContratosPorFornecedor(cnpj)),
   ]);
 
   if (!pj?.razaoSocial) {
@@ -243,7 +233,7 @@ async function Empresa({ cnpj }: { cnpj: string }) {
           <EmptyDescription>Este CNPJ não aparece nas bases do Portal da Transparência.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button variant="outline" render={<Link href="/" />} nativeButton={false}>
+          <Button variant="outline" render={<Link href="/empresas" />} nativeButton={false}>
             <RotateCcwIcon data-icon="inline-start" aria-hidden="true" />
             Nova consulta
           </Button>
@@ -253,10 +243,14 @@ async function Empresa({ cnpj }: { cnpj: string }) {
   }
 
   const sancoes = [
-    ...ceis.map((s) => ({ ...s, cadastro: "CEIS" })),
-    ...cnep.map((s) => ({ ...s, cadastro: "CNEP" })),
+    ...(ceisR.ok ? ceisR.dados : []).map((s) => ({ ...s, cadastro: "CEIS" })),
+    ...(cnepR.ok ? cnepR.dados : []).map((s) => ({ ...s, cadastro: "CNEP" })),
   ];
+  const tcu = tcuR.ok ? tcuR.dados : [];
+  const contratos = contratosR.ok ? contratosR.dados : [];
   const totalSancoes = sancoes.length + tcu.length;
+  // Cadastro de sanções que não respondeu: "nenhuma sanção" seria uma afirmação falsa sobre a empresa.
+  const sancoesFaltando = fontesQueFalharam(ceisR, cnepR, tcuR);
 
   return (
     <section aria-labelledby="empresa" className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
@@ -284,7 +278,12 @@ async function Empresa({ cnpj }: { cnpj: string }) {
             ))}
           </ul>
 
-          {totalSancoes === 0 ? (
+          {totalSancoes === 0 && sancoesFaltando.length > 0 ? (
+            <AvisoFonte
+              fontes={sancoesFaltando}
+              consequencia="Não dá para afirmar agora que a empresa não tem sanções."
+            />
+          ) : totalSancoes === 0 ? (
             <Alert>
               <ShieldCheckIcon aria-hidden="true" />
               <AlertTitle>Nenhuma sanção</AlertTitle>
@@ -297,6 +296,7 @@ async function Empresa({ cnpj }: { cnpj: string }) {
             <Alert variant="destructive">
               <ShieldAlertIcon aria-hidden="true" />
               <AlertTitle>
+                {sancoesFaltando.length > 0 && "Pelo menos "}
                 {totalSancoes} {totalSancoes === 1 ? "sanção encontrada" : "sanções encontradas"}
               </AlertTitle>
               <AlertDescription>
@@ -324,6 +324,9 @@ async function Empresa({ cnpj }: { cnpj: string }) {
               </AlertDescription>
             </Alert>
           )}
+          {totalSancoes > 0 && (
+            <AvisoFonte fontes={sancoesFaltando} consequencia="A lista de sanções pode estar incompleta." />
+          )}
         </CardContent>
       </Card>
 
@@ -331,11 +334,15 @@ async function Empresa({ cnpj }: { cnpj: string }) {
         <CardHeader>
           <CardTitle className="text-xl font-bold">Contratos recentes</CardTitle>
           <CardDescription>
-            {contratos.length} {contratos.length === 1 ? "contrato" : "contratos"} com o Poder Executivo Federal
+            {contratosR.ok
+              ? `${contratos.length} ${contratos.length === 1 ? "contrato" : "contratos"} com o Poder Executivo Federal`
+              : "Contratos com o Poder Executivo Federal"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {contratos.length === 0 ? (
+          {!contratosR.ok ? (
+            <AvisoFonte fontes={[contratosR]} consequencia="Os contratos não puderam ser carregados." />
+          ) : contratos.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -350,6 +357,7 @@ async function Empresa({ cnpj }: { cnpj: string }) {
               {contratos.map((c, i) => (
                 <Item
                   key={c.id}
+                  data-revelar
                   variant="outline"
                   className="animate-enter transition-shadow duration-200 hover:shadow-soft"
                   style={stagger(Math.min(i, 8) + 2)}

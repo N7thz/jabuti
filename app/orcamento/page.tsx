@@ -1,17 +1,22 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AvisoFonte } from "@/components/aviso-fonte";
 import { EmendasLista } from "@/components/emendas-lista";
 import { Paginacao } from "@/components/paginacao";
 import { Skeleton } from "@/components/ui/skeleton";
+import { tentar } from "@/lib/erros";
 import { lerFiltros } from "@/lib/filtros/schemas";
 import { getEmendas } from "@/lib/transparencia/queries";
 
 import { filtrosOrcamento, lerUrlOrcamento, linkOrcamento, PRIMEIRO_ANO } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = { title: "Orçamento · Jabuti" };
+export const metadata = metadados({
+  titulo: "Emendas no orçamento · Jabuti",
+  descricao: "As emendas parlamentares do orçamento federal por ano, autor e destino, com quanto já foi pago.",
+});
 
 const ULTIMO_ANO = new Date().getFullYear();
 const ANOS = Array.from({ length: ULTIMO_ANO - PRIMEIRO_ANO + 1 }, (_, i) => ULTIMO_ANO - i);
@@ -66,15 +71,29 @@ async function Resultado({ searchParams }: Pick<PageProps<"/orcamento">, "search
   if (!valores) return null;
 
   const { ano = ANOS[0], autor, pagina = 1 } = valores;
-  const emendas = await getEmendas({ ano, nomeAutor: autor }, pagina);
+  // Portal fora do ar não derruba a página: o formulário continua e o aviso diz o que aconteceu.
+  const resultado = await tentar("o Portal da Transparência", getEmendas({ ano, nomeAutor: autor }, pagina));
   const link = (p: number) => linkOrcamento("/orcamento", { ano, autor, pagina: p });
+  const titulo = (
+    <h2 id="resultado" className="text-sm text-muted-foreground" aria-live="polite">
+      Emendas de {ano}
+      {autor && <> de {autor}</>} · página {pagina}
+    </h2>
+  );
+
+  if (!resultado.ok) {
+    return (
+      <section aria-labelledby="resultado" className="flex flex-col gap-4">
+        {titulo}
+        <AvisoFonte fontes={[resultado]} consequencia="As emendas não puderam ser carregadas." />
+      </section>
+    );
+  }
+  const emendas = resultado.dados;
 
   return (
     <section aria-labelledby="resultado" className="flex flex-col gap-4">
-      <h2 id="resultado" className="text-sm text-muted-foreground" aria-live="polite">
-        Emendas de {ano}
-        {autor && <> de {autor}</>} · página {pagina}
-      </h2>
+      {titulo}
 
       <EmendasLista
         emendas={emendas}

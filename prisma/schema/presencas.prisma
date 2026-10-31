@@ -1,0 +1,41 @@
+// Sessões do plenário, reuniões de comissões e a presença de cada parlamentar.
+
+enum SituacaoPresenca {
+  PRESENTE
+  AUSENTE
+  AUSENCIA_JUSTIFICADA
+}
+
+/// Sessões do plenário e reuniões de comissões.
+model Evento {
+  id         String    @id @default(cuid())
+  casa       Casa
+  idExterno  String
+  inicio     DateTime
+  fim        DateTime?
+  tipo       String
+  situacao   String?
+  descricao  String?
+  orgaoSigla String?
+  orgaoNome  String?
+  local      String?
+  url        String?
+
+  presencas Presenca[]
+
+  @@unique([casa, idExterno])
+  @@index([inicio])
+}
+
+model Presenca {
+  eventoId      String
+  parlamentarId String
+  situacao      SituacaoPresenca
+  justificativa String?
+
+  evento      Evento      @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([eventoId, parlamentarId])
+  @@index([parlamentarId, situacao])
+}

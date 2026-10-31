@@ -1,0 +1,19 @@
+// Municípios do IBGE, usados para localizar emendas e votos.
+
+model Municipio {
+  /// Código IBGE de 7 dígitos.
+  ibge         Int    @id
+  nome         String
+  /// Nome sem acento e em maiúsculas, usado para interpretar `localidadeDoGasto`.
+  nomeBusca    String
+  uf           Uf
+  /// Estimativa de população do IBGE (SIDRA, agregado 6579), base de "emenda por habitante" nos rankings.
+  populacao    Int?
+  /// Ano de referência da estimativa em `populacao`.
+  populacaoAno Int?
+
+  emendas Emenda[]
+
+  @@unique([uf, nomeBusca])
+  @@index([nomeBusca])
+}

@@ -1,11 +1,11 @@
-import { ACENTO, cartao, ouNulo, TAMANHO } from "@/components/og/cartao";
+import { ACENTO, cartao, ouNulo, TAMANHO, TIPO } from "@/components/og/cartao";
 import { getAnosEmendas, getEmendasMunicipio, getMunicipio } from "@/lib/emendas/queries";
 import { deCentavos, formatarReais } from "@/lib/format/dinheiro";
 import { isUf, UFS } from "@/lib/ufs";
 
 export const alt = "Cartão da cidade no Jabuti, com o total pago em emendas parlamentares no ano";
 export const size = TAMANHO;
-export const contentType = "image/png";
+export const contentType = TIPO;
 
 export default async function Imagem({ params }: { params: Promise<{ uf: string; ibge: string }> }) {
   const { uf, ibge } = await params;

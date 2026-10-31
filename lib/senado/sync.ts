@@ -1,3 +1,4 @@
+import { tipoDaOrientacao } from "../fidelidade";
 import type { Prisma } from "../generated/prisma/client";
 import type { PrismaClient } from "../prisma";
 import type { SenadoClient } from "./client";
@@ -19,7 +20,7 @@ import {
   sessaoConta,
   type PresencaMapeada,
 } from "./mapear";
-import type { ReuniaoComissao, Senador, SessaoPlenario, VotacaoPlenario } from "./types";
+import type { OrientacaoBancadaApi, ReuniaoComissao, Senador, SessaoPlenario, VotacaoPlenario } from "./types";
 
 // Cada etapa tem `buscar*` (API + mapeamento, sem banco; é o que o --dry-run usa) e `gravar*`
 // (idempotente: upsert por casa+idExterno, filhos apagados e recriados por pai).
@@ -175,6 +176,53 @@ export async function gravarVotacoes(prisma: PrismaClient, dados: ReturnType<typ
       prisma.voto.createMany({ data: votos }),
     ]);
     registros += gravadas.length + votos.length;
+  }
+  return registros;
+}
+
+// ---------------------------------- 2b. orientações de bancada ----------------------------------
+
+/** Casa a orientação com a votação pelo sequencial (o serviço não traz o código) e confere o dia. */
+export function mapearOrientacoes(votacoes: VotacaoPlenario[], orientacoes: OrientacaoBancadaApi[]) {
+  const porSequencial = new Map(votacoes.flatMap((v) => (v.sequencial === null ? [] : [[v.sequencial, v]])));
+  return orientacoes.flatMap((o) => {
+    const votacao = porSequencial.get(o.sequencialVotacao);
+    if (!votacao || votacao.data !== o.dataInicioVotacao.slice(0, 10)) return [];
+    // Liderança sem orientação vem com o voto vazio.
+    const unicas = new Map(
+      (o.orientacoesLideranca ?? []).filter((l) => l.voto.trim()).map((l) => [l.partido.trim(), l.voto.trim()]),
+    );
+    return [
+      {
+        codigoVotacao: votacao.codigo,
+        orientacoes: [...unicas].map(([sigla, orientacao]) => ({ sigla, orientacao, tipo: tipoDaOrientacao(orientacao) })),
+      },
+    ];
+  });
+}
+
+export async function gravarOrientacoes(prisma: PrismaClient, dados: ReturnType<typeof mapearOrientacoes>) {
+  const ids = new Map(
+    (
+      await prisma.votacao.findMany({
+        where: { casa: "SENADO", idExterno: { in: dados.map((d) => d.codigoVotacao) } },
+        select: { id: true, idExterno: true },
+      })
+    ).map((v) => [v.idExterno, v.id]),
+  );
+
+  let registros = 0;
+  for (const lote of emLotes(dados, 50)) {
+    const comId = lote.flatMap((d) => {
+      const votacaoId = ids.get(d.codigoVotacao);
+      return votacaoId ? [{ votacaoId, orientacoes: d.orientacoes }] : [];
+    });
+    const linhas = comId.flatMap((d) => d.orientacoes.map((o) => ({ ...o, votacaoId: d.votacaoId })));
+    await prisma.$transaction([
+      prisma.orientacao.deleteMany({ where: { votacaoId: { in: comId.map((d) => d.votacaoId) } } }),
+      prisma.orientacao.createMany({ data: linhas }),
+    ]);
+    registros += linhas.length;
   }
   return registros;
 }

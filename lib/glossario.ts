@@ -144,6 +144,58 @@ export const GLOSSARIO = [
     ],
   },
   {
+    id: "receita-corrente-liquida",
+    termo: "Receita corrente líquida (RCL)",
+    tema: "orcamento",
+    curto: "O que o governo arrecada no ano com impostos, contribuições e outras receitas do dia a dia, menos os repasses obrigatórios a estados e municípios.",
+    explicacao: [
+      "Não entram empréstimos nem venda de patrimônio, só o dinheiro que se repete todo ano. Do total também saem as transferências que a Constituição manda fazer a estados e municípios e algumas contribuições, como as da previdência dos servidores.",
+      "É a régua de várias regras: o piso da saúde, o valor das emendas obrigatórias e o limite de gasto com pessoal são porcentagens dela.",
+    ],
+  },
+  {
+    id: "piso-constitucional",
+    termo: "Piso constitucional",
+    tema: "orcamento",
+    curto: "O valor mínimo que a Constituição obriga o governo a gastar em uma área, como saúde e educação.",
+    explicacao: [
+      "Na União, a saúde tem de receber ao menos 15% da receita corrente líquida, e a educação ao menos 18% da receita de impostos, já descontados os repasses a estados e municípios. Estados e municípios têm pisos próprios.",
+      "O piso é um mínimo, não um teto: o governo pode gastar mais. Quem não cumpre fica sujeito a punições, como ter as contas reprovadas.",
+    ],
+    importancia: "Quando o orçamento aperta, cortar nessas áreas tem limite. Conferir o piso mostra se a lei está sendo cumprida.",
+  },
+  {
+    id: "ldo",
+    termo: "Lei de Diretrizes Orçamentárias (LDO)",
+    tema: "orcamento",
+    curto: "A lei que, antes do orçamento, fixa as metas, as prioridades e as regras do gasto do ano seguinte.",
+    explicacao: [
+      "O governo envia a proposta até 15 de abril e o Congresso deve aprová-la antes do recesso de julho. A LOA, votada no fim do ano, precisa seguir o que a LDO definiu.",
+      "É na LDO que fica a meta de resultado das contas públicas, ou seja, quanto o governo pretende economizar ou pode ficar no vermelho.",
+    ],
+  },
+  {
+    id: "contingenciamento",
+    termo: "Contingenciamento e bloqueio",
+    tema: "orcamento",
+    curto: "Quando o governo segura parte do gasto autorizado porque a arrecadação está abaixo do previsto ou o gasto passaria do limite.",
+    explicacao: [
+      "A cada dois meses, o governo compara a receita e a despesa com o planejado. Se a meta das contas estiver em risco, ele contingencia, ou seja, congela parte do orçamento. Se o problema é o gasto obrigatório crescendo além do limite, ele bloqueia.",
+      "O dinheiro não some da lei: pode ser liberado depois, se a situação melhorar. Gastos obrigatórios, como salários e aposentadorias, não podem ser contingenciados.",
+    ],
+    importancia: "As áreas escolhidas para o corte mostram as prioridades reais do governo, que nem sempre são as anunciadas.",
+  },
+  {
+    id: "arcabouco-fiscal",
+    termo: "Arcabouço fiscal",
+    tema: "orcamento",
+    curto: "A regra, criada em 2023, que limita quanto o gasto federal pode crescer de um ano para o outro.",
+    explicacao: [
+      "Substituiu o teto de gastos. O limite cresce acima da inflação, entre 0,6% e 2,5% ao ano, e o tamanho do aumento depende do quanto a receita cresceu e de o governo ter cumprido a meta das contas.",
+      "Pisos da saúde e da educação, emendas obrigatórias e aposentadorias continuam obrigatórios. Como ocupam cada vez mais espaço dentro do limite, sobra menos para o restante, como investimentos.",
+    ],
+  },
+  {
     id: "custeio-investimento",
     termo: "Custeio e investimento",
     tema: "orcamento",
@@ -284,6 +336,115 @@ export const GLOSSARIO = [
     ],
   },
   {
+    id: "projeto-de-lei",
+    termo: "Projeto de lei (PL)",
+    tema: "congresso",
+    curto: "Proposta de lei nova ou de mudança numa lei existente. Só vira lei depois de aprovada pela Câmara e pelo Senado e sancionada.",
+    explicacao: [
+      "Pode ser apresentado por deputados, senadores, comissões, pelo presidente da República, pelos tribunais superiores e até por cidadãos, com assinaturas suficientes (iniciativa popular).",
+      "Siglas antigas como PLS (do Senado) e PLC (da Câmara) são o mesmo tipo de projeto: desde 2019 as duas casas usam a sigla PL e o mesmo número.",
+    ],
+    importancia: "A maior parte das regras que mudam a vida das pessoas passa por um projeto de lei. Acompanhar em que etapa ele está mostra quem está segurando ou acelerando o assunto.",
+  },
+  {
+    id: "lei-complementar",
+    termo: "Lei complementar (PLP)",
+    tema: "congresso",
+    curto: "Lei sobre temas que a Constituição manda regulamentar dessa forma. Precisa do voto da maioria absoluta: 257 deputados e 41 senadores.",
+    explicacao: [
+      "Uma lei comum pode ser aprovada pela maioria dos presentes na sessão. A complementar exige metade mais um de todos os membros da casa, estejam presentes ou não.",
+      "Tratam de assuntos como impostos, finanças públicas e organização de carreiras do Estado.",
+    ],
+  },
+  {
+    id: "pec",
+    termo: "Proposta de emenda à Constituição (PEC)",
+    tema: "congresso",
+    curto: "Proposta para mudar o texto da Constituição. Precisa de 3/5 dos votos em dois turnos na Câmara e dois turnos no Senado.",
+    explicacao: [
+      "São necessários 308 votos de deputados e 49 de senadores, em cada um dos dois turnos de votação.",
+      "Depois de aprovada, a PEC não vai para o presidente da República: o próprio Congresso a promulga, e ela vira uma emenda constitucional.",
+    ],
+  },
+  {
+    id: "medida-provisoria",
+    termo: "Medida provisória (MPV)",
+    tema: "congresso",
+    curto: "Norma editada pelo presidente da República que já vale como lei, mas perde o efeito se o Congresso não aprovar em até 120 dias.",
+    explicacao: [
+      "Só pode ser usada em casos de relevância e urgência. O Congresso pode aprovar, rejeitar ou mudar o texto; quando muda, ela vira um projeto de lei de conversão (PLV).",
+      "Se o Congresso não votar a tempo, a medida \"caduca\": deixa de valer, mas o que foi feito enquanto ela vigorava continua valendo, salvo decisão em contrário.",
+    ],
+  },
+  {
+    id: "comissao",
+    termo: "Comissão",
+    tema: "congresso",
+    curto: "Grupo de parlamentares que analisa os projetos de um tema (saúde, educação, constituição e justiça...) antes do Plenário.",
+    explicacao: [
+      "Cada projeto passa pelas comissões dos temas que ele toca. Um relator escreve um parecer recomendando aprovar, mudar ou rejeitar, e a comissão vota esse parecer.",
+      "Muitos projetos ficam anos parados numa comissão esperando um relator ou entrar na pauta.",
+    ],
+  },
+  {
+    id: "decisao-terminativa",
+    termo: "Decisão terminativa",
+    tema: "congresso",
+    curto: "Quando a própria comissão aprova ou rejeita o projeto de vez, sem precisar do voto do Plenário.",
+    explicacao: [
+      "Vale para muitos projetos de lei comuns. Se um grupo de parlamentares recorrer, o projeto vai ao Plenário mesmo assim.",
+      "Na Câmara o nome é apreciação conclusiva; no Senado, decisão terminativa.",
+    ],
+  },
+  {
+    id: "plenario",
+    termo: "Plenário",
+    tema: "congresso",
+    curto: "A reunião com todos os deputados (na Câmara) ou todos os senadores (no Senado), onde se tomam as decisões finais.",
+    explicacao: [
+      "Os projetos só entram em votação no Plenário quando o presidente da casa os coloca na pauta do dia, chamada Ordem do Dia. Por isso estar \"pronto para o Plenário\" não garante que o projeto será votado logo.",
+    ],
+  },
+  {
+    id: "casa-revisora",
+    termo: "Casa iniciadora e casa revisora",
+    tema: "congresso",
+    curto: "O projeto começa numa casa (Câmara ou Senado) e, aprovado lá, segue para a outra revisar. Se a revisora mudar o texto, ele volta.",
+    explicacao: [
+      "Projetos do presidente da República, dos tribunais e de iniciativa popular sempre começam na Câmara.",
+      "Quando a casa revisora muda o texto, a casa iniciadora decide no fim quais mudanças ficam, e só então o projeto vai à sanção.",
+    ],
+  },
+  {
+    id: "sancao",
+    termo: "Sanção",
+    tema: "congresso",
+    curto: "Quando o presidente da República concorda com o projeto aprovado pelo Congresso e o transforma em lei. Ele tem 15 dias úteis para decidir.",
+    explicacao: [
+      "Se o presidente não se manifestar no prazo, a sanção acontece sozinha (sanção tácita).",
+      "Depois da sanção a lei é publicada no Diário Oficial da União e ganha um número.",
+    ],
+  },
+  {
+    id: "veto",
+    termo: "Veto (total ou parcial)",
+    tema: "congresso",
+    curto: "Quando o presidente da República recusa um projeto aprovado pelo Congresso, inteiro (total) ou só alguns trechos (parcial).",
+    explicacao: [
+      "No veto parcial, a lei sai sem os trechos vetados. O Congresso pode derrubar o veto em sessão conjunta, com a maioria absoluta de deputados e de senadores, e aí os trechos voltam a valer.",
+    ],
+    importancia: "Vetos mostram onde o governo e o Congresso discordam. A derrubada de um veto é uma das votações mais importantes do ano.",
+  },
+  {
+    id: "promulgacao",
+    termo: "Promulgação",
+    tema: "congresso",
+    curto: "O ato que declara oficialmente que uma norma existe e vai valer. As emendas à Constituição são promulgadas pelo próprio Congresso.",
+    explicacao: [
+      "Leis comuns são promulgadas pelo presidente da República junto com a sanção. Quando ele não o faz, ou quando o Congresso derruba um veto, quem promulga é o presidente do Senado.",
+    ],
+  },
+  {
     id: "votacao-nominal",
     termo: "Votação nominal",
     tema: "congresso",
@@ -329,6 +490,53 @@ export const GLOSSARIO = [
     curto: "Grupo de parlamentares com algo em comum: o mesmo estado, o mesmo partido ou o mesmo interesse.",
     explicacao: [
       "A bancada de um estado reúne os deputados e os três senadores eleitos por ele. Existem também bancadas temáticas, como a ruralista ou a da saúde.",
+    ],
+  },
+  {
+    id: "orientacao-bancada",
+    termo: "Orientação de bancada",
+    tema: "congresso",
+    curto: "O voto que o líder de um partido, bloco ou do governo pede para a sua bancada antes de uma votação.",
+    explicacao: [
+      "Antes de cada votação nominal, os líderes anunciam no plenário como a bancada deve votar: sim, não, abstenção ou obstrução. Quando o líder \"libera\" a bancada, cada parlamentar vota como quiser.",
+      "O líder do governo também orienta: é o pedido do Presidente da República para aquela votação.",
+    ],
+  },
+  {
+    id: "fidelidade",
+    termo: "Fidelidade ao partido e ao governo",
+    tema: "congresso",
+    curto: "Em quantas votações o parlamentar votou como o líder do partido (ou do governo) pediu.",
+    explicacao: [
+      "O portal compara o voto com a orientação de bancada em cada votação nominal guardada. Só contam as votações em que houve orientação e em que o parlamentar votou: bancada liberada, ausência e voto do presidente da sessão ficam de fora.",
+      "Votar contra o partido não é, por si só, bom ou ruim. Mostra quando o parlamentar seguiu a própria opinião, a do estado dele ou outro interesse em vez da linha do partido.",
+    ],
+  },
+  {
+    id: "bloco-federacao",
+    termo: "Bloco parlamentar e federação",
+    tema: "congresso",
+    curto: "Grupos de partidos que atuam juntos no Congresso e recebem uma orientação só.",
+    explicacao: [
+      "A federação une partidos por pelo menos quatro anos, como se fossem um só, desde a eleição. O bloco é uma aliança feita dentro da Casa e pode ser desfeita. Nos dois casos, quem orienta o voto é o líder do grupo.",
+    ],
+  },
+  {
+    id: "troca-partido",
+    termo: "Troca de partido",
+    tema: "congresso",
+    curto: "Quando o parlamentar sai de um partido e entra em outro durante a carreira.",
+    explicacao: [
+      "Deputados podem perder o mandato se trocarem de partido sem justa causa, porque a vaga é do partido. A lei abre uma \"janela\" de 30 dias, cerca de sete meses antes de cada eleição, em que a troca é permitida. Senadores não perdem o mandato ao trocar.",
+    ],
+  },
+  {
+    id: "licenca-parlamentar",
+    termo: "Licença e afastamento",
+    tema: "congresso",
+    curto: "Período em que o parlamentar deixa de exercer o mandato, e o suplente pode assumir.",
+    explicacao: [
+      "Pode ser por doença, para tratar de interesse particular ou para ocupar cargo de ministro ou secretário. Quando volta, o parlamentar retoma a vaga e o suplente sai.",
     ],
   },
 
@@ -380,6 +588,25 @@ export const GLOSSARIO = [
     explicacao: [
       "Os valores são informados pelo próprio candidato e costumam ser o preço pago na compra, não o valor atual de mercado. Por isso podem parecer baixos.",
       "Comparar a declaração de uma eleição com a da seguinte mostra como o patrimônio mudou durante o mandato.",
+    ],
+  },
+  {
+    id: "ipca",
+    termo: "IPCA (inflação oficial)",
+    tema: "dados",
+    curto: "Índice do IBGE que mede quanto os preços subiram no país. É a medida oficial da inflação.",
+    explicacao: [
+      "O Banco Central publica a variação de cada mês. Somando essas variações dá para saber quanto R$ 100 de anos atrás valem hoje.",
+    ],
+  },
+  {
+    id: "valor-corrigido",
+    termo: "Valor corrigido pela inflação",
+    tema: "dados",
+    curto: "Quanto um valor antigo equivale em dinheiro de hoje, depois de aplicar a inflação do período.",
+    explicacao: [
+      "Com a inflação, R$ 100 em 2014 compravam mais do que R$ 100 hoje. Corrigir o valor permite comparar anos diferentes de forma justa.",
+      "Se o patrimônio declarado cresceu menos que a inflação, na prática ele encolheu.",
     ],
   },
 

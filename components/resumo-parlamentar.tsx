@@ -32,7 +32,7 @@ export function Resumo({
 }) {
   const id = useId();
   return (
-    <section id="resumo" aria-labelledby={id} className="flex scroll-mt-24 flex-col gap-4 animate-enter">
+    <section data-revelar id="resumo" aria-labelledby={id} className="flex scroll-mt-24 flex-col gap-4 animate-enter">
       <h2 id={id} className="text-xl font-bold">
         {titulo}
       </h2>

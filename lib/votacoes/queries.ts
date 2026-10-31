@@ -6,6 +6,7 @@ import { createCamaraClient } from "@/lib/camara/client";
 import { mapearTipoVoto } from "@/lib/camara/mapear";
 import type { ProposicaoResumo } from "@/lib/camara/types";
 import { db } from "@/lib/db";
+import { calcularFidelidade, contrariouPartido, orientacaoDoPartido } from "@/lib/fidelidade";
 import { NA_PAGINA, naoEncontrado } from "@/lib/sync/run";
 import type { Casa, TipoVoto } from "@/lib/generated/prisma/enums";
 
@@ -256,5 +257,55 @@ export async function getVotacaoSenado(id: string): Promise<VotacaoCompleta | nu
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
     fonte: v.proposicao?.url ?? "https://www25.senado.leg.br/web/atividade/votacoes-nominais",
     outras: await outrasVotacoes("SENADO", v.proposicao?.idExterno, id),
+  };
+}
+
+/**
+ * Fidelidade ao partido e ao governo nas votações guardadas no banco que têm orientação de bancada,
+ * e as votações mais recentes em que o parlamentar votou contra a orientação do partido.
+ */
+export async function getFidelidade(casa: Casa, idExterno: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("votacoes", `${casa === "CAMARA" ? "deputado" : "senador"}:${idExterno}`);
+
+  const votos = await db.voto.findMany({
+    where: { parlamentar: { casa, idExterno }, votacao: { orientacoes: { some: {} } } },
+    select: {
+      tipo: true,
+      votoOriginal: true,
+      partido: true,
+      votacao: {
+        select: {
+          idExterno: true,
+          data: true,
+          descricao: true,
+          proposicao: { select: { siglaTipo: true, numero: true, ano: true } },
+          orientacoes: { select: { sigla: true, tipo: true, orientacao: true } },
+        },
+      },
+    },
+    orderBy: { votacao: { data: "desc" } },
+  });
+
+  const comOrientacoes = votos.map((v) => ({ ...v, orientacoes: v.votacao.orientacoes }));
+  const datas = votos.map((v) => v.votacao.data.toISOString().slice(0, 10));
+  return {
+    ...calcularFidelidade(comOrientacoes),
+    periodo: datas.length ? { desde: datas.at(-1)!, ate: datas[0] } : null,
+    contrariou: comOrientacoes
+      .filter(contrariouPartido)
+      .slice(0, 10)
+      .map((v) => {
+        const orientacao = orientacaoDoPartido(v.orientacoes, v.partido);
+        return {
+          votacaoId: v.votacao.idExterno,
+          data: v.votacao.data.toISOString().slice(0, 10),
+          descricao: v.votacao.descricao,
+          proposicao: v.votacao.proposicao ? rotuloProposicao(v.votacao.proposicao) : null,
+          voto: v.votoOriginal,
+          orientacao: orientacao ? `${orientacao.sigla}: ${orientacao.orientacao}` : null,
+        };
+      }),
   };
 }

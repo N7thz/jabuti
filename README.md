@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/icon.svg" width="72" alt="" />
+  <img src="app/icon.png" width="72" alt="" />
 </p>
 
 # Jabuti
@@ -17,20 +17,24 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 
 | Página | Rota | O que mostra |
 | --- | --- | --- |
-| Início | `/` | Consulta de empresas por CNPJ: contratos e sanções (CEIS e CNEP) |
+| Início | `/` | O que é o portal e tudo o que dá para consultar |
+| Empresas | `/empresas` | Consulta de empresas por CNPJ: contratos e sanções (CEIS, CNEP e TCU) |
 | Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
-| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, despesas da cota, proposições, emendas, votos × emendas por cidade e campanha (TSE) |
+| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
 | Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS e matérias) |
 | Estados | `/estados`, `/estados/[uf]` | Emendas por estado |
 | Município | `/estados/[uf]/[ibge]` | Emendas recebidas, emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
 | Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
-| Comparar | `/comparar` | Dois parlamentares lado a lado, com a concordância nos votos |
+| Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação e as leis mais recentes |
+| Comparar | `/comparar` | Dois parlamentares lado a lado, com a concordância nos votos e a média da Casa como base |
 | Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano, no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
+| Sugestões e problemas | `/feedback` | Formulário para avisar de erro ou sugerir melhoria, com anexos (vai por email) |
+| Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta e dados salvos |
 
-O login com Google é **opcional**: serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`.
+O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. As preferências de leitura funcionam sem login.
 
 ## Fontes de dados
 
@@ -51,7 +55,10 @@ Sempre que possível, o app consulta a API oficial direto. O banco guarda só o 
 - [Next.js 16](https://nextjs.org) (App Router) + React 19 + TypeScript
 - Tailwind CSS 4 + [shadcn/ui](https://ui.shadcn.com); o visual segue o [`DESIGN.md`](DESIGN.md)
 - [Neon](https://neon.tech) Postgres + [Prisma 7](https://www.prisma.io)
-- [Better Auth](https://www.better-auth.com) com login Google
+- [Better Auth](https://www.better-auth.com) com login Google ou email e senha
+- [Resend](https://resend.com) para os emails (feedback, confirmação de email e redefinição de senha)
+- [Motion](https://motion.dev) nas animações, que respeitam a preferência de movimento reduzido
+- [Biome](https://biomejs.dev) como linter
 - react-hook-form + zod nos formulários (que também funcionam sem JavaScript)
 - date-fns e dinero.js para datas e valores em reais (em `lib/format`)
 - [Bun](https://bun.sh) como gerenciador de pacotes, executor de scripts e de testes
@@ -80,6 +87,10 @@ Para ver se o app alcança o banco, abra `GET /api/health`.
 | `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`) |
 | `DATABASE_URL` | Conexão do Neon **com pooling** (host com `-pooler`), usada pelo app |
 | `DIRECT_URL` | Conexão **direta**, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
+| `RESEND_API_KEY` | Chave do [Resend](https://resend.com/api-keys), para enviar os emails |
+| `FEEDBACK_EMAIL` | Quem recebe as mensagens do `/feedback` (vários separados por vírgula) |
+| `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend (opcional: sem ele vale o remetente de teste, que só entrega ao dono da conta) |
+| `EMAIL_REMETENTE` | Remetente dos emails do login (opcional: sem ele vale o `FEEDBACK_REMETENTE`) |
 
 ## Carga de dados
 
@@ -95,7 +106,7 @@ bun scripts/sync-emendas.ts --anos 2020-2025        # precisa dos municípios
 bun scripts/sync-tse.ts                             # precisa de Câmara e Senado
 ```
 
-Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas, `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
+Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas (a etapa `orientacoes`, de Câmara e Senado, guarda a orientação de bancada usada no índice de fidelidade e deve rodar depois de `votacoes`), `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
 
 ### Carga automática
 
@@ -122,7 +133,7 @@ Secrets necessários no repositório (**Settings → Secrets and variables → A
 | --- | --- |
 | `bun dev` | Servidor de desenvolvimento |
 | `bun run build` / `bun start` | Build e servidor de produção |
-| `bun run check` | Checagem de tipos + ESLint |
+| `bun run check` | Checagem de tipos + lint (Biome) |
 | `bun test` (ou `bun run test`) | Testes unitários (`lib/**/*.test.ts`, com `bun:test`) |
 | `bun run test:a11y` | Acessibilidade (axe, WCAG 2 A e AA) nas páginas principais, temas claro e escuro. Precisa do banco e das chaves, então roda só local: sobe o `bun dev` ou usa o que já estiver na porta `PORTA_E2E` (padrão 3000). Na primeira vez: `bunx playwright install chromium` |
 | `bun run db:migrate` | Cria e aplica uma migration no desenvolvimento |
@@ -137,7 +148,7 @@ app/            rotas (páginas, API em app/api)
 components/     componentes de interface (components/ui = shadcn)
 lib/            um cliente por fonte de dados (camara, senado, tse, siconfi,
                 transferegov, tcu, ibge, transparencia), formatação e glossário
-prisma/         schema e migrations
+prisma/         schema/ (um arquivo por escopo: votacoes, tse, auth...) e migrations
 scripts/        cargas de dados (sync-*.ts)
 ```
 

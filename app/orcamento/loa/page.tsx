@@ -1,5 +1,4 @@
 import { ArrowLeftIcon } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -11,11 +10,12 @@ import { getTotaisEmendasAno } from "@/lib/emendas/queries";
 import type { IdTermo } from "@/lib/glossario";
 import { getLoaUniao } from "@/lib/siconfi/queries";
 import { mesesDoBimestre } from "@/lib/siconfi/rreo";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = {
-  title: "Orçamento federal (LOA) · Jabuti",
-  description: "Quanto a Lei Orçamentária Anual autorizou o governo federal a gastar, em cada área, e quanto já foi executado.",
-};
+export const metadata = metadados({
+  titulo: "Orçamento federal (LOA) · Jabuti",
+  descricao: "Quanto a Lei Orçamentária Anual autorizou o governo federal a gastar, em cada área, e quanto já foi executado.",
+});
 
 const percentual = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
 const parte = (valor: number, total: number) => (total > 0 ? percentual.format(valor / total) : "—");
@@ -119,6 +119,39 @@ async function Loa() {
         )}
       </section>
 
+      <section aria-labelledby="como-funciona" className="flex flex-col gap-3">
+        <h2 id="como-funciona" className="text-xl font-bold">
+          Como o dinheiro sai do orçamento
+        </h2>
+        <ol className="flex max-w-[75ch] list-decimal flex-col gap-3 pl-6 marker:font-bold marker:text-secao">
+          <li>
+            <strong>Regras do ano.</strong> A <Termo id="ldo">Lei de Diretrizes Orçamentárias (LDO)</Termo> define as
+            metas e as prioridades do ano seguinte. O <Termo id="arcabouco-fiscal">arcabouço fiscal</Termo> põe um limite
+            para o crescimento do gasto total.
+          </li>
+          <li>
+            <strong>A lei do orçamento.</strong> O governo manda a proposta da LOA até 31 de agosto. O Congresso muda o
+            texto, inclusive com as <Termo id="emenda">emendas parlamentares</Termo>, e aprova. Depois o presidente
+            sanciona a lei.
+          </li>
+          <li>
+            <strong>Ajustes durante o ano.</strong> A <Termo id="dotacao">dotação</Termo> pode subir ou descer com novas
+            leis e decretos. Se a arrecadação ficar abaixo do previsto, o governo faz um{" "}
+            <Termo id="contingenciamento">contingenciamento</Termo> e segura parte do gasto.
+          </li>
+          <li>
+            <strong>Três etapas para cada real.</strong> Primeiro vem o <Termo id="empenho">empenho</Termo>, que reserva o
+            dinheiro para um contrato ou uma compra. Depois vem a <Termo id="liquidacao">liquidação</Termo>, quando o
+            governo confere a entrega. Por fim vem o <Termo id="pagamento">pagamento</Termo>, quando o dinheiro sai do
+            cofre.
+          </li>
+          <li>
+            <strong>Virada do ano.</strong> O que foi empenhado e ainda não foi pago vira &ldquo;restos a pagar&rdquo;.
+            Essa dívida passa para o ano seguinte e por isso parte do que se paga em um ano vem do orçamento anterior.
+          </li>
+        </ol>
+      </section>
+
       <section aria-labelledby="areas" className="flex flex-col gap-3">
         <h2 id="areas" className="text-xl font-bold">
           Por <Termo id="funcao-governo">área</Termo>
@@ -157,10 +190,98 @@ async function Loa() {
         </Tabela>
       </section>
 
+      <Pisos loa={loa} />
+
       <p className="text-sm text-muted-foreground">
         Fonte: Relatório Resumido da Execução Orçamentária da União ({mesesDoBimestre(loa.bimestre)} de {loa.ano}), no
         SICONFI do Tesouro Nacional. Valores sem as operações entre órgãos do próprio governo (intraorçamentárias).
       </p>
     </>
+  );
+}
+
+type DadosLoa = NonNullable<Awaited<ReturnType<typeof getLoaUniao>>>;
+
+/** Pisos da Constituição para a União. Só o da saúde tem base (a RCL) nos dados abertos do SICONFI. */
+function Pisos({ loa }: { loa: DadosLoa }) {
+  const saude = loa.funcoes.find((f) => f.funcao === "Saúde");
+  const educacao = loa.funcoes.find((f) => f.funcao === "Educação");
+  const pisoSaude = Math.round(loa.rcl.prevista * 0.15);
+
+  return (
+    <section aria-labelledby="pisos" className="flex flex-col gap-3">
+      <h2 id="pisos" className="text-xl font-bold">
+        <Termo id="piso-constitucional">Pisos constitucionais</Termo>
+      </h2>
+      <p className="max-w-[75ch] text-muted-foreground">
+        A Constituição obriga o governo federal a gastar um valor mínimo em algumas áreas, calculado sobre o que ele
+        arrecada. De 2018 a 2023, com o teto de gastos, esses mínimos ficaram congelados e só eram corrigidos pela
+        inflação. Desde 2024 eles voltaram a seguir as porcentagens abaixo.
+      </p>
+      <ul className="grid gap-3 lg:grid-cols-2">
+        <li className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-soft">
+          <h3 className="font-bold">Saúde: 15% da receita corrente líquida</h3>
+          <p className="text-sm text-muted-foreground">Constituição, art. 198, § 2º</p>
+          {loa.rcl.prevista > 0 && (
+            <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr]">
+              <dt className="text-sm text-muted-foreground">
+                <Termo id="receita-corrente-liquida">Receita corrente líquida</Termo> prevista
+              </dt>
+              <dd className="font-mono tabular-nums">{reaisDeCentavos(loa.rcl.prevista)}</dd>
+              <dt className="text-sm text-muted-foreground">Mínimo para a saúde (15%)</dt>
+              <dd className="font-mono font-bold tabular-nums">{reaisDeCentavos(pisoSaude)}</dd>
+              {saude && (
+                <>
+                  <dt className="text-sm text-muted-foreground">Autorizado na área Saúde</dt>
+                  <dd className="font-mono tabular-nums">{reaisDeCentavos(saude.atualizada)}</dd>
+                  <dt className="text-sm text-muted-foreground">Empenhado até agora</dt>
+                  <dd className="font-mono tabular-nums">
+                    {reaisDeCentavos(saude.empenhado)}{" "}
+                    <span className="font-sans text-sm text-muted-foreground">({parte(saude.empenhado, pisoSaude)} do mínimo)</span>
+                  </dd>
+                </>
+              )}
+            </dl>
+          )}
+          <p className="text-sm">
+            O piso é cumprido pelo valor empenhado até dezembro. A conta oficial segue a Lei Complementar 141/2012, que
+            define o que vale como gasto em saúde, então a área Saúde da tabela é só uma aproximação.
+          </p>
+        </li>
+        <li className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-soft">
+          <h3 className="font-bold">Educação: 18% da receita de impostos</h3>
+          <p className="text-sm text-muted-foreground">Constituição, art. 212</p>
+          <p>
+            A União deve aplicar ao menos 18% do que arrecada com impostos na manutenção e no desenvolvimento do ensino.
+            A conta usa o que sobra depois dos repasses obrigatórios a estados e municípios.
+          </p>
+          {educacao && (
+            <p className="text-sm">
+              Para {loa.ano}, a área Educação tem <strong className="font-mono">{reaisDeCentavos(educacao.atualizada)}</strong>{" "}
+              autorizados. O cálculo oficial do piso não está nos dados abertos do SICONFI. Ele sai no relatório
+              bimestral completo do Tesouro.
+            </p>
+          )}
+        </li>
+        <li className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-soft">
+          <h3 className="font-bold">Fundeb: complemento da União</h3>
+          <p className="text-sm text-muted-foreground">Constituição, art. 212-A</p>
+          <p>
+            Estados e municípios formam um fundo para pagar a educação básica. A União completa esse fundo com dinheiro
+            próprio. Desde 2026 o complemento é de pelo menos 23% do total que estados e municípios colocam nele.
+          </p>
+        </li>
+        <li className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-soft">
+          <h3 className="font-bold">Emendas que o governo é obrigado a pagar</h3>
+          <p className="text-sm text-muted-foreground">Constituição, art. 166, §§ 9º a 12</p>
+          <p>
+            As <Termo id="emenda-individual">emendas individuais</Termo> somam 2% da receita corrente líquida do ano
+            anterior, e metade delas tem que ir para a saúde. As <Termo id="emenda-bancada">emendas de bancada</Termo>{" "}
+            somam 1%. O governo só pode deixar de pagar por impedimento técnico ou em um contingenciamento, e na mesma
+            proporção do resto do orçamento.
+          </p>
+        </li>
+      </ul>
+    </section>
   );
 }
