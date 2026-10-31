@@ -1,3 +1,4 @@
+import { tipoDaOrientacao } from "../fidelidade";
 import type { PrismaClient } from "../prisma";
 import type { CamaraClient } from "./client";
 import { janelasMensais } from "./client";
@@ -255,6 +256,58 @@ export async function sincronizarVotacoes({ api, prisma, log }: Contexto, desde:
   if (falhas.length > 0) log(`${falhas.length} falha(s)`);
   encerrar();
   return { registros: registros + totalVotos, exemplos };
+}
+
+// 2b. Orientações de bancada ---------------------------------------------------------------------
+
+/**
+ * Orientação dos líderes nas votações nominais do intervalo já gravadas. Votação encerrada não muda
+ * de orientação: as que já têm alguma ficam de fora. No dry-run, consulta as primeiras votações da API.
+ */
+export async function sincronizarOrientacoes({ api, prisma, log }: Contexto, desde: string, ate: string): Promise<Resultado> {
+  const { tentar, encerrar } = coletorDeFalhas();
+  const alvos = prisma
+    ? (
+        await prisma.votacao.findMany({
+          where: {
+            casa: "CAMARA",
+            data: { gte: new Date(`${desde}T00:00:00Z`), lte: new Date(`${ate}T23:59:59Z`) },
+            votos: { some: {} },
+            orientacoes: { none: {} },
+          },
+          select: { id: true, idExterno: true },
+        })
+      ).map((v) => ({ id: v.id as string | null, idExterno: v.idExterno }))
+    : (await api.votacoes(desde, ate)).slice(0, 20).map((v) => ({ id: null, idExterno: v.id }));
+  log(`${alvos.length} votações sem orientação`);
+
+  const exemplos: unknown[] = [];
+  let registros = 0;
+  for (const [n, chunk] of emLotes(alvos, CHUNK).entries()) {
+    const coletadas = await emParalelo(chunk, CONCORRENCIA, (v) =>
+      tentar(`orientações ${v.idExterno}`, [], async () =>
+        (await api.orientacoes(v.idExterno)).filter((o) => o.orientacaoVoto.trim()).map((o) => ({
+          votacaoId: v.id ?? v.idExterno,
+          sigla: o.siglaPartidoBloco.trim(),
+          orientacao: o.orientacaoVoto.trim(),
+          tipo: tipoDaOrientacao(o.orientacaoVoto),
+        })),
+      ),
+    );
+    // A mesma sigla não se repete na votação; se vier repetida, vale a primeira.
+    const linhas = coletadas.flat();
+    if (prisma) {
+      for (const lote of emLotes(linhas, LOTE_CREATE)) {
+        await prisma.orientacao.createMany({ data: lote, skipDuplicates: true });
+      }
+    }
+    registros += linhas.length;
+    if (exemplos.length < 2) exemplos.push(...linhas.slice(0, 2 - exemplos.length));
+    log(`  votações ${Math.min((n + 1) * CHUNK, alvos.length)}/${alvos.length} (${registros} orientações)`);
+  }
+
+  encerrar();
+  return { registros, exemplos };
 }
 
 // 3. Eventos e presença -------------------------------------------------------------------------

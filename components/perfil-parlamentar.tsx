@@ -74,6 +74,7 @@ export function Cabecalho({
 export const SECOES = [
   { id: "resumo", rotulo: "Resumo" },
   { id: "votacoes", rotulo: "Como votou" },
+  { id: "fidelidade", rotulo: "Partido e fidelidade" },
   { id: "cota", rotulo: "Cota parlamentar" },
   { id: "proposicoes", rotulo: "Proposições" },
   { id: "emendas", rotulo: "Emendas" },
@@ -146,7 +147,7 @@ export function Secao({
 }) {
   const id = useId();
   return (
-    <Card id={ancora} role="region" aria-labelledby={id} className="scroll-mt-24 border-t-2 border-t-secao animate-enter">
+    <Card data-revelar id={ancora} role="region" aria-labelledby={id} className="scroll-mt-24 border-t-2 border-t-secao animate-enter">
       <CardHeader>
         <CardTitle className="text-xl font-bold">
           <h2 id={id}>{titulo}</h2>

@@ -7,7 +7,8 @@ config({ path: [".env.local", ".env"], quiet: true });
 // A integração Neon/Vercel entrega a direta como DATABASE_URL_UNPOOLED; migrar pelo pooler quebra
 // com "prepared statement already exists", por isso o pooler fica só como último recurso.
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  // Um arquivo por escopo em prisma/schema/ (o gerador e a conexão ficam em schema.prisma).
+  schema: "prisma/schema",
   migrations: {
     path: "prisma/migrations",
   },

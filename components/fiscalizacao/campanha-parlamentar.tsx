@@ -4,9 +4,10 @@ import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos } from "@/components/emendas/valores";
 import { Rolavel, Secao } from "@/components/perfil-parlamentar";
 import { Termo } from "@/components/termo";
+import { formatarMesAno } from "@/lib/format/datas";
 import type { Casa } from "@/lib/generated/prisma/enums";
 import type { IdTermo } from "@/lib/glossario";
-import { getCampanhaParlamentar } from "@/lib/tse/queries";
+import { getCampanhaParlamentar, getPatrimonioParlamentar } from "@/lib/tse/queries";
 
 const percentual = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 });
 
@@ -25,9 +26,123 @@ function Fonte({ fonte: f }: { fonte: string }) {
 
 const titulo = (texto: string) => texto.charAt(0) + texto.slice(1).toLowerCase();
 
+type Patrimonio = Awaited<ReturnType<typeof getPatrimonioParlamentar>>;
+
+const variacao = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 0, signDisplay: "exceptZero" });
+
+/** "cresceu 104%", "caiu 12%", "ficou igual"; de zero não há percentual, só o valor novo. */
+function mudou(antes: number, depois: number) {
+  if (antes === depois) return "ficou igual";
+  if (antes === 0) return `passou de zero para ${reaisDeCentavos(depois)}`;
+  const taxa = Math.abs(depois / antes - 1);
+  return `${depois > antes ? "cresceu" : "caiu"} ${percentual.format(taxa)}`;
+}
+
+/** Frases em linguagem simples comparando a última eleição com a anterior e, se houver mais, com a primeira. */
+function resumoPatrimonio({ eleicoes }: Patrimonio) {
+  const ultima = eleicoes.at(-1)!;
+  const comparar = (de: (typeof eleicoes)[number]) => {
+    const declarado = `De ${de.ano} para ${ultima.ano}, o patrimônio declarado ${mudou(de.totalBens, ultima.totalBens)}`;
+    const real =
+      de.corrigido !== null && ultima.corrigido !== null && de.totalBens > 0
+        ? `; descontada a inflação, ${mudou(de.corrigido, ultima.corrigido)}`
+        : "";
+    return `${declarado}${real}.`;
+  };
+  const frases = [comparar(eleicoes.at(-2)!)];
+  if (eleicoes.length > 2) frases.push(comparar(eleicoes[0]));
+  return frases;
+}
+
+const onde = (e: Patrimonio["eleicoes"][number]) => (e.municipio ? `${titulo(e.municipio)} (${e.uf})` : e.uf);
+
+function EvolucaoPatrimonio({ patrimonio, nome }: { patrimonio: Patrimonio; nome: string }) {
+  const { eleicoes, corrigidoAte } = patrimonio;
+  const corrigir = corrigidoAte !== null && eleicoes.some((e) => e.corrigido !== null);
+  const hoje = corrigidoAte && formatarMesAno(corrigidoAte.ano, corrigidoAte.mes);
+  return (
+    <section aria-labelledby="evolucao-patrimonio" className="flex flex-col gap-3">
+      <h3 id="evolucao-patrimonio" className="text-lg font-semibold">
+        Como o patrimônio declarado mudou
+      </h3>
+      <div className="flex max-w-[70ch] flex-col gap-2 text-sm">
+        {eleicoes.length > 1 &&
+          resumoPatrimonio(patrimonio).map((frase) => (
+            <p key={frase} className="text-base">
+              {frase}
+            </p>
+          ))}
+        <p className="text-muted-foreground">
+          Soma dos <Termo id="bens-declarados">bens declarados</Termo> ao TSE em cada eleição que {nome} disputou desde
+          2014, inclusive para prefeito e vereador. É o valor que a própria pessoa informou ao se candidatar, não uma
+          avaliação de mercado.
+          {corrigir && (
+            <>
+              {" "}
+              A última coluna mostra o <Termo id="valor-corrigido">valor corrigido</Termo> pelo{" "}
+              <Termo id="ipca">IPCA</Termo> até {hoje}.
+            </>
+          )}
+        </p>
+      </div>
+      <Tabela legenda={`Bens declarados por ${nome} ao TSE em cada eleição`}>
+        <THead>
+          <Tr>
+            <Th>Eleição</Th>
+            <Th>Disputou</Th>
+            <Th numero>Bens declarados</Th>
+            <Th numero>Mudança desde a anterior</Th>
+            {corrigir && <Th numero>Em reais de {hoje}</Th>}
+          </Tr>
+        </THead>
+        <TBody>
+          {eleicoes.map((e, i) => {
+            const anterior = eleicoes[i - 1];
+            const diferenca = anterior && e.totalBens - anterior.totalBens;
+            return (
+              <Tr key={e.ano}>
+                <Th scope="row">{e.ano}</Th>
+                <Td rotulo="Disputou">
+                  {titulo(e.cargo)} em {onde(e)} · {e.partido}
+                  {e.resultado && <span className="block text-xs text-muted-foreground">{titulo(e.resultado)}</span>}
+                </Td>
+                <Td numero rotulo="Bens declarados">
+                  {reaisDeCentavos(e.totalBens)}
+                  <span className="block text-xs text-muted-foreground">
+                    {e.quantidadeBens === 1 ? "1 bem" : `${e.quantidadeBens} bens`}
+                  </span>
+                </Td>
+                <Td numero rotulo="Mudança desde a anterior">
+                  {anterior === undefined ? (
+                    "—"
+                  ) : (
+                    <>
+                      {diferenca > 0 ? "+" : diferenca < 0 ? "−" : ""}
+                      {reaisDeCentavos(Math.abs(diferenca))}
+                      {anterior.totalBens > 0 && (
+                        <span className="block text-xs text-muted-foreground">
+                          {variacao.format(e.totalBens / anterior.totalBens - 1)}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Td>
+                {corrigir && <Td numero rotulo={`Em reais de ${hoje}`}>{e.corrigido === null ? "—" : reaisDeCentavos(e.corrigido)}</Td>}
+              </Tr>
+            );
+          })}
+        </TBody>
+      </Tabela>
+    </section>
+  );
+}
+
 /** Seção "Eleição e campanha" do perfil, com os dados do TSE. A seção sempre aparece, porque a navegação do perfil aponta para ela. */
 export async function CampanhaParlamentar({ casa, idExterno, nome }: { casa: Casa; idExterno: string; nome: string }) {
-  const campanha = await getCampanhaParlamentar({ casa, idExterno });
+  const [campanha, patrimonio] = await Promise.all([
+    getCampanhaParlamentar({ casa, idExterno }),
+    getPatrimonioParlamentar({ casa, idExterno }),
+  ]);
   if (!campanha) {
     return (
       <Secao id="campanha" titulo="Eleição e campanha">
@@ -70,6 +185,8 @@ export async function CampanhaParlamentar({ casa, idExterno, nome }: { casa: Cas
             </div>
           ))}
         </dl>
+
+        {patrimonio.eleicoes.length > 0 && <EvolucaoPatrimonio patrimonio={patrimonio} nome={nome} />}
 
         {campanha.cidades.length > 0 && (
           <section aria-labelledby="votos-emendas" className="flex flex-col gap-3">
@@ -188,6 +305,7 @@ export async function CampanhaParlamentar({ casa, idExterno, nome }: { casa: Cas
 
         <p className="text-sm text-muted-foreground">
           Fonte: Dados Abertos do TSE (candidaturas, bens, prestação de contas e votação por município, 1º turno).
+          {patrimonio.corrigidoAte && " Inflação: IPCA mensal do IBGE, série 433 do Banco Central (SGS), desde setembro do ano de cada eleição."}
         </p>
       </div>
     </Secao>

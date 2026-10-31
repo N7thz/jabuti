@@ -4,7 +4,10 @@ import type {
   DeputadoResumo,
   Detalhe,
   Evento,
+  HistoricoDeputadoApi,
   Legislatura,
+  MandatoExternoApi,
+  OrientacaoApi,
   Pagina,
   ProposicaoDetalhe,
   ProposicaoResumo,
@@ -71,6 +74,27 @@ export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFet
     /** Votos nominais; vem tudo numa resposta só (não aceita itens/pagina) e vazio em votações simbólicas. */
     async votos(id: string) {
       return (await get<Pagina<VotoApi>>(montar(`/votacoes/${encodeURIComponent(id)}/votos`))).dados;
+    },
+
+    /** Trocas de partido, licenças e afastamentos em todos os mandatos, do mais antigo ao mais novo. */
+    async historico(id: number | string) {
+      return (await get<Pagina<HistoricoDeputadoApi>>(montar(`/deputados/${id}/historico`))).dados;
+    },
+
+    /** Cargos eletivos fora da Câmara que o próprio deputado informou (ver MandatoExternoApi). */
+    async mandatosExternos(id: number | string) {
+      return (await get<Pagina<MandatoExternoApi>>(montar(`/deputados/${id}/mandatosExternos`))).dados;
+    },
+
+    /** Orientação de cada partido, bloco e liderança; vazia em votações simbólicas. */
+    async orientacoes(id: string) {
+      return (await get<Pagina<OrientacaoApi>>(montar(`/votacoes/${encodeURIComponent(id)}/orientacoes`))).dados;
+    },
+
+    /** Últimas proposições apresentadas dos tipos pedidos (ex.: ["PL", "PEC"]), das mais novas para as mais antigas. */
+    async proposicoesRecentes(siglaTipo: string[], itens: number) {
+      const url = montar("/proposicoes", { siglaTipo: siglaTipo.join(","), ordem: "DESC", ordenarPor: "id", itens });
+      return (await get<Pagina<ProposicaoResumo>>(url)).dados;
     },
 
     proposicao: (id: number | string) => detalhe<ProposicaoDetalhe>(`/proposicoes/${id}`),

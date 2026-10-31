@@ -3,10 +3,10 @@
 import { SearchIcon } from "lucide-react";
 
 import { CampoTexto } from "@/components/form/campo-texto";
+import { CampoSelect } from "@/components/form/campo-select";
+import { BotaoFiltro } from "@/components/form/botao-filtro";
 import { useFiltroForm } from "@/components/form/use-filtro-form";
-import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { mascaraNome } from "@/lib/filtros/mascaras";
 import { UFS } from "@/lib/ufs";
 
@@ -33,7 +33,7 @@ export function FiltrosForm({
   /** Mostra o filtro "Só os fixados" (os fixados são por usuário). */
   logado?: boolean;
 }) {
-  const { form, onSubmit, acao } = useFiltroForm(filtrosParlamentares, {
+  const { form, onSubmit, acao, pendente } = useFiltroForm(filtrosParlamentares, {
     defaultValues: {
       nome: valores.nome ?? "",
       casa: valores.casa ?? "",
@@ -51,6 +51,7 @@ export function FiltrosForm({
       method="get"
       action={acao}
       onSubmit={onSubmit}
+      aria-busy={pendente || undefined}
       noValidate
       role="search"
       aria-label="Filtrar parlamentares"
@@ -96,24 +97,20 @@ export function FiltrosForm({
       ).map(({ campo, rotulo, opcoes }) => (
         <Field key={campo} data-invalid={erro(campo) ? true : undefined}>
           <FieldLabel htmlFor={campo}>{rotulo}</FieldLabel>
-          <NativeSelect
+          <CampoSelect
+            form={form}
+            nome={campo}
             id={campo}
-            aria-invalid={erro(campo) ? true : undefined}
-            aria-describedby={erro(campo) ? `${campo}-erro` : undefined}
-            {...form.register(campo)}
-          >
-            {opcoes.map(([valor, texto]) => (
-              <NativeSelectOption key={valor} value={valor}>
-                {texto}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            opcoes={opcoes}
+            invalido={Boolean(erro(campo))}
+            descritoPor={erro(campo) ? `${campo}-erro` : undefined}
+          />
           {erro(campo) && <FieldError id={`${campo}-erro`}>{erro(campo)}</FieldError>}
         </Field>
       ))}
-      <Button type="submit" size="lg" className="sm:mt-7" disabled={form.formState.isSubmitting}>
+      <BotaoFiltro pendente={pendente} className="sm:mt-7">
         Filtrar
-      </Button>
+      </BotaoFiltro>
     </form>
   );
 }

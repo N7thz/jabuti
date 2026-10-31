@@ -1,7 +1,7 @@
 /**
  * Sincroniza dados do Senado (API de Dados Abertos + CEAPS) para o banco.
  * Uso: bun scripts/sync-senado.ts [--desde AAAA-MM-DD] [--ate AAAA-MM-DD]
- *        [--so senadores,votacoes,eventos,despesas,materias] [--dry-run]
+ *        [--so senadores,votacoes,orientacoes,eventos,despesas,materias] [--dry-run]
  * Padrão: últimos 30 dias, todas as etapas. Despesas sincronizam os anos inteiros do intervalo.
  * --dry-run não conecta ao banco: busca e mapeia de verdade e imprime contagens e exemplos.
  */
@@ -18,15 +18,17 @@ import {
   gravarDespesas,
   gravarEventos,
   gravarMaterias,
+  gravarOrientacoes,
   gravarSenadores,
   gravarVotacoes,
   mapearEventos,
+  mapearOrientacoes,
   mapearVotacoes,
 } from "@/lib/senado/sync";
 import type { VotacaoPlenario } from "@/lib/senado/types";
 import { registrarSync } from "@/lib/sync/run";
 
-const ETAPAS = ["senadores", "votacoes", "eventos", "despesas", "materias"] as const;
+const ETAPAS = ["senadores", "votacoes", "orientacoes", "eventos", "despesas", "materias"] as const;
 type Etapa = (typeof ETAPAS)[number];
 
 const { values } = parseArgs({
@@ -130,6 +132,16 @@ const passos = [
       contarSiglas(bruto);
     },
     gravar: (prisma, d) => gravarVotacoes(prisma, d.mapeado),
+  }),
+  passo({
+    etapa: "orientacoes",
+    escopo: `orientacoes:${intervalo}`,
+    buscar: async () => mapearOrientacoes(await votacoes(), await client.orientacoesBancada(desde, ate)),
+    resumir: (d) => {
+      console.log(`  votações com orientação: ${d.length}; orientações: ${d.reduce((n, v) => n + v.orientacoes.length, 0)}`);
+      exemplos("orientações", d.map((v) => ({ ...v, orientacoes: v.orientacoes.slice(0, 4) })));
+    },
+    gravar: gravarOrientacoes,
   }),
   passo({
     etapa: "eventos",

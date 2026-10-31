@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AvisoFonte } from "@/components/aviso-fonte";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { isUf, UFS } from "@/lib/ufs";
+import { metadados } from "@/lib/metadados";
 
 export function generateStaticParams() {
   return Object.keys(UFS).map((uf) => ({ uf }));
@@ -19,7 +20,11 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/estados/[uf]">): Promise<Metadata> {
   const { uf } = await params;
-  return { title: `${isUf(uf) ? UFS[uf] : "Estado"} · Jabuti` };
+  if (!isUf(uf)) return metadados({ titulo: "Estado · Jabuti" });
+  return metadados({
+    titulo: `${UFS[uf]}: bancada e emendas · Jabuti`,
+    descricao: `Os deputados e senadores eleitos por ${UFS[uf]} e as emendas parlamentares que chegaram ao estado.`,
+  });
 }
 
 export default function EstadoPage({ params, searchParams }: PageProps<"/estados/[uf]">) {

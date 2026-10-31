@@ -1,21 +1,23 @@
-import { BookOpenIcon } from "lucide-react";
-import type { Metadata } from "next";
+import { BookOpenIcon, SearchIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { Paginacao } from "@/components/paginacao";
 import { RolarAoMudar } from "@/components/rolar-ao-mudar";
+import { RolarAteTermo } from "@/components/rolar-ate-termo";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { lerFiltros } from "@/lib/filtros/schemas";
 import { GLOSSARIO, TEMAS, type Tema, type Verbete } from "@/lib/glossario";
+import { cn } from "@/lib/utils";
 
 import { filtrosGlossario, lerUrlGlossario, linkGlossario, navegacaoGlossario } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = {
-  title: "Entenda os termos · Jabuti",
-  description: "O que significam empenho, emenda Pix, cota parlamentar, fundo eleitoral, inabilitação no TCU e outros termos do portal.",
-};
+export const metadata = metadados({
+  titulo: "Entenda os termos · Jabuti",
+  descricao: "O que significam empenho, emenda Pix, cota parlamentar, fundo eleitoral, inabilitação no TCU e outros termos do portal.",
+});
 
 const ORDEM = Object.keys(TEMAS) as Tema[];
 const POR_PAGINA = 12;
@@ -142,13 +144,30 @@ async function Lista({ searchParams }: Pick<PageProps<"/glossario">, "searchPara
               {agrupar === "tema" && <p className="text-muted-foreground">{TEMAS[grupo as Tema].descricao}</p>}
             </div>
 
-            {verbetes.map((v) => (
+            {verbetes.map((v) => {
+              // Vindo de um link "ver no glossário" (?termo=id#id). O :target sozinho não basta: na navegação
+              // do Next (pushState) o navegador não atualiza o :target, então o destaque vem do servidor.
+              const destaque = navegacao.termo === v.id;
+              return (
               <article
                 key={v.id}
                 id={v.id}
                 aria-labelledby={`termo-${v.id}`}
-                className="flex scroll-mt-24 flex-col gap-2 target:rounded-lg target:bg-accent target:p-4"
+                data-destaque={destaque || undefined}
+                tabIndex={destaque ? -1 : undefined}
+                className={cn(
+                  "flex scroll-mt-24 flex-col gap-2 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "target:border-2 target:border-secao target:bg-secao-suave target:p-4 target:shadow-soft",
+                  destaque && "border-2 border-secao bg-secao-suave p-4 shadow-soft sm:p-6",
+                )}
               >
+                {destaque && <RolarAteTermo id={v.id} />}
+                {destaque && (
+                  <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-secao px-3 py-0.5 text-sm font-semibold text-background">
+                    <SearchIcon aria-hidden="true" className="size-3.5" />
+                    Termo que você abriu
+                  </p>
+                )}
                 <h4 id={`termo-${v.id}`} className="text-lg font-semibold">
                   {v.termo}
                 </h4>
@@ -168,7 +187,8 @@ async function Lista({ searchParams }: Pick<PageProps<"/glossario">, "searchPara
                   </p>
                 )}
               </article>
-            ))}
+              );
+            })}
           </section>
         );
       })}

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -14,11 +13,12 @@ import { linkParlamentar } from "@/lib/votacoes/queries";
 
 import { filtrosRankingCota, lerUrlRankingCota, linkRankingCota } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
+import { metadados } from "@/lib/metadados";
 
-export const metadata: Metadata = {
-  title: "Ranking da cota parlamentar · Jabuti",
-  description: "Quem mais gastou da cota parlamentar, no total e por tipo de gasto.",
-};
+export const metadata = metadados({
+  titulo: "Ranking da cota parlamentar · Jabuti",
+  descricao: "Quem mais gastou da cota parlamentar, no total e por tipo de gasto.",
+});
 
 export default function RankingCotaPage({ searchParams }: PageProps<"/rankings/cota">) {
   return (

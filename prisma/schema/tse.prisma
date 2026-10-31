@@ -1,0 +1,105 @@
+// Dados eleitorais do TSE: candidaturas, bens, receitas, votos por município e evolução do patrimônio.
+
+/// Candidatura do TSE (Dados Abertos) que casou com um parlamentar sincronizado.
+model Candidatura {
+  id            String   @id @default(cuid())
+  parlamentarId String
+  ano           Int
+  /// SQ_CANDIDATO: id do candidato naquela eleição; liga bens, receitas e votos.
+  sqCandidato   String
+  uf            Uf
+  /// DS_CARGO como o TSE publica (DEPUTADO FEDERAL, SENADOR, 1º SUPLENTE...).
+  cargo         String
+  numero        Int
+  nomeUrna      String
+  partido       String
+  /// DS_SITUACAO_CANDIDATURA (APTO, INAPTO...).
+  situacao      String
+  /// DS_SIT_TOT_TURNO (ELEITO POR QP, SUPLENTE...).
+  resultado     String?
+  /// Só para casar registros entre fontes. Nunca exibir.
+  cpf           String?
+  totalBens     Decimal  @db.Decimal(18, 2)
+  totalReceitas Decimal  @db.Decimal(18, 2)
+  totalVotos    Int      @default(0)
+  atualizadoEm  DateTime @updatedAt
+
+  parlamentar Parlamentar       @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+  bens        BemDeclarado[]
+  receitas    ReceitaCampanha[]
+  votos       VotoMunicipio[]
+
+  @@unique([ano, sqCandidato])
+  @@index([parlamentarId, ano])
+}
+
+model BemDeclarado {
+  candidaturaId String
+  /// NR_ORDEM_BEM_CANDIDATO.
+  ordem         Int
+  tipo          String
+  descricao     String
+  valor         Decimal @db.Decimal(18, 2)
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@id([candidaturaId, ordem])
+}
+
+/// Receitas de campanha somadas por origem, fonte e doador (o TSE publica um lançamento por recibo).
+model ReceitaCampanha {
+  id            String  @id @default(cuid())
+  candidaturaId String
+  /// DS_ORIGEM_RECEITA: pessoas físicas, partido político, outros candidatos, recursos próprios...
+  origem        String
+  /// DS_FONTE_RECEITA: FUNDO PARTIDARIO, FUNDO ESPECIAL (FEFC) ou OUTROS RECURSOS.
+  fonte         String
+  /// Nome do doador; de pessoa física guarda só o nome, nunca o CPF.
+  doador        String
+  valor         Decimal @db.Decimal(18, 2)
+  lancamentos   Int
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@unique([candidaturaId, origem, fonte, doador])
+  @@index([candidaturaId, valor])
+}
+
+/// Votação nominal por município (soma das zonas e do voto em trânsito), 1º turno.
+model VotoMunicipio {
+  candidaturaId String
+  /// Código do município no TSE (não é o IBGE).
+  municipioTse  Int
+  /// Código IBGE pela tabela de equivalência do TSE; cruza com `Emenda.municipioIbge`.
+  municipioIbge Int?
+  votos         Int
+
+  candidatura Candidatura @relation(fields: [candidaturaId], references: [id], onDelete: Cascade)
+
+  @@id([candidaturaId, municipioTse])
+  @@index([municipioIbge])
+}
+
+/// Total de bens que o parlamentar declarou ao TSE em cada eleição que disputou (inclusive municipais),
+/// para mostrar a evolução do patrimônio. Casa só por CPF ou título de eleitor, nunca por nome.
+model PatrimonioEleicao {
+  parlamentarId  String
+  ano            Int
+  /// SQ_CANDIDATO naquela eleição.
+  sqCandidato    String
+  /// DS_CARGO como o TSE publica (VEREADOR, PREFEITO, DEPUTADO ESTADUAL...).
+  cargo          String
+  uf             Uf
+  /// Município da candidatura (NM_UE) nas eleições municipais; null nas gerais.
+  municipio      String?
+  partido        String
+  /// DS_SIT_TOT_TURNO (ELEITO, NÃO ELEITO, SUPLENTE...).
+  resultado      String?
+  totalBens      Decimal  @db.Decimal(18, 2)
+  quantidadeBens Int
+  atualizadoEm   DateTime @updatedAt
+
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([parlamentarId, ano])
+}

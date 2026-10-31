@@ -1,8 +1,10 @@
 /**
  * Sincroniza dados do TSE (Dados Abertos) dos parlamentares em exercício: candidatura, bens
- * declarados, receitas de campanha e votos por município.
- * Uso: bun scripts/sync-tse.ts [--ufs AC,AM] [--anos 2018,2022] [--dry-run]
+ * declarados, receitas de campanha e votos por município. Depois, a evolução do patrimônio: o total de
+ * bens declarado em cada eleição de 2014 a 2024 que o parlamentar disputou na UF (casa por CPF ou título).
+ * Uso: bun scripts/sync-tse.ts [--ufs AC,AM] [--anos 2018,2022] [--so-patrimonio] [--dry-run]
  * Padrão: todas as UFs, anos 2018 (senadores) e 2022. Rode depois de sync-camara e sync-senado.
+ * --so-patrimonio pula as candidaturas e refaz só a evolução, a partir das candidaturas já gravadas.
  * --dry-run lê os parlamentares do banco, mas não grava: imprime contagens e exemplos (sem CPF).
  */
 import { parseArgs } from "node:util";
@@ -20,11 +22,13 @@ import {
   gravarCandidaturas,
   type CandidaturaCompleta,
 } from "@/lib/tse/sync";
+import { buscarPatrimonioUf, carregarPessoas, gravarPatrimonio, type PatrimonioCompleto } from "@/lib/tse/patrimonio";
 
 const { values } = parseArgs({
   options: {
     ufs: { type: "string" },
     anos: { type: "string", default: "2018,2022" },
+    "so-patrimonio": { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
   },
 });
@@ -38,6 +42,7 @@ if (invalidas.length > 0 || anos.some((a) => !Number.isInteger(a))) {
   process.exit(1);
 }
 const dryRun = values["dry-run"];
+const soPatrimonio = values["so-patrimonio"];
 
 function resumir(uf: Uf, ano: number, itens: CandidaturaCompleta[]) {
   const porCpf = itens.filter((i) => i.candidatura.casouPor === "cpf").length;
@@ -54,16 +59,39 @@ function resumir(uf: Uf, ano: number, itens: CandidaturaCompleta[]) {
   }
 }
 
+function resumirPatrimonio(uf: Uf, pessoas: number, itens: PatrimonioCompleto[]) {
+  const comHistorico = new Set(itens.map((i) => i.eleicao.parlamentarId));
+  console.log(`  ${uf} patrimônio: ${itens.length} eleições de ${comHistorico.size}/${pessoas} parlamentares`);
+  const porPessoa = Map.groupBy(itens, (i) => i.eleicao.parlamentarId);
+  for (const serie of [...porPessoa.values()].sort((a, b) => b.length - a.length).slice(0, 2)) {
+    console.log(`    ${serie.map((i) => `${i.eleicao.ano} ${i.eleicao.cargo}: ${formatarReais(i.totalBens)}`).join(" · ")}`);
+  }
+}
+
+async function patrimonio(uf: Uf) {
+  const pessoas = await carregarPessoas(prisma, uf);
+  if (pessoas.length === 0) return 0;
+  const itens = await buscarPatrimonioUf(client, pessoas, uf);
+  resumirPatrimonio(uf, pessoas.length, itens);
+  return dryRun ? 0 : gravarPatrimonio(prisma, pessoas, itens);
+}
+
 console.log(`TSE ${anos.join(",")} · ${ufs.length} UF(s)${dryRun ? " (dry-run, sem gravar)" : ""}`);
 
 const prisma = createPrisma();
 const client = createTseClient();
 try {
-  const alvos = await carregarAlvos(prisma, ufs);
-  const municipios = await client.municipiosTseIbge();
-  console.log(`${alvos.length} parlamentares em exercício; ${municipios.size} municípios na tabela TSE → IBGE`);
+  // Só a evolução do patrimônio parte das candidaturas gravadas: não precisa da Câmara nem dos municípios.
+  const alvos = soPatrimonio ? [] : await carregarAlvos(prisma, ufs);
+  const municipios = soPatrimonio ? new Map<number, number>() : await client.municipiosTseIbge();
+  if (!soPatrimonio) console.log(`${alvos.length} parlamentares em exercício; ${municipios.size} municípios na tabela TSE → IBGE`);
 
   for (const uf of ufs) {
+    if (soPatrimonio) {
+      if (dryRun) await patrimonio(uf);
+      else console.log(`[${uf}] ${await registrarSync(prisma, "TSE", `${uf}:patrimonio`, () => patrimonio(uf))} eleições gravadas`);
+      continue;
+    }
     const job = async () => {
       const doUf = alvos.filter((a) => a.uf === uf);
       const candidaturas = await casarUf(client, doUf, uf, anos);
@@ -87,6 +115,9 @@ try {
     };
     if (dryRun) await job();
     else console.log(`[${uf}] ${await registrarSync(prisma, "TSE", `${uf}:${anos.join(",")}`, job)} registros gravados`);
+    // Depende das candidaturas recém-gravadas (no dry-run, das que já estavam no banco).
+    if (dryRun) await patrimonio(uf);
+    else console.log(`[${uf}] ${await registrarSync(prisma, "TSE", `${uf}:patrimonio`, () => patrimonio(uf))} eleições gravadas`);
   }
 } finally {
   await prisma.$disconnect();

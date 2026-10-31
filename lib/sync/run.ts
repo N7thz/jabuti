@@ -1,3 +1,4 @@
+import { codigoDoStatus, digestDoErro } from "../erros-motivos";
 import type { FonteSync } from "../generated/prisma/enums";
 import type { PrismaClient } from "../prisma";
 
@@ -52,6 +53,7 @@ function isErroDeRede(error: unknown) {
 
 /** Resposta HTTP de erro de uma API externa. `status` permite separar "não existe" (404) de "fora do ar". */
 export class ErroHttp extends Error {
+  readonly digest: string;
   constructor(
     readonly status: number,
     readonly url: string,
@@ -59,14 +61,19 @@ export class ErroHttp extends Error {
   ) {
     super(`${status} ${statusText} em ${url}`);
     this.name = "ErroHttp";
+    // Leva o tipo da falha até a tela de erro (ver digestDoErro em lib/erros).
+    this.digest = digestDoErro(codigoDoStatus(status), status);
   }
 }
 
 /** A API não respondeu: DNS, conexão recusada ou timeout, mesmo depois das novas tentativas. */
 export class FalhaDeRede extends Error {
+  readonly digest: string;
   constructor(readonly url: string, options?: ErrorOptions) {
-    super(`Falha de rede em ${url}`, options);
+    const tempo = options?.cause instanceof DOMException && options.cause.name === "TimeoutError";
+    super(`${tempo ? "Tempo esgotado" : "Falha de rede"} em ${url}`, options);
     this.name = "FalhaDeRede";
+    this.digest = digestDoErro(tempo ? "tempo" : "rede");
   }
 }
 
@@ -90,12 +97,12 @@ export interface OpcoesFetcher {
 }
 
 /**
- * `fetch` de JSON com timeout, novas tentativas para falha de rede e 429/5xx (respeitando
- * `Retry-After`) e intervalo mínimo entre chamadas, inclusive concorrentes, para respeitar o
- * limite das APIs públicas (Portal: 90 req/min no horário comercial). Outros 4xx falham na hora.
- * Falhas saem como `ErroHttp` ou `FalhaDeRede`.
+ * `fetch` com timeout, novas tentativas para falha de rede e 429/5xx (respeitando `Retry-After`) e
+ * intervalo mínimo entre chamadas, inclusive concorrentes, para respeitar o limite das APIs públicas
+ * (Portal: 90 req/min no horário comercial). Devolve a última resposta, mesmo de erro, e quem chama
+ * decide o que fazer com ela. Sem resposta depois das tentativas, lança `FalhaDeRede`.
  */
-export function createFetcher({
+export function createFetchResiliente({
   minIntervalMs = 0,
   retries = 4,
   timeoutMs = 30_000,
@@ -112,30 +119,41 @@ export function createFetcher({
   }
   const esperar = (ms: number) => sleep(Math.min(ms, esperaMaximaMs));
 
-  return async function fetchJson<T>(url: string | URL): Promise<T> {
+  return async function fetchResiliente(entrada: string | URL | Request): Promise<Response> {
     for (let attempt = 0; ; attempt++) {
       await aguardarVez();
 
       let response: Response;
       try {
-        response = await fetch(url, {
-          headers: { Accept: "application/json", ...headers },
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-        if (response.ok) return (await response.json()) as T;
+        const signal = AbortSignal.timeout(timeoutMs);
+        // Um Request (ex.: do openapi-fetch) já traz os próprios headers; clonar permite repetir o pedido.
+        response =
+          entrada instanceof Request
+            ? await fetch(entrada.clone(), { signal })
+            : await fetch(entrada, { headers: { Accept: "application/json", ...headers }, signal });
       } catch (error) {
         if (!isErroDeRede(error)) throw error;
-        if (attempt >= retries) throw new FalhaDeRede(String(url), { cause: error });
+        const url = entrada instanceof Request ? entrada.url : String(entrada);
+        if (attempt >= retries) throw new FalhaDeRede(url, { cause: error });
         await esperar(2 ** attempt * 1000);
         continue;
       }
 
       const retryable = response.status === 429 || response.status >= 500;
-      if (!retryable || attempt >= retries) {
-        throw new ErroHttp(response.status, String(url), response.statusText);
-      }
+      if (response.ok || !retryable || attempt >= retries) return response;
       await esperar(retryAfterMs(response) ?? 2 ** attempt * 1000);
     }
+  };
+}
+
+/** Como `createFetchResiliente`, mas já lê o JSON. Resposta de erro sai como `ErroHttp`. */
+export function createFetcher(opcoes: OpcoesFetcher = {}) {
+  const fetchResiliente = createFetchResiliente(opcoes);
+
+  return async function fetchJson<T>(url: string | URL): Promise<T> {
+    const response = await fetchResiliente(url);
+    if (!response.ok) throw new ErroHttp(response.status, String(url), response.statusText);
+    return (await response.json()) as T;
   };
 }
 

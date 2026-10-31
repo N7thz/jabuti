@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { AvisoFonte } from "@/components/aviso-fonte";
 import { Compartilhar } from "@/components/compartilhar";
 import { ErroSecao } from "@/components/erro-secao";
-import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos } from "@/components/emendas/valores";
 import { iniciais } from "@/components/parlamentar-item";
 import { porcentagem } from "@/components/resumo-parlamentar";
@@ -13,16 +11,18 @@ import { Termo } from "@/components/termo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { lerFiltros } from "@/lib/filtros/schemas";
+import { metadados } from "@/lib/metadados";
 import { getConcordancia, getResumoComparavel, type ResumoComparavel } from "@/lib/parlamentares/comparacao";
+import { getMediasDaCasa, type MediasDaCasa } from "@/lib/parlamentares/medias";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 
 import { filtrosComparar, lerUrlComparar, linkComparar } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 
-export const metadata: Metadata = {
-  title: "Comparar parlamentares · Jabuti",
-  description: "Presença, gastos da cota, proposições, emendas e votos de dois parlamentares lado a lado.",
-};
+export const metadata = metadados({
+  titulo: "Comparar parlamentares · Jabuti",
+  descricao: "Presença, gastos da cota, proposições, emendas e votos de dois parlamentares lado a lado.",
+});
 
 export default function CompararPage({ searchParams }: PageProps<"/comparar">) {
   return (
@@ -79,6 +79,17 @@ async function Filtros({ searchParams }: Partial<Pick<PageProps<"/comparar">, "s
   );
 }
 
+const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
+function Media({ valor, de }: { valor: string | false | null | undefined; de: string }) {
+  if (!valor) return null;
+  return (
+    <span className="block font-sans text-xs text-muted-foreground">
+      Média {de}: <span className="font-mono tabular-nums">{valor}</span>
+    </span>
+  );
+}
+
 async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchParams">) {
   const { valores } = lerFiltros(filtrosComparar, await searchParams);
   if (!valores?.a || !valores.b) {
@@ -97,9 +108,23 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
       </p>
     );
   }
-  const votos = await getConcordancia(a, b);
+  // A média é só referência: se o banco falhar, a comparação aparece sem ela.
+  const mediaDa = (p: ResumoComparavel) =>
+    getMediasDaCasa(p.casa === "camara" ? "CAMARA" : "SENADO", p.ano).catch(() => null);
+  const [votos, mediaA, mediaB] = await Promise.all([
+    getConcordancia(a, b),
+    mediaDa(a),
+    a.casa === b.casa ? null : mediaDa(b),
+  ]);
+  const medias = { [a.chave]: mediaA, [b.chave]: a.casa === b.casa ? mediaA : mediaB };
+  const nomeDaCasa = (p: ResumoComparavel) => (p.casa === "camara" ? "dos deputados" : "dos senadores");
 
-  const linhas: { rotulo: React.ReactNode; valor: (p: ResumoComparavel) => React.ReactNode }[] = [
+  const linhas: {
+    rotulo: React.ReactNode;
+    valor: (p: ResumoComparavel) => React.ReactNode;
+    /** Média da casa no indicador; vazio quando o banco ainda não tem o dado do ano. */
+    media: (m: MediasDaCasa) => string | false | null;
+  }[] = [
     {
       rotulo: <Termo id="presenca">Presença</Termo>,
       valor: (p) => (
@@ -110,9 +135,18 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
           </span>
         </>
       ),
+      media: (m) => m.presenca && porcentagem(m.presenca.parte, m.presenca.total),
     },
-    { rotulo: <Termo id="cota-parlamentar">Gasto da cota</Termo>, valor: (p) => reaisDeCentavos(p.cota) },
-    { rotulo: <Termo id="proposicao">Proposições em 12 meses</Termo>, valor: (p) => p.proposicoes },
+    {
+      rotulo: <Termo id="cota-parlamentar">Gasto da cota</Termo>,
+      valor: (p) => reaisDeCentavos(p.cota),
+      media: (m) => m.cota !== null && reaisDeCentavos(m.cota),
+    },
+    {
+      rotulo: <Termo id="proposicao">Proposições em 12 meses</Termo>,
+      valor: (p) => p.proposicoes,
+      media: (m) => m.proposicoes !== null && decimal.format(m.proposicoes),
+    },
     {
       rotulo: <Termo id="empenho">Emendas empenhadas</Termo>,
       valor: (p) => (
@@ -123,6 +157,7 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
           </span>
         </>
       ),
+      media: (m) => m.emendas && reaisDeCentavos(m.emendas.empenhado),
     },
   ];
 
@@ -153,35 +188,45 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
         ))}
       </div>
 
-      <Tabela legenda={`Indicadores de ${a.ano} lado a lado`} classeTabela="@2xl:table-fixed">
-        <THead>
-          <Tr>
-            <Th>Indicador ({a.ano})</Th>
-            {/* Larguras iguais: nenhum dos dois ganha mais espaço por ter números maiores. */}
-            <Th numero className="w-2/5">
-              {a.nome}
-            </Th>
-            <Th numero className="w-2/5">
-              {b.nome}
-            </Th>
-          </Tr>
-        </THead>
-        <TBody>
+      {/* Cada indicador tem o nome no centro e um valor embaixo de cada cartão: as duas colunas têm a mesma
+          largura e o mesmo espaçamento dos cartões acima, então cada número fica alinhado com quem ele descreve. */}
+      <section aria-labelledby="indicadores" className="rounded-lg border bg-card">
+        <h3 id="indicadores" className="border-b px-4 py-3 text-center font-semibold">
+          Indicadores de {a.ano}
+        </h3>
+        <dl className="divide-y">
           {linhas.map((l, i) => (
-            <Tr key={i}>
-              <Th scope="row" className="font-normal whitespace-normal">
-                {l.rotulo}
-              </Th>
-              <Td numero rotulo={a.nome}>
-                {l.valor(a)}
-              </Td>
-              <Td numero rotulo={b.nome}>
-                {l.valor(b)}
-              </Td>
-            </Tr>
+            <div key={i} className="flex flex-col gap-2 py-4">
+              <dt className="px-4 text-center text-sm text-muted-foreground">{l.rotulo}</dt>
+              <div className="grid grid-cols-2 gap-4">
+                {[a, b].map((p) => (
+                  <dd key={p.chave} className="px-4 text-center font-mono text-lg tabular-nums">
+                    <span className="sr-only">{p.nome}: </span>
+                    {l.valor(p)}
+                    {/* No celular os cartões ficam empilhados: o nome diz de quem é cada coluna. */}
+                    <span aria-hidden="true" className="block font-sans text-xs text-muted-foreground sm:hidden">
+                      {p.nome}
+                    </span>
+                    {/* Casas diferentes: cada coluna mostra a média da sua. */}
+                    {a.casa !== b.casa && <Media valor={medias[p.chave] && l.media(medias[p.chave]!)} de={nomeDaCasa(p)} />}
+                  </dd>
+                ))}
+              </div>
+              {a.casa === b.casa && (
+                <p className="px-4 text-center">
+                  <Media valor={mediaA && l.media(mediaA)} de={nomeDaCasa(a)} />
+                </p>
+              )}
+            </div>
           ))}
-        </TBody>
-      </Tabela>
+        </dl>
+        {(mediaA || mediaB) && (
+          <p className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
+            A média é por parlamentar em exercício e sai da nossa cópia dos dados oficiais, atualizada uma vez por dia.
+            No gasto da cota, conta só quem lançou algum gasto no ano.
+          </p>
+        )}
+      </section>
 
       <div className="rounded-lg border bg-card p-4">
         <h3 className="font-semibold">Votaram igual?</h3>

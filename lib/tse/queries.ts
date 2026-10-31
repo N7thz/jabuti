@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import type { Casa } from "@/lib/generated/prisma/enums";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
+import { fatorIpca, lerSerieIpca, URL_IPCA } from "./ipca";
+
 // Decimal do Prisma não atravessa o "use cache"; tudo sai em centavos, como em lib/emendas/queries.
 const emCentavos = (valor: Prisma.Decimal | null | undefined) => (valor ? Number(valor.toFixed(2).replace(".", "")) : 0);
 
@@ -73,5 +75,60 @@ export async function getCampanhaParlamentar(parlamentar: { casa: Casa; idExtern
       votos: v.votos,
       emendasPagas: pagoPorCidade.get(v.municipioIbge!) ?? 0,
     })),
+  };
+}
+
+/** IPCA mensal do Banco Central; `null` se a fonte estiver fora do ar (a tela mostra só os valores declarados). */
+async function getIpca() {
+  "use cache";
+  cacheTag("ipca");
+  try {
+    const resposta = await fetch(URL_IPCA, { signal: AbortSignal.timeout(10_000) });
+    if (!resposta.ok) throw new Error(`BCB respondeu ${resposta.status}`);
+    const serie = lerSerieIpca(await resposta.json());
+    cacheLife("days");
+    return serie;
+  } catch {
+    cacheLife("minutes");
+    return null;
+  }
+}
+
+/**
+ * Total de bens declarado ao TSE em cada eleição que o parlamentar disputou (2014 a 2024), do mais antigo
+ * ao mais novo, com o valor corrigido pelo IPCA até o último mês publicado quando o Banco Central responde.
+ */
+export async function getPatrimonioParlamentar(parlamentar: { casa: Casa; idExterno: string }) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("tse", `tse:${parlamentar.casa}:${parlamentar.idExterno}`);
+
+  const [eleicoes, ipca] = await Promise.all([
+    db.patrimonioEleicao.findMany({
+      where: { parlamentar: { casa: parlamentar.casa, idExterno: parlamentar.idExterno } },
+      orderBy: { ano: "asc" },
+    }),
+    getIpca(),
+  ]);
+  const ultimoMes = ipca?.at(-1);
+
+  return {
+    /** Mês do último IPCA usado na correção; `null` sem correção. */
+    corrigidoAte: ultimoMes ? { ano: ultimoMes.ano, mes: ultimoMes.mes } : null,
+    eleicoes: eleicoes.map((e) => {
+      const totalBens = emCentavos(e.totalBens);
+      const fator = ipca ? fatorIpca(ipca, e.ano) : null;
+      return {
+        ano: e.ano,
+        cargo: e.cargo,
+        uf: e.uf,
+        municipio: e.municipio,
+        partido: e.partido,
+        resultado: e.resultado,
+        quantidadeBens: e.quantidadeBens,
+        totalBens,
+        corrigido: fator === null ? null : Math.round(totalBens * fator),
+      };
+    }),
   };
 }

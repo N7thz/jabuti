@@ -1,0 +1,32 @@
+// Projetos e demais proposições, com seus autores.
+
+model Proposicao {
+  id               String    @id @default(cuid())
+  casa             Casa
+  idExterno        String
+  siglaTipo        String
+  numero           Int
+  ano              Int
+  ementa           String
+  dataApresentacao DateTime?
+  situacao         String?
+  url              String?
+
+  autores  ProposicaoAutor[]
+  votacoes Votacao[]
+
+  @@unique([casa, idExterno])
+  @@index([siglaTipo, numero, ano])
+}
+
+model ProposicaoAutor {
+  proposicaoId  String
+  parlamentarId String
+  proponente    Boolean @default(true)
+
+  proposicao  Proposicao  @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@id([proposicaoId, parlamentarId])
+  @@index([parlamentarId])
+}

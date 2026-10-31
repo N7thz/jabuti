@@ -5,9 +5,14 @@ import type {
   DespesaCeaps,
   DespesaCeapsApi,
   DetalheSenadorApi,
+  FiliacoesSenadorApi,
+  FiltrosProcesso,
   LegislaturaApi,
   ListaAtualApi,
+  MandatoSenado,
+  MandatosSenadorApi,
   ListaLegislaturaSenadoresApi,
+  OrientacaoBancadaApi,
   ParlamentarListaApi,
   ProcessoApi,
   ProcessoAutoria,
@@ -97,6 +102,7 @@ function normalizarVotacao(v: VotacaoApi): VotacaoPlenario {
 
   return {
     codigo: String(v.codigoSessaoVotacao),
+    sequencial: v.sequencialVotacao,
     codigoSessao: String(v.codigoSessao),
     siglaTipoSessao: v.siglaTipoSessao,
     data: v.dataSessao,
@@ -188,6 +194,38 @@ export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFet
       return p ? normalizarSenador(p) : null;
     },
 
+    /** Partidos em que o senador já foi filiado, com as datas de entrada e saída. */
+    async filiacoes(codigo: string) {
+      const r = await get<FiliacoesSenadorApi>(`/senador/${codigo}/filiacoes`);
+      return asArray(r.FiliacaoParlamentar.Parlamentar?.Filiacoes?.Filiacao).map((f) => ({
+        partido: f.Partido.SiglaPartido.trim(),
+        nome: texto(f.Partido.NomePartido),
+        desde: f.DataFiliacao,
+        ate: texto(f.DataDesfiliacao),
+      }));
+    },
+
+    /** Mandatos do senador no Senado, do mais antigo ao mais novo. Mandato sem legislatura informada fica de fora. */
+    async mandatos(codigo: string): Promise<MandatoSenado[]> {
+      const r = await get<MandatosSenadorApi>(`/senador/${codigo}/mandatos`);
+      return asArray(r.MandatoParlamentar.Parlamentar?.Mandatos?.Mandato)
+        .flatMap((m) => {
+          const primeira = m.PrimeiraLegislaturaDoMandato;
+          if (!primeira) return [];
+          const titular = m.DescricaoParticipacao.trim() === "Titular";
+          return [
+            {
+              uf: m.UfParlamentar.trim(),
+              inicio: primeira.DataInicio,
+              fim: (m.SegundaLegislaturaDoMandato ?? primeira).DataFim,
+              titular,
+              exerceu: titular || asArray(m.Exercicios?.Exercicio).length > 0,
+            },
+          ];
+        })
+        .sort((a, b) => a.inicio.localeCompare(b.inicio));
+    },
+
     /** Número da legislatura vigente na data (AAAA-MM-DD). */
     async legislatura(data: string): Promise<number | null> {
       const r = await get<LegislaturaApi>(`/plenario/legislatura/${compacta(data)}`);
@@ -203,6 +241,18 @@ export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFet
       for (const j of janelas(desde, ate, 365)) {
         const r = await get<VotacaoApi[]>("/votacao", { dataInicio: j.desde, dataFim: j.ate });
         todas.push(...asArray(r).map(normalizarVotacao));
+      }
+      return todas;
+    },
+
+    /** Orientação dos líderes nas votações do plenário; consulta mês a mês. */
+    async orientacoesBancada(desde: string, ate: string): Promise<OrientacaoBancadaApi[]> {
+      const todas: OrientacaoBancadaApi[] = [];
+      for (const j of janelas(desde, ate, 31)) {
+        const r = await get<{ votacoes?: OrientacaoBancadaApi[] }>(
+          `/plenario/votacao/orientacaoBancada/${compacta(j.desde)}/${compacta(j.ate)}`,
+        );
+        todas.push(...asArray(r.votacoes));
       }
       return todas;
     },
@@ -242,6 +292,14 @@ export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFet
         dataFimApresentacao: ate,
       });
       return asArray(r);
+    },
+
+    /** Processos (projetos, requerimentos, vetos...) que atendem aos filtros, sem paginação. */
+    async processos(filtros: FiltrosProcesso): Promise<ProcessoApi[]> {
+      const params = Object.fromEntries(
+        Object.entries(filtros).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]),
+      );
+      return asArray(await get<ProcessoApi[]>("/processo", params));
     },
 
     /** Todas as despesas CEAPS do ano (~10 MB de JSON). */

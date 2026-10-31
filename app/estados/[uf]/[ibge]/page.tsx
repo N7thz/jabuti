@@ -19,6 +19,7 @@ import { linkAno } from "@/lib/filtros/formularios";
 import { getAnosEmendas, getEmendasMunicipio, getMunicipio, getUltimaSyncEmendas } from "@/lib/emendas/queries";
 import { anoEscolhido } from "@/lib/emendas/rotulos";
 import { isUf, UFS } from "@/lib/ufs";
+import { metadados } from "@/lib/metadados";
 
 async function municipioDaUrl(params: PageProps<"/estados/[uf]/[ibge]">["params"]) {
   const { uf, ibge } = await params;
@@ -29,11 +30,12 @@ async function municipioDaUrl(params: PageProps<"/estados/[uf]/[ibge]">["params"
 
 export async function generateMetadata({ params }: PageProps<"/estados/[uf]/[ibge]">): Promise<Metadata> {
   const municipio = await municipioDaUrl(params);
-  return {
-    title: municipio
-      ? `Emendas para ${municipio.nome} (${municipio.uf}) · Jabuti`
-      : "Cidade · Jabuti",
-  };
+  if (!municipio) return metadados({ titulo: "Cidade · Jabuti", imagemPropria: true });
+  return metadados({
+    titulo: `Emendas para ${municipio.nome} (${municipio.uf}) · Jabuti`,
+    descricao: `Quanto ${municipio.nome} recebeu em emendas parlamentares, de quem, quanto isso dá por habitante e as contas da prefeitura.`,
+    imagemPropria: true,
+  });
 }
 
 export default function CidadePage({ params, searchParams }: PageProps<"/estados/[uf]/[ibge]">) {

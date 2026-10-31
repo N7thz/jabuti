@@ -21,8 +21,34 @@
 @custom-variant deitado (@media (orientation: landscape) and (max-height: 32rem));
 
 /*
- * Logoisum Video Agency Hero, monocromático (ver DESIGN.md)
- * Charcoal #222 = primary/foco/link · #F5F5F5 = superfícies · verde #2F6B47 = success · vermelho #B3362F = destructive.
+ * Animações: data-animacoes no <html> ("ligadas"/"desligadas", ver lib/animacoes.ts) vence o "reduzir movimento"
+ * do aparelho; sem o atributo (preferência "sistema") vale o do aparelho. motion-safe/motion-reduce seguem isso.
+ */
+@custom-variant motion-safe {
+  &:where(html[data-animacoes="ligadas"] *) {
+    @slot;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(html:not([data-animacoes]) *) {
+      @slot;
+    }
+  }
+}
+@custom-variant motion-reduce {
+  &:where(html[data-animacoes="desligadas"] *) {
+    @slot;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:where(html:not([data-animacoes]) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Logoisum Video Agency Hero com as cores do ícone do Jabuti (ver DESIGN.md)
+ * Oliva #262C12 (do jabuti) = primary/foco/link · #F4F6EC = superfícies levemente oliva · limão #BEDC54 = marca,
+ * só como enfeite · no escuro, fundos charcoal neutros e o ícone só em bordas e destaques · verde #2F6B47 = success · vermelho #B3362F = destructive.
  * Contraste conferido nos dois temas: texto ≥ 15:1, secundário ≥ 5.3:1, texto sobre cor ≥ 4.5:1, bordas de input e foco ≥ 3:1.
  */
 @theme inline {
@@ -64,14 +90,17 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-link: var(--link);
-  /* Cores das seções (ver bloco "Cores das seções" abaixo e DESIGN.md). */
+  --color-marca: var(--marca);
+  --color-marca-suave: var(--marca-suave);
+  --color-marca-foreground: var(--marca-foreground);
+  /* Destaque das páginas: todas na cor da marca (ver bloco "Destaque das páginas" abaixo e DESIGN.md). */
   --color-secao: var(--secao);
   --color-secao-suave: var(--secao-suave);
-  --color-secao-empresas: var(--secao-empresas);
-  --color-secao-parlamentares: var(--secao-parlamentares);
-  --color-secao-cidades: var(--secao-cidades);
-  --color-secao-orcamento: var(--secao-orcamento);
-  --color-secao-glossario: var(--secao-glossario);
+  --color-secao-empresas: var(--secao);
+  --color-secao-parlamentares: var(--secao);
+  --color-secao-cidades: var(--secao);
+  --color-secao-orcamento: var(--secao);
+  --color-secao-glossario: var(--secao);
   /* Base de 12px; navbar flutuante e hero em 16px (rounded-2xl). */
   --radius-sm: 0.5rem;
   --radius-md: 0.625rem;
@@ -88,50 +117,54 @@
 :root {
   --font-system: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* Branco e charcoal; o Logoisum proíbe preto puro. */
+  /* Branco e oliva escuro; o Logoisum proíbe preto puro. */
   --background: #ffffff;
-  --foreground: #222222;
+  --foreground: #262c12;
   --card: #ffffff;
-  --card-foreground: #222222;
+  --card-foreground: #262c12;
   --popover: #ffffff;
-  --popover-foreground: #222222;
-  /* Charcoal #222 (texto branco 15.9:1) */
-  --primary: #222222;
+  --popover-foreground: #262c12;
+  /* Oliva #262C12 (texto branco 14,5:1) */
+  --primary: #262c12;
   --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #222222;
-  --muted: #f5f5f5;
-  /* #666 = 5.7:1 no branco, 5.3:1 no #F5F5F5 */
-  --muted-foreground: #666666;
-  --accent: #ededed;
-  --accent-foreground: #222222;
+  --secondary: #f4f6ec;
+  --secondary-foreground: #262c12;
+  --muted: #f4f6ec;
+  /* #5B6150 = 6,4:1 no branco, 5,9:1 no #F4F6EC */
+  --muted-foreground: #5b6150;
+  --accent: #e9eed8;
+  --accent-foreground: #262c12;
   --destructive: #b3362f;
   /* Verde #2F6B47 (texto branco 6.4:1): valor pago, situação positiva */
   --success: #2f6b47;
   --success-foreground: #ffffff;
-  --link: #222222;
-  --border: #e5e5e5;
-  --input: #8a8a8a;
-  --ring: #222222;
-  --chart-1: #222222;
+  --link: #262c12;
+  --border: #e1e6d3;
+  --input: #7d846a;
+  --ring: #262c12;
+  --chart-1: #262c12;
   --chart-2: #2f6b47;
   --chart-3: #b3362f;
-  --chart-4: #666666;
-  --chart-5: #8a8a8a;
+  --chart-4: #5b6150;
+  --chart-5: #7d846a;
   --radius: 0.75rem;
   --elevation-soft: 0 1px 3px rgb(0 0 0 / 0.06);
   --elevation-lift: 0 2px 8px rgb(0 0 0 / 0.08);
   --sidebar: #ffffff;
-  --sidebar-foreground: #222222;
-  --sidebar-primary: #222222;
+  --sidebar-foreground: #262c12;
+  --sidebar-primary: #262c12;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f0f0f0;
-  --sidebar-accent-foreground: #222222;
-  --sidebar-border: #e5e5e5;
-  --sidebar-ring: #222222;
+  --sidebar-accent: #eef6d4;
+  --sidebar-accent-foreground: #262c12;
+  --sidebar-border: #e1e6d3;
+  --sidebar-ring: #262c12;
+  /* Cores do ícone: limão do fundo e oliva do jabuti. Limão sobre branco dá 1,55:1: só enfeite, nunca texto. */
+  --marca: #bedc54;
+  --marca-suave: #eef6d4;
+  --marca-foreground: #262c12;
 }
 
-/* Charcoal, nunca preto puro; o destaque inverte para off-white. */
+/* Charcoal neutro, nunca preto puro. O ícone aparece só em bordas e destaques: borda oliva, foco e marca em limão. */
 .dark {
   --background: #1a1a1a;
   --foreground: #f5f5f5;
@@ -144,7 +177,7 @@
   --secondary: #2b2b2b;
   --secondary-foreground: #f5f5f5;
   --muted: #262626;
-  /* #A6A6A6 = 7.5:1 no #1A1A1A */
+  /* #A6A6A6 = 7,5:1 no #1A1A1A */
   --muted-foreground: #a6a6a6;
   --accent: #333333;
   --accent-foreground: #f5f5f5;
@@ -152,10 +185,11 @@
   --success: #7cc497;
   --success-foreground: #1a1a1a;
   --link: #f5f5f5;
-  --border: #333333;
-  --input: #737373;
-  --ring: #f5f5f5;
-  --chart-1: #f5f5f5;
+  --border: #363c24;
+  /* Oliva: 3,7:1 no fundo; com o bg-input/30 dos campos, o texto de exemplo fica em 4,7:1. */
+  --input: #70775c;
+  --ring: #c4e05c;
+  --chart-1: #c4e05c;
   --chart-2: #7cc497;
   --chart-3: #ee8c82;
   --chart-4: #a6a6a6;
@@ -166,66 +200,55 @@
   --sidebar-foreground: #f5f5f5;
   --sidebar-primary: #f5f5f5;
   --sidebar-primary-foreground: #222222;
-  --sidebar-accent: #333333;
+  --sidebar-accent: #2c3218;
   --sidebar-accent-foreground: #f5f5f5;
-  --sidebar-border: #333333;
-  --sidebar-ring: #f5f5f5;
+  --sidebar-border: #363c24;
+  --sidebar-ring: #c4e05c;
+  --marca: #c4e05c;
+  --marca-suave: #2c3218;
+  --marca-foreground: #1e2410;
 }
 
 /*
- * Cores das seções: cada área do portal tem um acento próprio, só em rótulo do topo, ícone e borda
- * (nunca fundo grande nem gradiente) e sempre junto do nome da seção em texto. Matizes longe do verde
- * de sucesso e do vermelho de erro; saturação até 80%. Contraste do acento: claro ≥ 6,4:1 no branco e
- * ≥ 5,6:1 no fundo suave; escuro ≥ 7,7:1 no fundo e ≥ 6,6:1 no suave.
+ * Destaque das páginas (rótulo do topo, ícone e borda dos cards): a cor da marca em todas as seções,
+ * sempre junto do nome da seção em texto. No escuro é o próprio limão (10,7:1 no card). No claro o limão
+ * não tem contraste para texto, então vale um tom escuro do mesmo limão: 6,6:1 no branco e 5,9:1 no suave.
+ * As páginas seguem marcando a seção (data-secao), caso um acento próprio volte a ser preciso.
  */
 :root {
-  --secao-empresas: #2453b3;
-  --secao-empresas-suave: #ebf0fa;
-  --secao-parlamentares: #6a3fb8;
-  --secao-parlamentares-suave: #f1ecfa;
-  --secao-cidades: #1d6683;
-  --secao-cidades-suave: #e6f2f7;
-  --secao-orcamento: #865418;
-  --secao-orcamento-suave: #fbf1e2;
-  --secao-glossario: #a12d6c;
-  --secao-glossario-suave: #fbeaf3;
-  /* Fora de uma seção, o acento é o próprio texto. */
-  --secao: var(--foreground);
-  --secao-suave: var(--muted);
+  --secao: #536414;
+  --secao-suave: var(--marca-suave);
 }
 
 .dark {
-  --secao-empresas: #93b1ec;
-  --secao-empresas-suave: #1f2940;
-  --secao-parlamentares: #b9a0ee;
-  --secao-parlamentares-suave: #2a2340;
-  --secao-cidades: #79bfdc;
-  --secao-cidades-suave: #172c36;
-  --secao-orcamento: #e3ad5c;
-  --secao-orcamento-suave: #352816;
-  --secao-glossario: #ee93c2;
-  --secao-glossario-suave: #3a1f2d;
+  --secao: var(--marca);
+  --secao-suave: var(--marca-suave);
 }
-
-/* Cada página marca a sua seção no elemento raiz (data-secao); text-secao, border-secao e bg-secao-suave leem daqui. */
-[data-secao="empresas"] { --secao: var(--secao-empresas); --secao-suave: var(--secao-empresas-suave); }
-[data-secao="parlamentares"] { --secao: var(--secao-parlamentares); --secao-suave: var(--secao-parlamentares-suave); }
-[data-secao="cidades"] { --secao: var(--secao-cidades); --secao-suave: var(--secao-cidades-suave); }
-[data-secao="orcamento"] { --secao: var(--secao-orcamento); --secao-suave: var(--secao-orcamento-suave); }
-[data-secao="glossario"] { --secao: var(--secao-glossario); --secao-suave: var(--secao-glossario-suave); }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Texto selecionado no limão do ícone, com o texto escuro por cima (9,3:1). */
+  ::selection {
+    background-color: var(--marca);
+    color: var(--marca-foreground);
   }
   html {
     @apply font-sans;
   }
   /* Âncoras (ex.: seções do perfil) rolam suave; quem pede menos movimento continua com o salto direto. */
   @media (prefers-reduced-motion: no-preference) {
-    html {
+    html:not([data-animacoes="desligadas"]) {
       scroll-behavior: smooth;
     }
+  }
+  html[data-animacoes="ligadas"] {
+    scroll-behavior: smooth;
+  }
+  /* Títulos de seção são destino do guia lateral (GuiaSecoes): param abaixo do header fixo. */
+  #conteudo :is(h2, h3)[id] {
+    scroll-margin-top: 6rem;
   }
   body {
     @apply bg-background text-foreground;
@@ -275,13 +298,36 @@
   animation: soft-shimmer 1.6s ease-in-out infinite;
 }
 
+/* Sem animação: "reduzir movimento" do aparelho (a não ser que a pessoa tenha ligado) ou animações desligadas. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-animacoes="ligadas"]),
+  html:not([data-animacoes="ligadas"]) *,
+  html:not([data-animacoes="ligadas"]) *::before,
+  html:not([data-animacoes="ligadas"]) *::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+html[data-animacoes="desligadas"],
+html[data-animacoes="desligadas"] *,
+html[data-animacoes="desligadas"] *::before,
+html[data-animacoes="desligadas"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+/* Desligadas também é o modo leve: o desfoque atrás do header e dos menus custa caro em celular simples. */
+html[data-animacoes="desligadas"] * {
+  backdrop-filter: none !important;
+}
+
+/* Blocos que aparecem ao rolar (RevelarAoRolar) nunca ficam escondidos no papel. */
+@media print {
+  [data-revelar] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

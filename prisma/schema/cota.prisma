@@ -1,0 +1,22 @@
+// Cota parlamentar (CEAP na Câmara, CEAPS no Senado).
+
+/// Gastos da cota parlamentar (CEAP na Câmara, CEAPS no Senado).
+model DespesaCota {
+  id                String    @id @default(cuid())
+  parlamentarId     String
+  /// Identificador do documento na fonte; único por parlamentar.
+  idExterno         String
+  ano               Int
+  mes               Int
+  tipoDespesa       String
+  fornecedor        String?
+  cpfCnpjFornecedor String?
+  valorLiquido      Decimal   @db.Decimal(14, 2)
+  dataDocumento     DateTime?
+  urlDocumento      String?
+
+  parlamentar Parlamentar @relation(fields: [parlamentarId], references: [id], onDelete: Cascade)
+
+  @@unique([parlamentarId, idExterno])
+  @@index([parlamentarId, ano, mes])
+}

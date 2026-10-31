@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import { Barlow, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
+import Script from "next/script";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 
+import { AnimacoesProvider } from "@/components/animacoes-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { GlossarioDaPagina } from "@/components/glossario-da-pagina";
+import { GuiaSecoes } from "@/components/guia-secoes";
+import { RevelarAoRolar } from "@/components/revelar-ao-rolar";
+import { LogoJabuti } from "@/components/logo-jabuti";
 import { SidebarFixados } from "@/components/sidebar-fixados";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -15,9 +20,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/user-menu";
 
+import { SCRIPT_ACESSIBILIDADE } from "@/lib/acessibilidade";
+import { SCRIPT_ANIMACOES } from "@/lib/animacoes";
+import { metadados } from "@/lib/metadados";
 import { SITE_URL } from "@/lib/site";
 
 import "./globals.css";
+import "./acessibilidade.css";
 
 // Barlow no texto, Instrument Serif itálico só como destaque em títulos (DESIGN.md); JetBrains Mono para valores técnicos.
 const barlow = Barlow({
@@ -38,17 +47,11 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const DESCRICAO =
-  "Acompanhe e cobre os políticos com dados públicos oficiais: emendas, gastos de gabinete, presença, campanhas e as contas de estados e municípios.";
-
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
-  title: "Jabuti",
-  description: DESCRICAO,
+  // Título, descrição e prévia do link (openGraph/twitter) vêm de metadados(); cada página monta os seus.
+  ...metadados({ titulo: "Jabuti" }),
   applicationName: "Jabuti",
-  // As imagens vêm dos opengraph-image.tsx de cada rota.
-  openGraph: { type: "website", locale: "pt_BR", siteName: "Jabuti", title: "Jabuti", description: DESCRICAO },
-  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -61,57 +64,69 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="flex min-h-dvh flex-col">
+        {/* Preferência de animações no <html> antes de pintar (ver lib/animacoes.ts). */}
+        <Script id="animacoes" strategy="beforeInteractive">
+          {SCRIPT_ANIMACOES}
+        </Script>
+        {/* Tamanho do texto e espaçamento escolhidos em /configuracoes (ver lib/acessibilidade.ts). */}
+        <Script id="preferencias-leitura" strategy="beforeInteractive">
+          {SCRIPT_ACESSIBILIDADE}
+        </Script>
         {/* nuqs: estado de filtros na URL, para o link sempre reproduzir a mesma consulta. */}
         <NuqsAdapter>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <a
-              href="#conteudo"
-              className="sr-only rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground shadow-lift outline-none focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Pular para o conteúdo principal
-            </a>
+            <AnimacoesProvider>
+              <a
+                href="#conteudo"
+                className="sr-only rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground shadow-lift outline-none focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                Pular para o conteúdo principal
+              </a>
 
-            <TooltipProvider>
-              <SidebarProvider>
-                <AppSidebar
-                  fixados={
-                    <Suspense fallback={null}>
-                      <SidebarFixados />
-                    </Suspense>
-                  }
-                />
+              <TooltipProvider>
+                <SidebarProvider>
+                  <AppSidebar
+                    fixados={
+                      <Suspense fallback={null}>
+                        <SidebarFixados />
+                      </Suspense>
+                    }
+                  />
 
-                <div className="flex min-w-0 flex-1 flex-col">
-                  {/* z-40: abaixo dos menus (z-50) que abrem a partir do próprio header. */}
-                  {/* Navbar branca flutuante do Logoisum: respiro de p-2, raio de 16px e sombra leve. */}
-                  {/* Celular deitado: o header rola junto para não roubar a pouca altura da tela. */}
-                  <header className="sticky top-0 z-40 p-2 md:pl-0 deitado:static">
-                    <div className="flex h-14 w-full items-center gap-1 rounded-2xl bg-card/90 px-2 text-sm font-medium shadow-lift ring-1 ring-border backdrop-blur-md xs:gap-2">
-                      <SidebarTrigger className="size-10 shrink-0" />
-                      <Separator orientation="vertical" className="data-vertical:h-5 data-vertical:self-center" />
-                      <Link
-                        href="/"
-                        className="flex h-10 min-w-0 items-center gap-2 rounded-lg font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
-                      >
-                        <span aria-hidden="true" className="size-3 shrink-0 rounded-full bg-primary shadow-soft" />
-                        <span className="truncate">Jabuti</span>
-                      </Link>
-                      <div className="ml-auto flex shrink-0 items-center gap-1 xs:gap-2">
-                        <ThemeToggle />
-                        <Suspense fallback={<Skeleton className="h-10 w-24 sm:w-40" />}>
-                          <UserMenu />
-                        </Suspense>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    {/* z-40: abaixo dos menus (z-50) que abrem a partir do próprio header. */}
+                    {/* Navbar branca flutuante do Logoisum: respiro de p-2, raio de 16px e sombra leve. */}
+                    {/* Celular deitado: o header rola junto para não roubar a pouca altura da tela. */}
+                    <header className="sticky top-0 z-40 p-2 md:pl-0 deitado:static">
+                      <div className="flex h-14 w-full items-center gap-1 rounded-2xl bg-card/90 px-2 text-sm font-medium shadow-lift ring-1 ring-border backdrop-blur-md xs:gap-2">
+                        <SidebarTrigger className="size-10 shrink-0" />
+                        <Separator orientation="vertical" className="data-vertical:h-5 data-vertical:self-center" />
+                        <Link
+                          href="/"
+                          className="flex h-10 min-w-0 items-center gap-2 rounded-lg font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                          <LogoJabuti className="shrink-0" />
+                          <span className="truncate">Jabuti</span>
+                        </Link>
+                        <div className="ml-auto flex shrink-0 items-center gap-1 xs:gap-2">
+                          <ThemeToggle />
+                          <Suspense fallback={<Skeleton className="h-10 w-24 sm:w-40" />}>
+                            <UserMenu />
+                          </Suspense>
+                        </div>
                       </div>
-                    </div>
-                  </header>
+                    </header>
 
-                  <main id="conteudo" tabIndex={-1} className="flex flex-1 flex-col outline-none animate-page">
-                    {children}
-                    <GlossarioDaPagina />
-                  </main>
-                </div>
-              </SidebarProvider>
-            </TooltipProvider>
+                    <main id="conteudo" tabIndex={-1} className="flex flex-1 flex-col outline-none animate-page">
+                      {children}
+                      <GlossarioDaPagina />
+                    </main>
+                    <GuiaSecoes />
+                    <RevelarAoRolar />
+                  </div>
+                </SidebarProvider>
+              </TooltipProvider>
+            </AnimacoesProvider>
           </ThemeProvider>
         </NuqsAdapter>
       </body>

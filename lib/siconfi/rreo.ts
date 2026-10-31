@@ -64,6 +64,18 @@ export function despesaPorFuncaoLoa(anexo2: LinhaRreo[]): DespesaFuncaoLoa[] {
     .sort((a, b) => b.atualizada - a.atualizada);
 }
 
+/**
+ * Receita corrente líquida (Anexo 3): a base dos pisos e das emendas obrigatórias. Em centavos.
+ * `prevista` é a do ano inteiro; `ultimos12Meses`, a efetivamente arrecadada até o bimestre.
+ */
+export function receitaCorrenteLiquida(anexo3: LinhaRreo[], ano: number) {
+  const rcl = anexo3.filter((l) => l.cod_conta === "RREO3ReceitaCorrenteLiquida");
+  return {
+    prevista: centavos(rcl.find((l) => l.coluna === `PREVISÃO ATUALIZADA ${ano}`)?.valor),
+    ultimos12Meses: centavos(rcl.find((l) => l.coluna === "TOTAL (ÚLTIMOS 12 MESES)")?.valor),
+  };
+}
+
 /** Bimestre do RREO em texto: 4 → "julho e agosto". */
 export function mesesDoBimestre(bimestre: number) {
   const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];

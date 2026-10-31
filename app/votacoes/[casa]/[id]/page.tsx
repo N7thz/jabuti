@@ -14,6 +14,7 @@ import { ListaNominal, PlacarGeral, TabelaPlacar } from "@/components/votacoes/p
 import { formatarData } from "@/lib/format/datas";
 import { contarPlacar } from "@/lib/votacoes/rotulos";
 import { getVotacaoCamara, getVotacaoSenado, linkVotacao, type CasaUrl } from "@/lib/votacoes/queries";
+import { metadados } from "@/lib/metadados";
 
 async function votacaoDaUrl(params: PageProps<"/votacoes/[casa]/[id]">["params"]) {
   const { casa, id } = await params;
@@ -25,7 +26,15 @@ async function votacaoDaUrl(params: PageProps<"/votacoes/[casa]/[id]">["params"]
 
 export async function generateMetadata({ params }: PageProps<"/votacoes/[casa]/[id]">): Promise<Metadata> {
   const v = await votacaoDaUrl(params);
-  return { title: v ? `${v.proposicao?.rotulo ?? "Votação"} de ${formatarData(v.data)} · Jabuti` : "Votação · Jabuti" };
+  if (!v) return metadados({ titulo: "Votação · Jabuti" });
+  const placar = contarPlacar(v.votos);
+  return metadados({
+    titulo: `${v.proposicao?.rotulo ?? "Votação"} de ${formatarData(v.data)} · Jabuti`,
+    descricao:
+      placar.total > 0
+        ? `${placar.SIM} votos sim e ${placar.NAO} não. Veja como votou cada parlamentar, cada partido e cada estado.`
+        : "Veja como votou cada parlamentar, cada partido e cada estado.",
+  });
 }
 
 export default function VotacaoPage({ params }: PageProps<"/votacoes/[casa]/[id]">) {

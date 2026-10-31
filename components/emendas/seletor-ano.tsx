@@ -2,10 +2,10 @@
 
 import { z } from "zod";
 
+import { CampoSelect } from "@/components/form/campo-select";
 import { useFiltroForm } from "@/components/form/use-filtro-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { linkAno } from "@/lib/filtros/formularios";
 import { ano as campoAno } from "@/lib/filtros/schemas";
 
@@ -22,19 +22,15 @@ export function SeletorAno({ anos, ano, acao }: { anos: number[]; ano: number; a
     <form method="get" action={acao} onSubmit={onSubmit} noValidate className="flex flex-wrap items-end gap-2">
       <Field data-invalid={erro ? true : undefined} className="w-auto">
         <FieldLabel htmlFor="ano">Ano do orçamento</FieldLabel>
-        <NativeSelect
+        <CampoSelect
+          form={form}
+          nome="ano"
           id="ano"
           className="w-32"
-          aria-invalid={erro ? true : undefined}
-          aria-describedby={erro ? "ano-erro" : undefined}
-          {...form.register("ano")}
-        >
-          {anos.map((a) => (
-            <NativeSelectOption key={a} value={a}>
-              {a}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+          opcoes={anos.map((a) => [a, String(a)] as const)}
+          invalido={Boolean(erro)}
+          descritoPor={erro ? "ano-erro" : undefined}
+        />
         {erro && <FieldError id="ano-erro">{erro}</FieldError>}
       </Field>
       <Button type="submit" variant="outline" className="h-10" disabled={form.formState.isSubmitting}>

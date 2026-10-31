@@ -1,0 +1,30 @@
+// Deputados e senadores: a tabela central que as outras referenciam.
+
+model Parlamentar {
+  id           String   @id @default(cuid())
+  casa         Casa
+  /// Id do deputado na API da Câmara ou código do senador na API do Senado.
+  idExterno    String
+  nome         String
+  nomeCivil    String?
+  /// Nome sem acento e em maiúsculas, usado para casar com o autor das emendas.
+  nomeBusca    String
+  partido      String?
+  uf           Uf?
+  fotoUrl      String?
+  email        String?
+  emExercicio  Boolean  @default(true)
+  atualizadoEm DateTime @updatedAt
+
+  votos        Voto[]
+  presencas    Presenca[]
+  despesas     DespesaCota[]
+  emendas      Emenda[]
+  proposicoes  ProposicaoAutor[]
+  candidaturas Candidatura[]
+  patrimonios  PatrimonioEleicao[]
+
+  @@unique([casa, idExterno])
+  @@index([nomeBusca])
+  @@index([uf, casa])
+}

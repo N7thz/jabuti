@@ -47,7 +47,7 @@ export async function FiscalizacaoParlamentar({
       <div className="flex flex-col gap-6">
         {!tcu ? null : !tcu.ok ? (
           <AvisoFonte
-            fontes={[tcu.fonte]}
+            fontes={[tcu]}
             consequencia={`Não dá para dizer agora se ${nome} tem inabilitação para cargo público.`}
           />
         ) : tcu.dados.sancoes.length === 0 ? (
@@ -89,7 +89,7 @@ export async function FiscalizacaoParlamentar({
           <h3 className="text-lg font-semibold">Emendas Pix</h3>
           <SobreEmendasPix />
           {!pix.ok ? (
-            <AvisoFonte fontes={[pix.fonte]} consequencia="As emendas Pix não puderam ser carregadas." />
+            <AvisoFonte fontes={[pix]} consequencia="As emendas Pix não puderam ser carregadas." />
           ) : pix.dados.length === 0 ? (
             <p className="text-muted-foreground">Nenhuma emenda Pix de {nome} encontrada no Transferegov.</p>
           ) : (

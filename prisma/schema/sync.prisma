@@ -1,0 +1,30 @@
+// Controle das sincronizações com as fontes.
+
+enum FonteSync {
+  CAMARA
+  SENADO
+  EMENDAS
+  MUNICIPIOS
+  TSE
+}
+
+enum StatusSync {
+  EXECUTANDO
+  SUCESSO
+  ERRO
+}
+
+/// Registro de cada execução de sincronização, exibido como "dados atualizados em".
+model SyncRun {
+  id           String     @id @default(cuid())
+  fonte        FonteSync
+  /// Escopo da execução, ex.: "2025" ou "votacoes:2025-01".
+  escopo       String?
+  status       StatusSync @default(EXECUTANDO)
+  iniciadoEm   DateTime   @default(now())
+  finalizadoEm DateTime?
+  registros    Int        @default(0)
+  erro         String?
+
+  @@index([fonte, iniciadoEm])
+}

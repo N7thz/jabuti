@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react";
+import { AnimatePresence, m } from "motion/react";
 import { useState, useSyncExternalStore } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -57,7 +58,20 @@ export function CompartilharBotoes({ texto, url }: { texto: string; url: string 
       {/* Só depois de hidratar: sem JavaScript o botão não faria nada. */}
       {pronto && (
         <Button size="sm" variant="ghost" onClick={copiar}>
-          {copiado ? <CheckIcon data-icon="inline-start" aria-hidden="true" /> : <CopyIcon data-icon="inline-start" aria-hidden="true" />}
+          {/* Ícone troca girando de leve; o texto muda sem animar, para não pular a largura do botão. */}
+          <AnimatePresence mode="popLayout" initial={false}>
+            <m.span
+              key={copiado ? "ok" : "copiar"}
+              aria-hidden="true"
+              className="inline-flex"
+              initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              {copiado ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
+            </m.span>
+          </AnimatePresence>
           {copiado ? "Copiado" : "Copiar texto e link"}
         </Button>
       )}
