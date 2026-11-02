@@ -1,6 +1,7 @@
 import { FileTextIcon, ReceiptIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { Compartilhar } from "@/components/compartilhar";
@@ -33,6 +34,8 @@ import {
 } from "@/lib/parlamentares/queries";
 import { votacoesSenadoNoBanco } from "@/lib/votacoes/queries";
 import { metadados } from "@/lib/metadados";
+import { AnoDoPerfil } from "@/components/navegacao-anos";
+import { anoCorrente, anoDaUrl, anoEmAndamento, anosDesde, inicioDaLegislaturaDoAno, rotuloAno } from "@/lib/anos";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/senador/[codigo]">): Promise<Metadata> {
   const senador = await getSenador((await params).codigo);
@@ -45,22 +48,27 @@ export async function generateMetadata({ params }: PageProps<"/parlamentares/sen
   });
 }
 
-export default function SenadorPage({ params }: PageProps<"/parlamentares/senador/[codigo]">) {
+export default function SenadorPage({ params, searchParams }: PageProps<"/parlamentares/senador/[codigo]">) {
   return (
     <div data-secao="parlamentares" className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 xs:px-6 py-[clamp(2rem,5vw,4rem)]">
       <Voltar />
       <Suspense fallback={<PerfilSkeleton />}>
-        {params.then(({ codigo }) => (
-          <Senador codigo={codigo} />
+        {Promise.all([params, searchParams]).then(([{ codigo }, { ano }]) => (
+          <Senador codigo={codigo} anoUrl={ano} />
         ))}
       </Suspense>
     </div>
   );
 }
 
-async function Senador({ codigo }: { codigo: string }) {
+async function Senador({ codigo, anoUrl }: { codigo: string; anoUrl?: string | string[] }) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const senador = await getSenador(codigo);
   if (!senador) notFound();
+  // Anos da legislatura atual, os mesmos do perfil dos deputados.
+  const anos = anosDesde(inicioDaLegislaturaDoAno(anoCorrente()));
+  const ano = anoDaUrl(anoUrl, anos);
 
   const dados: [string, React.ReactNode][] = [];
   if (senador.nomeCompleto) dados.push(["Nome civil", senador.nomeCompleto]);
@@ -92,12 +100,19 @@ async function Senador({ codigo }: { codigo: string }) {
 
       <NavSecoes />
 
+      <AnoDoPerfil
+        anos={anos}
+        ano={ano}
+        caminho={`/parlamentares/senador/${codigo}`}
+        nota="Vale para o resumo, as votações, a cota, as proposições e as emendas. As leis mostram a carreira inteira."
+      />
+
       <SecaoProtegida titulo="Resumo" id="resumo" fonte="das APIs do Senado e do Portal da Transparência" carregando={<ResumoSkeleton />}>
-        <ResumoSenador codigo={codigo} nome={senador.nome} />
+        <ResumoSenador codigo={codigo} nome={senador.nome} ano={ano} />
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Como votou" id="votacoes" fonte="da API do Senado">
-        <VotosSenador codigo={codigo} />
+        <VotosSenador codigo={codigo} ano={ano} />
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Partido e fidelidade" id="fidelidade" fonte="das votações guardadas no portal">
@@ -107,10 +122,10 @@ async function Senador({ codigo }: { codigo: string }) {
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
         <SecaoProtegida titulo="Cota parlamentar" id="cota" fonte="da API de transparência do Senado">
-          <Cota codigo={codigo} />
+          <Cota codigo={codigo} ano={ano} />
         </SecaoProtegida>
         <SecaoProtegida titulo="Proposições" id="proposicoes" fonte="da API do Senado">
-          <Processos codigo={codigo} />
+          <Processos codigo={codigo} ano={ano} />
         </SecaoProtegida>
       </div>
 
@@ -119,7 +134,7 @@ async function Senador({ codigo }: { codigo: string }) {
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Emendas" id="emendas" fonte="do Portal da Transparência">
-        <Emendas nome={senador.nome} />
+        <Emendas nome={senador.nome} ano={ano} />
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Votos e emendas" id="votos-e-emendas" fonte="do TSE e do Portal da Transparência, guardados no portal">
@@ -143,13 +158,14 @@ async function Senador({ codigo }: { codigo: string }) {
   );
 }
 
-async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string }) {
+async function ResumoSenador({ codigo, nome, ano }: { codigo: string; nome: string; ano: number }) {
   const [votacoes, cota, processos, emendas] = await Promise.all([
-    getVotacoesSenador(codigo),
-    getDespesasSenador(codigo),
-    getProcessosSenador(codigo),
-    getEmendasDoAutor(nome),
+    getVotacoesSenador(codigo, ano),
+    getDespesasSenador(codigo, ano),
+    getProcessosSenador(codigo, ano),
+    getEmendasDoAutor(nome, ano),
   ]);
+  const ateAgora = anoEmAndamento(ano) ? " até agora" : "";
   const { PRESENTE, AUSENCIA_JUSTIFICADA, AUSENTE } = votacoes.presenca;
   const contadas = PRESENTE + AUSENCIA_JUSTIFICADA + AUSENTE;
   const v = (tipo: string) => votacoes.votos[tipo] ?? 0;
@@ -160,7 +176,7 @@ async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string })
   return (
     <>
       <Resumo
-        titulo={`Resumo de ${cota.ano}`}
+        titulo={`Resumo de ${rotuloAno(ano)}`}
         indicadores={[
           {
             rotulo: "Presença nas votações",
@@ -193,10 +209,10 @@ async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string })
             rotulo: "Gasto da cota parlamentar",
             termo: "cota-parlamentar",
             valor: cota.resumo ? formatarReais(deCentavos(cota.resumo.total)) : formatarReais(reais(0)),
-            detalhe: `${cota.resumo?.quantidade ?? 0} reembolsos em ${cota.ano}`,
+            detalhe: `${cota.resumo?.quantidade ?? 0} reembolsos em ${ano}${ateAgora}`,
           },
           {
-            rotulo: "Proposições em 12 meses",
+            rotulo: `Proposições em ${ano}`,
             termo: "proposicao",
             valor: String(processos.length),
             detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos · ${tipos.outros} outras`,
@@ -212,15 +228,15 @@ async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string })
           <>
             <p>
               <strong>Presença:</strong> usamos as {votacoes.votacoes} votações nominais do plenário em{" "}
-              {cota.ano}. Contam como presença os votos (sim, não, abstenção, secreto), presidir a sessão e
+              {rotuloAno(ano)}. Contam como presença os votos (sim, não, abstenção, secreto), presidir a sessão e
               estar presente sem votar. Faltas sem justificativa e ausências justificadas aparecem separadas
               e nunca são somadas.
               {votacoes.presenca.naoConta > 0 &&
                 ` ${votacoes.presenca.naoConta} registros ficaram fora da conta por indicarem que o senador não estava em exercício no dia.`}
             </p>
             <p>
-              <strong>Cota:</strong> soma dos reembolsos da CEAPS no ano. <strong>Proposições:</strong> projetos
-              são PL, PEC, PDL e PRS; requerimentos incluem REQ e RQS. <strong>Emendas:</strong> emendas do ano
+              <strong>Cota:</strong> soma dos reembolsos da CEAPS no ano. <strong>Proposições:</strong> apresentadas
+              no ano; projetos são PL, PEC, PDL e PRS; requerimentos incluem REQ e RQS. <strong>Emendas:</strong> emendas do ano
               no Portal da Transparência com o nome parlamentar exato.
             </p>
             <p>Dados consultados nas APIs oficiais em {formatarData(votacoes.consultadoEm)}.</p>
@@ -228,15 +244,15 @@ async function ResumoSenador({ codigo, nome }: { codigo: string; nome: string })
         }
       />
       <Compartilhar
-        caminho={`/parlamentares/senador/${codigo}`}
-        texto={`${nome} esteve presente em ${porcentagem(PRESENTE, contadas)} das votações nominais do plenário do Senado em ${cota.ano}, com ${AUSENTE} faltas sem justificativa. Veja os votos, gastos e emendas:`}
+        caminho={`/parlamentares/senador/${codigo}${anoEmAndamento(ano) ? "" : `?ano=${ano}`}`}
+        texto={`${nome} esteve presente em ${porcentagem(PRESENTE, contadas)} das votações nominais do plenário do Senado em ${ano}${ateAgora}, com ${AUSENTE} faltas sem justificativa. Veja os votos, gastos e emendas:`}
       />
     </>
   );
 }
 
-async function VotosSenador({ codigo }: { codigo: string }) {
-  const { votos, consultadoEm } = await getVotosSenador(codigo);
+async function VotosSenador({ codigo, ano }: { codigo: string; ano: number }) {
+  const { votos, consultadoEm } = await getVotosSenador(codigo, ano);
   const noBanco = await votacoesSenadoNoBanco(votos.map((v) => v.votacaoId));
   return (
     <HistoricoVotos
@@ -248,12 +264,12 @@ async function VotosSenador({ codigo }: { codigo: string }) {
   );
 }
 
-async function Cota({ codigo }: { codigo: string }) {
-  const { ano, resumo } = await getDespesasSenador(codigo);
+async function Cota({ codigo, ano }: { codigo: string; ano: number }) {
+  const { resumo } = await getDespesasSenador(codigo, ano);
 
   if (!resumo) {
     return (
-      <Secao id="cota" titulo="Cota parlamentar" descricao={`Gastos de ${ano} reembolsados pelo Senado (CEAPS)`}>
+      <Secao id="cota" titulo="Cota parlamentar" descricao={`Gastos de ${rotuloAno(ano)} reembolsados pelo Senado (CEAPS)`}>
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -273,7 +289,7 @@ async function Cota({ codigo }: { codigo: string }) {
       titulo="Cota parlamentar"
       descricao={
         <>
-          Gastos de {ano} da <Termo id="cota-parlamentar">cota</Termo> reembolsados pelo Senado:{" "}
+          Gastos de {rotuloAno(ano)} da <Termo id="cota-parlamentar">cota</Termo> reembolsados pelo Senado:{" "}
           <strong className="text-foreground">{formatarReais(deCentavos(resumo.total))}</strong> em{" "}
           {resumo.quantidade} {resumo.quantidade === 1 ? "lançamento" : "lançamentos"}
         </>
@@ -330,14 +346,14 @@ async function Cota({ codigo }: { codigo: string }) {
   );
 }
 
-async function Processos({ codigo }: { codigo: string }) {
-  const processos = await getProcessosSenador(codigo);
+async function Processos({ codigo, ano }: { codigo: string; ano: number }) {
+  const processos = await getProcessosSenador(codigo, ano);
 
   return (
     <Secao id="proposicoes" titulo="Proposições"
       descricao={
         <>
-          {processos.length} <Termo id="proposicao">proposições</Termo> apresentadas nos últimos 12 meses
+          {processos.length} <Termo id="proposicao">proposições</Termo> apresentadas em {rotuloAno(ano)}
         </>
       }>
       {processos.length === 0 ? (
@@ -347,7 +363,7 @@ async function Processos({ codigo }: { codigo: string }) {
               <FileTextIcon aria-hidden="true" />
             </EmptyMedia>
             <EmptyTitle>Nenhuma proposição</EmptyTitle>
-            <EmptyDescription>Sem proposições de autoria nos últimos 12 meses.</EmptyDescription>
+            <EmptyDescription>Sem proposições de autoria em {rotuloAno(ano)}.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -393,12 +409,12 @@ async function LeisSenador({ codigo, nome }: { codigo: string; nome: string }) {
   return <LeisParlamentar casa="senado" leis={leis} naoVerificados={naoVerificados} />;
 }
 
-async function Emendas({ nome }: { nome: string }) {
-  const { ano, emendas } = await getEmendasDoAutor(nome);
+async function Emendas({ nome, ano }: { nome: string; ano: number }) {
+  const { emendas } = await getEmendasDoAutor(nome, ano);
   return (
     <Secao id="emendas" titulo="Emendas" descricao={
         <>
-          <Termo id="emenda">Emendas parlamentares</Termo> de {ano} no Portal da Transparência
+          <Termo id="emenda">Emendas parlamentares</Termo> de {rotuloAno(ano)} no Portal da Transparência
         </>
       }>
       <Rolavel>

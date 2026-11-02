@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { connection } from "next/server";
 
-import { SeletorAno } from "@/components/emendas/seletor-ano";
+import { NavegacaoAnos } from "@/components/navegacao-anos";
 import { Termo } from "@/components/termo";
 import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { percentualPago, reaisDeCentavos, ResumoValores } from "@/components/emendas/valores";
 import { formatarData } from "@/lib/format/datas";
 import { linkAno } from "@/lib/filtros/formularios";
 import { getAnosEmendas, getResumoEmendasUf, getUltimaSyncEmendas } from "@/lib/emendas/queries";
-import { anoEscolhido, ROTULO_ABRANGENCIA } from "@/lib/emendas/rotulos";
+import { anoDaUrl } from "@/lib/anos";
+import { ROTULO_ABRANGENCIA } from "@/lib/emendas/rotulos";
 import type { SiglaUf } from "@/lib/ufs";
 import { UFS } from "@/lib/ufs";
 
@@ -15,6 +17,8 @@ const MAIS_CIDADES = 20;
 
 /** Seção "Emendas parlamentares" da página do estado, lida do banco sincronizado. */
 export async function EmendasEstado({ uf, anoUrl }: { uf: SiglaUf; anoUrl?: string | string[] }) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const anos = await getAnosEmendas();
 
   if (anos.length === 0) {
@@ -25,13 +29,13 @@ export async function EmendasEstado({ uf, anoUrl }: { uf: SiglaUf; anoUrl?: stri
     );
   }
 
-  const ano = anoEscolhido(anoUrl, anos);
+  const ano = anoDaUrl(anoUrl, anos);
   const [resumo, atualizadoEm] = await Promise.all([getResumoEmendasUf(uf, ano), getUltimaSyncEmendas()]);
   const porNome = [...resumo.municipios].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
   return (
     <SecaoEmendas uf={uf}>
-      <SeletorAno anos={anos} ano={ano} acao={`/estados/${uf}`} />
+      <NavegacaoAnos rotulo="Emendas" anos={anos} ano={ano} href={(a) => `${linkAno(`/estados/${uf}`, { ano: a })}#emendas`} />
 
       <ResumoValores totais={resumo.totais} quantidade={resumo.quantidade} />
 

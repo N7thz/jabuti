@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AvisoFonte } from "@/components/aviso-fonte";
@@ -12,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { lerFiltros } from "@/lib/filtros/schemas";
 import { metadados } from "@/lib/metadados";
+import { NavegacaoAnos } from "@/components/navegacao-anos";
+import { anoCorrente, anoDaUrl, anosDesde, inicioDaLegislaturaDoAno, rotuloAno } from "@/lib/anos";
 import { getConcordancia, getResumoComparavel, type ResumoComparavel } from "@/lib/parlamentares/comparacao";
 import { getMediasDaCasa, type MediasDaCasa } from "@/lib/parlamentares/medias";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
@@ -91,6 +94,8 @@ function Media({ valor, de }: { valor: string | false | null | undefined; de: st
 }
 
 async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchParams">) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const { valores } = lerFiltros(filtrosComparar, await searchParams);
   if (!valores?.a || !valores.b) {
     return <p className="text-muted-foreground">Escolha os dois parlamentares acima e toque em Comparar.</p>;
@@ -99,7 +104,9 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
     return <p className="rounded-lg border bg-card p-4">Escolha dois parlamentares diferentes.</p>;
   }
 
-  const [a, b] = await Promise.all([getResumoComparavel(valores.a), getResumoComparavel(valores.b)]);
+  const anos = anosDesde(inicioDaLegislaturaDoAno(anoCorrente()));
+  const ano = anoDaUrl(valores.ano ? String(valores.ano) : undefined, anos);
+  const [a, b] = await Promise.all([getResumoComparavel(valores.a, ano), getResumoComparavel(valores.b, ano)]);
   if (!a || !b) {
     return (
       <p className="rounded-lg border bg-card p-4">
@@ -143,7 +150,7 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
       media: (m) => m.cota !== null && reaisDeCentavos(m.cota),
     },
     {
-      rotulo: <Termo id="proposicao">Proposições em 12 meses</Termo>,
+      rotulo: <Termo id="proposicao">Proposições no ano</Termo>,
       valor: (p) => p.proposicoes,
       media: (m) => m.proposicoes !== null && decimal.format(m.proposicoes),
     },
@@ -192,8 +199,15 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
           largura e o mesmo espaçamento dos cartões acima, então cada número fica alinhado com quem ele descreve. */}
       <section aria-labelledby="indicadores" className="rounded-lg border bg-card">
         <h3 id="indicadores" className="border-b px-4 py-3 text-center font-semibold">
-          Indicadores de {a.ano}
+          Indicadores de {rotuloAno(ano)}
         </h3>
+        <NavegacaoAnos
+          rotulo="Indicadores"
+          className="items-center border-b px-4 py-3 text-center [&_ul]:justify-center"
+          anos={anos}
+          ano={ano}
+          href={(x) => `${linkComparar("/comparar", { a: a.chave, b: b.chave, ano: x === anos[0] ? null : x })}#indicadores`}
+        />
         <dl className="divide-y">
           {/* <dt> e <dd> como filhos diretos do grupo (div), como o HTML exige; o grid de 2 colunas põe cada
               valor embaixo do cartão de quem ele descreve, e o rótulo e a média ocupam a linha inteira. */}
@@ -249,8 +263,8 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
       </div>
 
       <Compartilhar
-        caminho={linkComparar("/comparar", { a: a.chave, b: b.chave })}
-        texto={`${a.nome} × ${b.nome} em ${a.ano}: presença de ${porcentagem(a.presenca.parte, a.presenca.total)} contra ${porcentagem(
+        caminho={linkComparar("/comparar", { a: a.chave, b: b.chave, ano: ano === anos[0] ? null : ano })}
+        texto={`${a.nome} × ${b.nome} em ${rotuloAno(ano)}: presença de ${porcentagem(a.presenca.parte, a.presenca.total)} contra ${porcentagem(
           b.presenca.parte,
           b.presenca.total,
         )}; cota de ${reaisDeCentavos(a.cota)} contra ${reaisDeCentavos(b.cota)}.${pctIguais ? ` Votaram igual em ${pctIguais} das vezes.` : ""}`}

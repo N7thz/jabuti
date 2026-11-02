@@ -1,5 +1,6 @@
 import "server-only";
 
+import { anoCorrente } from "@/lib/anos";
 import { centavos, deCentavos, reais, reaisDoTexto, somar } from "@/lib/format/dinheiro";
 import type { TipoVoto } from "@/lib/generated/prisma/enums";
 import { getVotosDeputado } from "@/lib/votacoes/queries";
@@ -32,8 +33,8 @@ const emendasEmCentavos = (emendas: Awaited<ReturnType<typeof getEmendasDoAutor>
   pago: centavos(somar(emendas.map((e) => reaisDoTexto(e.valorPago)))),
 });
 
-/** Indicadores do ano corrente no mesmo formato para deputado e senador (valores em centavos), ou `null`. */
-export async function getResumoComparavel(chave: string) {
+/** Indicadores do ano (no corrente, até hoje) no mesmo formato para deputado e senador (valores em centavos), ou `null`. */
+export async function getResumoComparavel(chave: string, ano: number = anoCorrente()) {
   const alvo = lerChave(chave);
   if (!alvo) return null;
 
@@ -42,10 +43,10 @@ export async function getResumoComparavel(chave: string) {
     if (!d) return null;
     const s = d.ultimoStatus;
     const [presenca, cota, proposicoes, emendas] = await Promise.all([
-      getPresencaDeputado(d.id, s.data),
-      getDespesasDeputado(d.id, s.idLegislatura),
-      getProposicoesDeputado(d.id),
-      getEmendasDoAutor(s.nomeEleitoral || s.nome),
+      getPresencaDeputado(d.id, s.data, ano),
+      getDespesasDeputado(d.id, ano),
+      getProposicoesDeputado(d.id, ano),
+      getEmendasDoAutor(s.nomeEleitoral || s.nome, ano),
     ]);
     return {
       chave,
@@ -57,7 +58,7 @@ export async function getResumoComparavel(chave: string) {
       uf: s.siglaUf,
       fotoUrl: s.urlFoto,
       perfil: `/parlamentares/deputado/${alvo.id}`,
-      ano: cota.ano,
+      ano,
       presenca: { parte: presenca.presencas, total: presenca.sessoes, base: "sessões deliberativas do plenário" },
       cota: centavos(somar(cota.despesas.map((x) => reais(x.valorLiquido)))),
       proposicoes: proposicoes.length,
@@ -68,10 +69,10 @@ export async function getResumoComparavel(chave: string) {
   const sen = await getSenador(alvo.id);
   if (!sen) return null;
   const [votacoes, cota, processos, emendas] = await Promise.all([
-    getVotacoesSenador(alvo.id),
-    getDespesasSenador(alvo.id),
-    getProcessosSenador(alvo.id),
-    getEmendasDoAutor(sen.nome),
+    getVotacoesSenador(alvo.id, ano),
+    getDespesasSenador(alvo.id, ano),
+    getProcessosSenador(alvo.id, ano),
+    getEmendasDoAutor(sen.nome, ano),
   ]);
   const { PRESENTE, AUSENCIA_JUSTIFICADA, AUSENTE } = votacoes.presenca;
   return {
@@ -84,7 +85,7 @@ export async function getResumoComparavel(chave: string) {
     uf: sen.uf,
     fotoUrl: sen.fotoUrl,
     perfil: `/parlamentares/senador/${alvo.id}`,
-    ano: cota.ano,
+    ano,
     presenca: { parte: PRESENTE, total: PRESENTE + AUSENCIA_JUSTIFICADA + AUSENTE, base: "votações nominais do plenário" },
     cota: cota.resumo?.total ?? centavos(deCentavos(0)),
     proposicoes: processos.length,

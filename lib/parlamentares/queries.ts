@@ -19,6 +19,7 @@ import {
 import { centavos, reais, somar } from "@/lib/format/dinheiro";
 import { createFetcher, NA_PAGINA, naoEncontrado, normalizarNome } from "@/lib/sync/run";
 import { getEmendas } from "@/lib/transparencia/queries";
+import { anoCorrente, inicioDaLegislaturaDoAno } from "@/lib/anos";
 
 const camara = createCamaraClient(NA_PAGINA);
 // O JSON anual da CEAPS tem ~10 MB: precisa de mais tempo que o padrão das páginas.
@@ -26,6 +27,19 @@ const senado = createSenadoClient({ ...NA_PAGINA, timeoutMs: 45_000 });
 const fetchJson = createFetcher(NA_PAGINA);
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Primeiro e último dia do ano em "AAAA-MM-DD"; no ano corrente o fim é hoje. */
+function limitesDoAno(ano: number) {
+  const hoje = iso(new Date());
+  const fim = `${ano}-12-31`;
+  return { inicio: `${ano}-01-01`, fim: fim < hoje ? fim : hoje };
+}
+
+/** Dentro de "use cache": o cache dos anos fechados dura mais, os dados deles quase não mudam. */
+function vidaDoCache(ano: number) {
+  if (ano < anoCorrente()) cacheLife("days");
+  else cacheLife("hours");
+}
 
 // Cada casa tem o seu cache: se uma API cair, a outra continua servindo, e a falha não fica guardada.
 async function deputadosEmExercicio() {
@@ -124,13 +138,16 @@ export async function getDeputado(id: string) {
   }
 }
 
-/** Gastos da cota parlamentar (CEAP) no ano corrente, mais recentes primeiro. */
-export async function getDespesasDeputado(id: number, idLegislatura: number) {
+/**
+ * Gastos da cota parlamentar (CEAP) no ano, mais recentes primeiro. A API pede a legislatura do ano
+ * consultado (não a atual), então ela sai do próprio ano.
+ */
+export async function getDespesasDeputado(id: number, ano: number = anoCorrente()) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", `deputado:${id}`);
 
-  const ano = new Date().getFullYear();
+  const idLegislatura = (inicioDaLegislaturaDoAno(ano) - 1795) / 4;
   const despesas = await camara.despesas(id, idLegislatura, ano);
   return {
     ano,
@@ -138,18 +155,22 @@ export async function getDespesasDeputado(id: number, idLegislatura: number) {
   };
 }
 
-/** Proposições apresentadas pelo deputado nos últimos 12 meses, mais recentes primeiro. */
-export async function getProposicoesDeputado(id: number) {
+/** Proposições apresentadas pelo deputado no ano (no corrente, até hoje), mais recentes primeiro. */
+export async function getProposicoesDeputado(id: number, ano: number = anoCorrente()) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", `deputado:${id}`);
 
-  // A API aceita no máximo 3 meses por consulta: 4 janelas de ~91 dias cobrem o ano.
-  const hoje = Date.now();
-  const janelas = [3, 2, 1, 0].map((i) => ({
-    desde: iso(new Date(hoje - (i + 1) * 91 * 86_400_000 + 86_400_000)),
-    ate: iso(new Date(hoje - i * 91 * 86_400_000)),
-  }));
+  // A API aceita no máximo 3 meses por consulta: uma janela por trimestre, até hoje.
+  const { fim } = limitesDoAno(ano);
+  const janelas = [
+    [`${ano}-01-01`, `${ano}-03-31`],
+    [`${ano}-04-01`, `${ano}-06-30`],
+    [`${ano}-07-01`, `${ano}-09-30`],
+    [`${ano}-10-01`, `${ano}-12-31`],
+  ]
+    .filter(([desde]) => desde <= fim)
+    .map(([desde, ate]) => ({ desde, ate: ate < fim ? ate : fim }));
   const proposicoes = (
     await Promise.all(janelas.map((j) => camara.proposicoesDoAutor(id, j.desde, j.ate)))
   ).flat();
@@ -184,15 +205,14 @@ export async function getSenador(codigo: string) {
   return senado.senador(codigo);
 }
 
-/** Processos de autoria do senador nos últimos 12 meses, mais recentes primeiro. */
-export async function getProcessosSenador(codigo: string) {
+/** Processos de autoria do senador apresentados no ano (no corrente, até hoje), mais recentes primeiro. */
+export async function getProcessosSenador(codigo: string, ano: number = anoCorrente()) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", `senador:${codigo}`);
 
-  const ate = new Date();
-  const desde = new Date(ate.getTime() - 365 * 86_400_000);
-  const processos = await senado.processosDoAutor(codigo, iso(desde), iso(ate));
+  const { inicio, fim } = limitesDoAno(ano);
+  const processos = await senado.processosDoAutor(codigo, inicio, fim);
   return processos.sort((a, b) => (b.dataApresentacao ?? "").localeCompare(a.dataApresentacao ?? ""));
 }
 
@@ -280,13 +300,12 @@ export async function getLeisDeputado(id: number) {
   return { leis: leis.sort(maisRecentes), naoVerificados };
 }
 
-/** Emendas do ano corrente em nome do parlamentar; a API só casa o nome exato, sem acento e em maiúsculas. */
-export async function getEmendasDoAutor(nome: string) {
+/** Emendas do ano em nome do parlamentar; a API só casa o nome exato, sem acento e em maiúsculas. */
+export async function getEmendasDoAutor(nome: string, ano: number = anoCorrente()) {
   "use cache";
   cacheLife("days");
   cacheTag("transparencia", "emendas");
 
-  const ano = new Date().getFullYear();
   const emendas: Awaited<ReturnType<typeof getEmendas>> = [];
   for (let pagina = 1; pagina <= 10; pagina++) {
     const lote = await getEmendas({ ano, nomeAutor: normalizarNome(nome) }, pagina);
@@ -297,15 +316,14 @@ export async function getEmendasDoAutor(nome: string) {
 }
 
 /**
- * CEAPS do ano corrente resumida por senador. O JSON anual tem ~10 MB, então o cache guarda
+ * CEAPS do ano resumida por senador. O JSON anual tem ~10 MB, então o cache guarda
  * só o resumo (valores em centavos) e cada página de senador lê a sua parte.
  */
-async function getResumoCeaps() {
+async function getResumoCeaps(ano: number) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", "ceaps");
 
-  const ano = new Date().getFullYear();
   const porSenador = Object.groupBy(await senado.despesasCeaps(ano), (d) => String(d.codSenador));
 
   const resumo = Object.entries(porSenador).map(([codigo, despesas = []]) => {
@@ -326,8 +344,8 @@ async function getResumoCeaps() {
   return { ano, senadores: Object.fromEntries(resumo) };
 }
 
-export async function getDespesasSenador(codigo: string) {
-  const { ano, senadores } = await getResumoCeaps();
+export async function getDespesasSenador(codigo: string, ano: number = anoCorrente()) {
+  const { senadores } = await getResumoCeaps(ano);
   return { ano, resumo: senadores[codigo] ?? null };
 }
 
@@ -357,18 +375,18 @@ const deliberativaDoPlenario = (e: EventoCamara) =>
   e.orgaos.some((o) => o.sigla === "PLEN");
 
 /**
- * Presença do deputado nas sessões deliberativas do plenário no ano corrente, a partir da
- * data em que entrou no mandato atual. A API da Câmara não informa ausências justificadas.
+ * Presença do deputado nas sessões deliberativas do plenário no ano (no corrente, até hoje), a partir
+ * da data em que entrou no mandato atual. A API da Câmara não informa ausências justificadas.
  */
-export async function getPresencaDeputado(id: number, inicioMandato: string | null) {
+export async function getPresencaDeputado(id: number, inicioMandato: string | null, ano: number = anoCorrente()) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", `deputado:${id}`);
 
-  const hoje = iso(new Date());
-  const inicioAno = `${hoje.slice(0, 4)}-01-01`;
+  const { inicio: inicioAno, fim: hoje } = limitesDoAno(ano);
   const desde = inicioMandato && inicioMandato > inicioAno ? inicioMandato.slice(0, 10) : inicioAno;
   const base = "https://dadosabertos.camara.leg.br/api/v2";
+  if (desde > hoje) return { desde, consultadoEm: new Date().toISOString(), sessoes: 0, presencas: 0 };
 
   const [sessoes, doDeputado] = await Promise.all([
     paginarCamara<EventoCamara>(`${base}/eventos?idOrgao=180&dataInicio=${desde}&dataFim=${hoje}&itens=100`),
@@ -386,18 +404,14 @@ export async function getPresencaDeputado(id: number, inicioMandato: string | nu
 }
 
 /** Votações nominais do plenário do Senado no ano corrente, só com o registro do senador, mais recentes primeiro. */
-async function votacoesDoSenadorNoAno(codigo: string) {
+async function votacoesDoSenadorNoAno(codigo: string, ano: number) {
   "use cache";
-  cacheLife("hours");
+  vidaDoCache(ano);
   cacheTag("parlamentares", `senador:${codigo}`);
 
-  const hoje = iso(new Date());
+  const { inicio, fim } = limitesDoAno(ano);
   const url = new URL("https://legis.senado.leg.br/dadosabertos/votacao");
-  url.search = new URLSearchParams({
-    codigoParlamentar: codigo,
-    dataInicio: `${hoje.slice(0, 4)}-01-01`,
-    dataFim: hoje,
-  }).toString();
+  url.search = new URLSearchParams({ codigoParlamentar: codigo, dataInicio: inicio, dataFim: fim }).toString();
 
   const votacoes = asArray(await fetchJson<VotacaoApi[]>(url));
   return {
@@ -434,8 +448,8 @@ async function votacoesDoSenadorNoAno(codigo: string) {
 }
 
 /** Votos do senador no ano no formato do histórico do perfil (ver `VotoNoPerfil`). */
-export async function getVotosSenador(codigo: string) {
-  const { votos, consultadoEm } = await votacoesDoSenadorNoAno(codigo);
+export async function getVotosSenador(codigo: string, ano: number = anoCorrente()) {
+  const { votos, consultadoEm } = await votacoesDoSenadorNoAno(codigo, ano);
   return {
     consultadoEm,
     votos: votos.map(({ sigla, ...v }) => ({ ...v, tipo: mapearComparecimento(sigla).tipo })),
@@ -446,8 +460,8 @@ export async function getVotosSenador(codigo: string) {
  * Comparecimento do senador nas votações nominais do ano.
  * Usa a mesma classificação do sync (`mapearComparecimento`).
  */
-export async function getVotacoesSenador(codigo: string) {
-  const { consultadoEm, total, votos } = await votacoesDoSenadorNoAno(codigo);
+export async function getVotacoesSenador(codigo: string, ano: number = anoCorrente()) {
+  const { consultadoEm, total, votos } = await votacoesDoSenadorNoAno(codigo, ano);
   const contagem: Record<string, number> = {};
   const presenca = { PRESENTE: 0, AUSENCIA_JUSTIFICADA: 0, AUSENTE: 0, naoConta: 0 };
 

@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -8,7 +9,7 @@ import { BaixarCsv } from "@/components/baixar-csv";
 import { PixMunicipio, PixSkeleton } from "@/components/emendas-pix/pix-municipio";
 import { SobreOsDados } from "@/components/emendas/emendas-estado";
 import { ContasEnte, ContasEnteSkeleton } from "@/components/fiscalizacao/contas-ente";
-import { SeletorAno } from "@/components/emendas/seletor-ano";
+import { NavegacaoAnos } from "@/components/navegacao-anos";
 import { Tabela, TBody, Td, Th, THead, Tr } from "@/components/emendas/tabela";
 import { reaisDeCentavos, ResumoValores } from "@/components/emendas/valores";
 import { TipoEmenda } from "@/components/emendas/tipo-emenda";
@@ -17,7 +18,7 @@ import { Termo } from "@/components/termo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { linkAno } from "@/lib/filtros/formularios";
 import { getAnosEmendas, getEmendasMunicipio, getMunicipio, getUltimaSyncEmendas } from "@/lib/emendas/queries";
-import { anoEscolhido } from "@/lib/emendas/rotulos";
+import { anoDaUrl } from "@/lib/anos";
 import { isUf, UFS } from "@/lib/ufs";
 import { metadados } from "@/lib/metadados";
 
@@ -66,11 +67,13 @@ async function Cidade({
   params: PageProps<"/estados/[uf]/[ibge]">["params"];
   anoUrl?: string | string[];
 }) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const municipio = await municipioDaUrl(params);
   if (!municipio) notFound();
 
   const anos = await getAnosEmendas();
-  const ano = anoEscolhido(anoUrl, anos);
+  const ano = anoDaUrl(anoUrl, anos);
   const [dados, atualizadoEm] = await Promise.all([
     ano ? getEmendasMunicipio(municipio.ibge, ano) : null,
     getUltimaSyncEmendas(),
@@ -106,7 +109,7 @@ async function Cidade({
         <p className="text-muted-foreground">As emendas ainda não foram carregadas. Volte em breve.</p>
       ) : (
         <>
-          <SeletorAno anos={anos} ano={ano} acao={`/estados/${municipio.uf}/${municipio.ibge}`} />
+          <NavegacaoAnos rotulo="Emendas" anos={anos} ano={ano} href={(a) => linkAno(`/estados/${municipio.uf}/${municipio.ibge}`, { ano: a })} />
           <ResumoValores totais={dados.totais} quantidade={dados.quantidade} />
           {municipio.populacao && dados.totais.pago > 0 && (
             <p>

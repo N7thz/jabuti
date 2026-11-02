@@ -9,11 +9,14 @@ import { filtrosRankingCota, linkRankingCota } from "./filtros";
 
 export function FiltrosForm({
   anos,
+  anoEmCurso,
   categorias,
   valores = {},
   erros = {},
 }: {
   anos: number[];
+  /** Ano corrente, vindo do servidor (aparece como "até o momento"); o relógio não é lido no navegador. */
+  anoEmCurso?: number;
   categorias: string[];
   valores?: { ano?: number | null; casa?: string | null; categoria?: string | null };
   erros?: Record<string, string>;
@@ -43,7 +46,7 @@ export function FiltrosForm({
     >
       {(
         [
-          ["ano", "Ano", anos.map((a) => [String(a), String(a)] as const)],
+          ["ano", "Ano", anos.map((a) => [String(a), a === anoEmCurso ? `${a} (até o momento)` : String(a)] as const)],
           ["casa", "Casa", [["", "Câmara e Senado"], ["camara", "Câmara"], ["senado", "Senado"]]],
           ["categoria", "Tipo de gasto", [["", "Todos os gastos"], ...categorias.map((c) => [c, c] as const)]],
         ] as const

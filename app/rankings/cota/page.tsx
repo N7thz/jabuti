@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { BaixarCsv } from "@/components/baixar-csv";
@@ -14,6 +15,8 @@ import { linkParlamentar } from "@/lib/votacoes/queries";
 import { filtrosRankingCota, lerUrlRankingCota, linkRankingCota } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 import { metadados } from "@/lib/metadados";
+import { NavegacaoAnos } from "@/components/navegacao-anos";
+import { anoCorrente, rotuloAno } from "@/lib/anos";
 
 export const metadata = metadados({
   titulo: "Ranking da cota parlamentar · Jabuti",
@@ -56,9 +59,12 @@ export default function RankingCotaPage({ searchParams }: PageProps<"/rankings/c
 
 async function Filtros({ searchParams }: Partial<Pick<PageProps<"/rankings/cota">, "searchParams">>) {
   const [params, opcoes] = await Promise.all([searchParams ?? {}, getOpcoesCota()]);
+  // Só a versão com a URL espera a requisição (o fallback fica estático, sem o "até o momento").
+  if (searchParams) await connection();
   return (
     <FiltrosForm
       anos={opcoes.anos}
+      anoEmCurso={searchParams ? anoCorrente() : undefined}
       categorias={opcoes.categorias}
       valores={lerUrlRankingCota(params)}
       erros={lerFiltros(filtrosRankingCota, params).erros}
@@ -67,6 +73,8 @@ async function Filtros({ searchParams }: Partial<Pick<PageProps<"/rankings/cota"
 }
 
 async function Resultado({ searchParams }: Pick<PageProps<"/rankings/cota">, "searchParams">) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const [params, opcoes] = await Promise.all([searchParams, getOpcoesCota()]);
   const { valores } = lerFiltros(filtrosRankingCota, params);
   if (!valores) return null;
@@ -80,12 +88,18 @@ async function Resultado({ searchParams }: Pick<PageProps<"/rankings/cota">, "se
   const categoria = valores.categoria && opcoes.categorias.includes(valores.categoria) ? valores.categoria : undefined;
   const casa = valores.casa === "camara" ? "CAMARA" : valores.casa === "senado" ? "SENADO" : undefined;
   const ranking = await getRankingCota({ ano, casa, categoria });
-  const descricao = `${categoria ? `“${categoria}”` : "todos os gastos"} em ${ano}${
+  const descricao = `${categoria ? `“${categoria}”` : "todos os gastos"} em ${rotuloAno(ano)}${
     casa ? ` · ${casa === "CAMARA" ? "Câmara" : "Senado"}` : ""
   }`;
 
   return (
     <section aria-labelledby="resultado" className="flex flex-col gap-4">
+      <NavegacaoAnos
+        rotulo="Ranking da cota"
+        anos={opcoes.anos}
+        ano={ano}
+        href={(a) => linkRankingCota("/rankings/cota", { ano: a, casa: valores.casa, categoria })}
+      />
       <h2 id="resultado" className="text-xl font-bold" aria-live="polite">
         Ranking: {descricao}
       </h2>

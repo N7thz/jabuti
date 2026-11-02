@@ -1,6 +1,7 @@
 import { ExternalLinkIcon, FileTextIcon, ReceiptIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { BaixarCsv } from "@/components/baixar-csv";
@@ -33,6 +34,8 @@ import {
 } from "@/lib/parlamentares/queries";
 import { getVotosDeputado, ultimaCarga } from "@/lib/votacoes/queries";
 import { metadados } from "@/lib/metadados";
+import { AnoDoPerfil } from "@/components/navegacao-anos";
+import { anoDaUrl, anoEmAndamento, anosDesde, inicioDaLegislatura, rotuloAno } from "@/lib/anos";
 
 export async function generateMetadata({ params }: PageProps<"/parlamentares/deputado/[id]">): Promise<Metadata> {
   const deputado = await getDeputado((await params).id);
@@ -46,23 +49,28 @@ export async function generateMetadata({ params }: PageProps<"/parlamentares/dep
   });
 }
 
-export default function DeputadoPage({ params }: PageProps<"/parlamentares/deputado/[id]">) {
+export default function DeputadoPage({ params, searchParams }: PageProps<"/parlamentares/deputado/[id]">) {
   return (
     <div data-secao="parlamentares" className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 xs:px-6 py-[clamp(2rem,5vw,4rem)]">
       <Voltar />
       <Suspense fallback={<PerfilSkeleton />}>
-        {params.then(({ id }) => (
-          <Deputado id={id} />
+        {Promise.all([params, searchParams]).then(([{ id }, { ano }]) => (
+          <Deputado id={id} anoUrl={ano} />
         ))}
       </Suspense>
     </div>
   );
 }
 
-async function Deputado({ id }: { id: string }) {
+async function Deputado({ id, anoUrl }: { id: string; anoUrl?: string | string[] }) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const deputado = await getDeputado(id);
   if (!deputado) notFound();
   const s = deputado.ultimoStatus;
+  // Anos da legislatura atual: a API da cota só responde dentro da legislatura do ano pedido.
+  const anos = anosDesde(inicioDaLegislatura(s.idLegislatura));
+  const ano = anoDaUrl(anoUrl, anos);
   const naturalidade = [deputado.municipioNascimento, deputado.ufNascimento].filter(Boolean).join("/");
 
   const dados: [string, React.ReactNode][] = [["Nome civil", deputado.nomeCivil]];
@@ -102,13 +110,10 @@ async function Deputado({ id }: { id: string }) {
 
       <NavSecoes />
 
+      <AnoDoPerfil anos={anos} ano={ano} caminho={`/parlamentares/deputado/${deputado.id}`} />
+
       <SecaoProtegida titulo="Resumo" id="resumo" fonte="das APIs da Câmara e do Portal da Transparência" carregando={<ResumoSkeleton />}>
-        <ResumoDeputado
-          id={deputado.id}
-          idLegislatura={s.idLegislatura}
-          inicio={s.data}
-          nome={s.nomeEleitoral || s.nome}
-        />
+        <ResumoDeputado id={deputado.id} inicio={s.data} nome={s.nomeEleitoral || s.nome} ano={ano} />
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Como votou" id="votacoes" fonte="das votações da Câmara guardadas no portal">
@@ -122,10 +127,10 @@ async function Deputado({ id }: { id: string }) {
       {/* Sem items-start: os dois cards esticam até a mesma altura (a da cota). */}
       <div className="grid gap-6 lg:grid-cols-2">
         <SecaoProtegida titulo="Cota parlamentar" id="cota" fonte="da API da Câmara">
-          <Cota id={deputado.id} idLegislatura={s.idLegislatura} />
+          <Cota id={deputado.id} ano={ano} />
         </SecaoProtegida>
         <SecaoProtegida titulo="Proposições" id="proposicoes" fonte="da API da Câmara">
-          <Proposicoes id={deputado.id} />
+          <Proposicoes id={deputado.id} ano={ano} />
         </SecaoProtegida>
       </div>
 
@@ -134,7 +139,7 @@ async function Deputado({ id }: { id: string }) {
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Emendas" id="emendas" fonte="do Portal da Transparência">
-        <Emendas nome={s.nomeEleitoral || s.nome} />
+        <Emendas nome={s.nomeEleitoral || s.nome} ano={ano} />
       </SecaoProtegida>
 
       <SecaoProtegida titulo="Votos e emendas" id="votos-e-emendas" fonte="do TSE e do Portal da Transparência, guardados no portal">
@@ -159,23 +164,14 @@ async function Deputado({ id }: { id: string }) {
   );
 }
 
-async function ResumoDeputado({
-  id,
-  idLegislatura,
-  inicio,
-  nome,
-}: {
-  id: number;
-  idLegislatura: number;
-  inicio: string | null;
-  nome: string;
-}) {
+async function ResumoDeputado({ id, inicio, nome, ano }: { id: number; inicio: string | null; nome: string; ano: number }) {
   const [presenca, cota, proposicoes, emendas] = await Promise.all([
-    getPresencaDeputado(id, inicio),
-    getDespesasDeputado(id, idLegislatura),
-    getProposicoesDeputado(id),
-    getEmendasDoAutor(nome),
+    getPresencaDeputado(id, inicio, ano),
+    getDespesasDeputado(id, ano),
+    getProposicoesDeputado(id, ano),
+    getEmendasDoAutor(nome, ano),
   ]);
+  const ateAgora = anoEmAndamento(ano) ? " até agora" : "";
   const faltas = presenca.sessoes - presenca.presencas;
   const tipos = classificarProposicoes(proposicoes.map((p) => p.siglaTipo));
   const empenhado = somar(emendas.emendas.map((e) => reaisDoTexto(e.valorEmpenhado)));
@@ -185,7 +181,7 @@ async function ResumoDeputado({
   return (
     <>
       <Resumo
-        titulo={`Resumo de ${cota.ano}`}
+        titulo={`Resumo de ${rotuloAno(ano)}`}
         indicadores={[
           {
             rotulo: "Presença no plenário",
@@ -204,10 +200,10 @@ async function ResumoDeputado({
             rotulo: "Gasto da cota parlamentar",
             termo: "cota-parlamentar",
             valor: gastoCota,
-            detalhe: `${cota.despesas.length} reembolsos em ${cota.ano}`,
+            detalhe: `${cota.despesas.length} reembolsos em ${ano}${ateAgora}`,
           },
           {
-            rotulo: "Proposições em 12 meses",
+            rotulo: `Proposições em ${ano}`,
             termo: "proposicao",
             valor: String(proposicoes.length),
             detalhe: `${tipos.projetos} projetos · ${tipos.requerimentos} requerimentos e indicações · ${tipos.outros} outras`,
@@ -223,14 +219,15 @@ async function ResumoDeputado({
           <>
             <p>
               <strong>Presença:</strong> contamos as sessões deliberativas encerradas do plenário desde{" "}
-              {formatarData(presenca.desde)} e verificamos em quais o deputado aparece como presente na
+              {formatarData(presenca.desde)}
+              {anoEmAndamento(ano) ? " até hoje" : ` até o fim de ${ano}`} e verificamos em quais o deputado aparece como presente na
               API da Câmara. Audiências, sessões solenes e comissões ficam fora. A Câmara não publica as
               justificativas, então uma sessão sem registro pode ter sido falta justificada (licença,
               missão oficial).
             </p>
             <p>
               <strong>Cota:</strong> soma dos valores líquidos reembolsados no ano. <strong>Proposições:</strong>{" "}
-              projetos são PL, PLP, PEC e PDL; requerimentos incluem REQ, RIC e INC.{" "}
+              apresentadas no ano; projetos são PL, PLP, PEC e PDL; requerimentos incluem REQ, RIC e INC.{" "}
               <strong>Emendas:</strong> emendas do ano no Portal da Transparência com o nome parlamentar
               exato.
             </p>
@@ -239,8 +236,8 @@ async function ResumoDeputado({
         }
       />
       <Compartilhar
-        caminho={`/parlamentares/deputado/${id}`}
-        texto={`${nome} esteve em ${porcentagem(presenca.presencas, presenca.sessoes)} das sessões deliberativas do plenário em ${cota.ano} e gastou ${gastoCota} da cota parlamentar. Veja os votos, gastos e emendas:`}
+        caminho={`/parlamentares/deputado/${id}${anoEmAndamento(ano) ? "" : `?ano=${ano}`}`}
+        texto={`${nome} esteve em ${porcentagem(presenca.presencas, presenca.sessoes)} das sessões deliberativas do plenário em ${ano}${ateAgora} e gastou ${gastoCota} da cota parlamentar. Veja os votos, gastos e emendas:`}
       />
     </>
   );
@@ -258,8 +255,8 @@ async function VotosDeputado({ id }: { id: string }) {
   );
 }
 
-async function Cota({ id, idLegislatura }: { id: number; idLegislatura: number }) {
-  const { ano, despesas } = await getDespesasDeputado(id, idLegislatura);
+async function Cota({ id, ano }: { id: number; ano: number }) {
+  const { despesas } = await getDespesasDeputado(id, ano);
   const total = somar(despesas.map((d) => reais(d.valorLiquido)));
 
   const porTipo = Object.entries(Object.groupBy(despesas, (d) => d.tipoDespesa))
@@ -277,7 +274,7 @@ async function Cota({ id, idLegislatura }: { id: number; idLegislatura: number }
       titulo="Cota parlamentar"
       descricao={
         <>
-          Gastos de {ano} da <Termo id="cota-parlamentar">cota</Termo> reembolsados pela Câmara:{" "}
+          Gastos de {rotuloAno(ano)} da <Termo id="cota-parlamentar">cota</Termo> reembolsados pela Câmara:{" "}
           <strong className="text-foreground">{formatarReais(total)}</strong> em {despesas.length}{" "}
           {despesas.length === 1 ? "lançamento" : "lançamentos"}
         </>
@@ -319,7 +316,7 @@ async function Cota({ id, idLegislatura }: { id: number; idLegislatura: number }
             </TableBody>
           </Table>
 
-          <BaixarCsv href={`/api/csv/cota?id=${id}&legislatura=${idLegislatura}`} rotulo="Baixar os gastos" />
+          <BaixarCsv href={`/api/csv/cota?id=${id}&ano=${ano}`} rotulo={`Baixar os gastos de ${ano}`} />
 
           <div className="flex flex-1 flex-col gap-3">
             <h3 className="font-semibold">Lançamentos, do mais recente</h3>
@@ -360,14 +357,14 @@ async function Cota({ id, idLegislatura }: { id: number; idLegislatura: number }
   );
 }
 
-async function Proposicoes({ id }: { id: number }) {
-  const proposicoes = await getProposicoesDeputado(id);
+async function Proposicoes({ id, ano }: { id: number; ano: number }) {
+  const proposicoes = await getProposicoesDeputado(id, ano);
 
   return (
     <Secao id="proposicoes" titulo="Proposições"
       descricao={
         <>
-          {proposicoes.length} <Termo id="proposicao">proposições</Termo> apresentadas nos últimos 12 meses
+          {proposicoes.length} <Termo id="proposicao">proposições</Termo> apresentadas em {rotuloAno(ano)}
         </>
       }>
       {proposicoes.length === 0 ? (
@@ -377,7 +374,7 @@ async function Proposicoes({ id }: { id: number }) {
               <FileTextIcon aria-hidden="true" />
             </EmptyMedia>
             <EmptyTitle>Nenhuma proposição</EmptyTitle>
-            <EmptyDescription>Sem proposições de autoria nos últimos 12 meses.</EmptyDescription>
+            <EmptyDescription>Sem proposições de autoria em {rotuloAno(ano)}.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -418,12 +415,12 @@ async function LeisDeputado({ id }: { id: number }) {
   return <LeisParlamentar casa="camara" leis={leis} naoVerificados={naoVerificados} />;
 }
 
-async function Emendas({ nome }: { nome: string }) {
-  const { ano, emendas } = await getEmendasDoAutor(nome);
+async function Emendas({ nome, ano }: { nome: string; ano: number }) {
+  const { emendas } = await getEmendasDoAutor(nome, ano);
   return (
     <Secao id="emendas" titulo="Emendas" descricao={
         <>
-          <Termo id="emenda">Emendas parlamentares</Termo> de {ano} no Portal da Transparência
+          <Termo id="emenda">Emendas parlamentares</Termo> de {rotuloAno(ano)} no Portal da Transparência
         </>
       }>
       <Rolavel>

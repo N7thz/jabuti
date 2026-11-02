@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AvisoFonte } from "@/components/aviso-fonte";
@@ -12,6 +13,7 @@ import { getEmendas } from "@/lib/transparencia/queries";
 import { filtrosOrcamento, lerUrlOrcamento, linkOrcamento, PRIMEIRO_ANO } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 import { metadados } from "@/lib/metadados";
+import { rotuloAno } from "@/lib/anos";
 
 export const metadata = metadados({
   titulo: "Emendas no orçamento · Jabuti",
@@ -40,10 +42,11 @@ export default function OrcamentoPage({ searchParams }: PageProps<"/orcamento">)
         </Link>
       </header>
 
-      <Suspense fallback={<FiltrosForm anos={ANOS} />}>
+      <Suspense fallback={<FiltrosForm anos={ANOS} anoEmCurso={ULTIMO_ANO} />}>
         {searchParams.then((params) => (
           <FiltrosForm
             anos={ANOS}
+            anoEmCurso={ULTIMO_ANO}
             valores={lerUrlOrcamento(params)}
             erros={lerFiltros(filtrosOrcamento, params).erros}
           />
@@ -66,6 +69,8 @@ export default function OrcamentoPage({ searchParams }: PageProps<"/orcamento">)
 }
 
 async function Resultado({ searchParams }: Pick<PageProps<"/orcamento">, "searchParams">) {
+  // O ano corrente depende do relógio: a página é montada a cada visita, não no build.
+  await connection();
   const { valores } = lerFiltros(filtrosOrcamento, await searchParams);
   // Filtro inválido: a mensagem já aparece no campo do formulário.
   if (!valores) return null;
@@ -76,7 +81,7 @@ async function Resultado({ searchParams }: Pick<PageProps<"/orcamento">, "search
   const link = (p: number) => linkOrcamento("/orcamento", { ano, autor, pagina: p });
   const titulo = (
     <h2 id="resultado" className="text-sm text-muted-foreground" aria-live="polite">
-      Emendas de {ano}
+      Emendas de {rotuloAno(ano)}
       {autor && <> de {autor}</>} · página {pagina}
     </h2>
   );

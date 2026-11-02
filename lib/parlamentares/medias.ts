@@ -54,15 +54,14 @@ export async function getMediasDaCasa(casa: Casa, ano: number) {
           return { parte: presentes, total: presentes + contar(false) };
         })();
 
-  const umAnoAtras = new Date(Date.now() - 365 * 86_400_000);
   const [emExercicio, cota, gastaram, mesesCota, proposicoes, datasProposicoes, emendas, presencaCasa] = await Promise.all([
     db.parlamentar.count({ where: { casa, emExercicio: true } }),
     db.despesaCota.aggregate({ where: { ano, ...daCasa }, _sum: { valorLiquido: true } }),
     db.despesaCota.groupBy({ by: ["parlamentarId"], where: { ano, ...daCasa } }),
     db.despesaCota.groupBy({ by: ["mes"], where: { ano, ...daCasa } }),
-    db.proposicaoAutor.count({ where: { ...daCasa, proposicao: { dataApresentacao: { gte: umAnoAtras } } } }),
+    db.proposicaoAutor.count({ where: { ...daCasa, proposicao: { dataApresentacao: doAno } } }),
     db.proposicao.findMany({
-      where: { dataApresentacao: { gte: umAnoAtras }, autores: { some: daCasa } },
+      where: { dataApresentacao: doAno, autores: { some: daCasa } },
       select: { dataApresentacao: true },
     }),
     db.emenda.aggregate({ where: { ano, ...daCasa }, _sum: { valorEmpenhado: true, valorPago: true }, _count: true }),
@@ -72,11 +71,11 @@ export async function getMediasDaCasa(casa: Casa, ano: number) {
   if (emExercicio === 0) return null;
 
   // A média só vale se o banco cobre o mesmo período do número individual (que vem da API, do ano
-  // inteiro ou dos últimos 12 meses). Com só parte do período carregada, ela sairia muito menor e
+  // inteiro ou, no ano corrente, até hoje). Com só parte do período carregada, ela sairia muito menor e
   // faria todo mundo parecer acima da média: melhor não mostrar.
   const cotaCompleta = mesesCota.length >= mesesComDados(ano);
   const mesesDeProposicoes = new Set(datasProposicoes.flatMap((p) => (p.dataApresentacao ? [p.dataApresentacao.toISOString().slice(0, 7)] : [])));
-  const proposicoesCompletas = mesesDeProposicoes.size >= 11;
+  const proposicoesCompletas = mesesDeProposicoes.size >= mesesComDados(ano);
   const porParlamentar = (valor: { toString(): string } | null, n = emExercicio) =>
     centavos(reais(Number(valor ?? 0) / n));
 

@@ -22,8 +22,3 @@ export function termoDoTipo(tipo: string): IdTermo | null {
   return null;
 }
 
-/** Lê `?ano=` da URL; cai no ano mais recente quando vier vazio ou fora da lista. */
-export function anoEscolhido(valor: string | string[] | undefined, anos: number[]) {
-  const ano = Number(Array.isArray(valor) ? valor[0] : valor);
-  return anos.includes(ano) ? ano : anos[0];
-}

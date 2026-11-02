@@ -13,10 +13,13 @@ import { filtrosOrcamento, linkOrcamento } from "./filtros";
 
 export function FiltrosForm({
   anos,
+  anoEmCurso,
   valores = {},
   erros = {},
 }: {
   anos: number[];
+  /** Ano corrente, vindo do servidor (aparece como "até o momento"); o relógio não é lido no navegador. */
+  anoEmCurso?: number;
   valores?: { ano?: number | null; autor?: string | null };
   erros?: Record<string, string>;
 }) {
@@ -46,7 +49,7 @@ export function FiltrosForm({
           form={form}
           nome="ano"
           id="ano"
-          opcoes={anos.map((a) => [a, String(a)] as const)}
+          opcoes={anos.map((a) => [a, a === anoEmCurso ? `${a} (até o momento)` : String(a)] as const)}
           invalido={Boolean(erroAno)}
           descritoPor={erroAno ? "ano-erro" : undefined}
         />

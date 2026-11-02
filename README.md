@@ -20,16 +20,16 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Início | `/` | O que é o portal e tudo o que dá para consultar |
 | Empresas | `/empresas` | Consulta de empresas por CNPJ: contratos e sanções (CEIS, CNEP e TCU) |
 | Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
-| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, leis de toda a carreira (autoria e coautoria), emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
-| Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS e matérias); nas leis, também as que o senador relatou |
-| Estados | `/estados`, `/estados/[uf]` | Emendas por estado |
+| Perfil de deputado | `/parlamentares/deputado/[id]` | Escolha do ano (`?ano=`, anos da legislatura atual; o ano corrente aparece como "até o momento") para resumo, cota, proposições e emendas. Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, leis de toda a carreira (autoria e coautoria), emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
+| Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS, votações e matérias, todas por ano); nas leis, também as que o senador relatou |
+| Estados | `/estados`, `/estados/[uf]` | Emendas por estado, com links para cada ano carregado |
 | Município | `/estados/[uf]/[ibge]` | Emendas recebidas, emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
 | Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
 | Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação, as leis mais recentes e o placar da consulta popular (e-Cidadania e enquetes da Câmara) |
-| Comparar | `/comparar` | Dois parlamentares lado a lado, com a concordância nos votos e a média da Casa como base |
-| Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano, no total ou por tipo de gasto |
+| Comparar | `/comparar` | Dois parlamentares lado a lado no ano escolhido (`?ano=`), com a concordância nos votos e a média da Casa como base |
+| Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano (com links entre os anos), no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
 | Ajuda | `/ajuda` | Perguntas frequentes sobre como usar o portal, a conta e os dados |
 | Apoie o projeto | `/apoie` | Para onde vai o dinheiro, doação por Pix (QR Code e copia e cola, com valor à escolha), apoio mensal e outras formas de ajudar. O botão "Apoie o projeto" do menu abre o mesmo conteúdo num dialog |
