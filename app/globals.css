@@ -331,3 +331,17 @@ html[data-animacoes="desligadas"] * {
     transform: none !important;
   }
 }
+
+/* Menu lateral personalizável (lib/menu.ts): o assunto opcional só aparece se a pessoa ligou
+   (data-menu-<id> no <html>) ou se é a página aberta agora, para ela não perder de vista onde está. */
+[data-menu-opcional]:not(:has([data-active])) {
+  display: none;
+}
+html[data-menu-cnpj] [data-menu-opcional="cnpj"],
+html[data-menu-comparar] [data-menu-opcional="comparar"],
+html[data-menu-ranking] [data-menu-opcional="ranking"],
+html[data-menu-emendas] [data-menu-opcional="emendas"],
+html[data-menu-loa] [data-menu-opcional="loa"],
+html[data-menu-glossario] [data-menu-opcional="glossario"] {
+  display: revert;
+}

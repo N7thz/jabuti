@@ -21,23 +21,28 @@ import {
 } from "@/components/ui/sidebar";
 import { useAbrirApoio } from "@/components/apoio/dialog-apoio";
 import { LogoJabuti } from "@/components/logo-jabuti";
+import { PersonalizarMenu } from "@/components/personalizar-menu";
+import type { AssuntoOpcional } from "@/lib/menu";
 
 // `cor`: acento da seção no ícone (ver "Cores das seções" no DESIGN.md); o nome continua em texto.
+// `opcional`: assunto que só aparece se a pessoa ligar em "Personalizar menu" (lib/menu.ts).
 const LINKS = [
-  { href: "/empresas", label: "Consulta CNPJ", icon: SearchIcon, cor: "text-secao-empresas" },
-  { href: "/parlamentares", label: "Parlamentares", icon: UsersIcon, cor: "text-secao-parlamentares" },
-  { href: "/comparar", label: "Comparar parlamentares", icon: GitCompareArrowsIcon, cor: "text-secao-parlamentares" },
-  { href: "/rankings/cota", label: "Ranking da cota", icon: ChartNoAxesColumnIcon, cor: "text-secao-parlamentares" },
-  { href: "/leis", label: "Leis e projetos", icon: ScrollTextIcon, cor: "text-secao-parlamentares" },
-  { href: "/estados", label: "Estados e cidades", icon: MapIcon, cor: "text-secao-cidades" },
-  { href: "/orcamento", label: "Emendas no orçamento", icon: LandmarkIcon, cor: "text-secao-orcamento" },
-  { href: "/orcamento/loa", label: "Orçamento federal (LOA)", icon: WalletIcon, cor: "text-secao-orcamento" },
-  { href: "/glossario", label: "Entenda os termos", icon: BookOpenIcon, cor: "text-secao-glossario" },
-] as const;
+  { href: "/empresas", label: "Consulta CNPJ", icon: SearchIcon, cor: "text-secao-empresas", opcional: "cnpj" },
+  { href: "/parlamentares", label: "Parlamentares", icon: UsersIcon, cor: "text-secao-parlamentares", opcional: null },
+  { href: "/comparar", label: "Comparar parlamentares", icon: GitCompareArrowsIcon, cor: "text-secao-parlamentares", opcional: "comparar" },
+  { href: "/rankings/cota", label: "Ranking da cota", icon: ChartNoAxesColumnIcon, cor: "text-secao-parlamentares", opcional: "ranking" },
+  { href: "/leis", label: "Leis e projetos", icon: ScrollTextIcon, cor: "text-secao-parlamentares", opcional: null },
+  { href: "/estados", label: "Estados e cidades", icon: MapIcon, cor: "text-secao-cidades", opcional: null },
+  { href: "/orcamento", label: "Emendas no orçamento", icon: LandmarkIcon, cor: "text-secao-orcamento", opcional: "emendas" },
+  { href: "/orcamento/loa", label: "Orçamento federal (LOA)", icon: WalletIcon, cor: "text-secao-orcamento", opcional: "loa" },
+  { href: "/glossario", label: "Entenda os termos", icon: BookOpenIcon, cor: "text-secao-glossario", opcional: "glossario" },
+] as const satisfies readonly ({ opcional: AssuntoOpcional | null } & Record<string, unknown>)[];
 
 type NavLink = (typeof LINKS)[number];
 
-function NavButton({ href, label, icon: Icon, cor, active }: Omit<NavLink, "href" | "label"> & { href: string; label: string; active: boolean }) {
+type Botao = Pick<NavLink, "icon" | "cor"> & { href: string; label: string };
+
+function NavButton({ href, label, icon: Icon, cor, active }: Botao & { active: boolean }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
@@ -54,7 +59,7 @@ function NavButton({ href, label, icon: Icon, cor, active }: Omit<NavLink, "href
   );
 }
 
-function NavButtonComRota(link: Omit<NavLink, "href" | "label"> & { href: string; label: string }) {
+function NavButtonComRota(link: Botao) {
   const pathname = usePathname();
   // Rotas aninhadas (/orcamento e /orcamento/loa): só o link mais específico fica ativo.
   const casa = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -140,14 +145,17 @@ export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
           <SidebarGroupContent>
             <nav aria-label="Principal">
               <SidebarMenu>
-                {LINKS.map((link) => (
-                  <SidebarMenuItem key={link.href}>
+                {LINKS.map(({ opcional, ...link }) => (
+                  <SidebarMenuItem key={link.href} data-menu-opcional={opcional ?? undefined}>
                     {/* Só o destaque do link ativo depende da URL; o resto da sidebar entra no shell estático. */}
                     <Suspense fallback={<NavButton {...link} active={false} />}>
                       <NavButtonComRota {...link} />
                     </Suspense>
                   </SidebarMenuItem>
                 ))}
+                <SidebarMenuItem>
+                  <PersonalizarMenu />
+                </SidebarMenuItem>
               </SidebarMenu>
             </nav>
           </SidebarGroupContent>
