@@ -380,6 +380,18 @@ export const GLOSSARIO = [
     importancia: "O placar não obriga ninguém a votar de um jeito, mas mostra para os parlamentares, e para você, quanto um assunto mobiliza as pessoas e para que lado.",
   },
   {
+    id: "ideia-legislativa",
+    termo: "Ideia legislativa",
+    tema: "congresso",
+    curto: "Proposta de lei escrita por qualquer pessoa no portal e-Cidadania, do Senado. Com 20 mil apoios, ela é analisada pelos senadores.",
+    explicacao: [
+      "Qualquer pessoa com cadastro no e-Cidadania pode escrever uma ideia de lei, e as outras pessoas apoiam ou não. Se juntar 20 mil apoios em quatro meses, a ideia vira uma sugestão legislativa e vai para a Comissão de Direitos Humanos do Senado.",
+      "A comissão debate a sugestão e decide se ela vira um projeto de lei ou de emenda à Constituição, que passa a tramitar como qualquer outro. Um senador também pode adotar uma ideia, mesmo com menos apoios, e apresentá-la como projeto dele.",
+      "O portal mostra a ideia de origem quando o e-Cidadania registra que ela virou o projeto. O Senado não publica essa ligação nos dados abertos: ela é lida da página pública de cada ideia, uma vez por dia.",
+    ],
+    importancia: "Mostra quais leis nasceram de pedidos de cidadãos e quem, no Senado, levou esses pedidos adiante.",
+  },
+  {
     id: "lei-complementar",
     termo: "Lei complementar (PLP)",
     tema: "congresso",
@@ -506,6 +518,38 @@ export const GLOSSARIO = [
       "Na Câmara, o parlamentar pode registrar \"obstrução\" em vez de sim ou não, seguindo a orientação do partido. Para a votação valer, é preciso que um número mínimo de parlamentares vote (o quórum).",
       "Na prática, obstruir é uma forma de ser contra sem deixar a decisão acontecer naquele momento.",
     ],
+  },
+  {
+    id: "abstencao",
+    termo: "Abstenção",
+    tema: "congresso",
+    curto: "Quando o parlamentar está presente e registra que não vota nem sim nem não.",
+    explicacao: [
+      "A abstenção conta como presença e ajuda a formar o número mínimo para a votação valer, mas não soma para nenhum dos lados.",
+      "Às vezes é sinal de dúvida; às vezes, uma forma de não se comprometer com um tema difícil. O motivo não fica registrado.",
+    ],
+    importancia: "Uma abstenção num tema que importa para você é uma boa pergunta para fazer ao parlamentar.",
+  },
+  {
+    id: "ementa",
+    termo: "Ementa",
+    tema: "congresso",
+    curto: "O resumo oficial de uma proposta ou lei, em uma ou duas frases, escrito pela própria casa.",
+    explicacao: [
+      "Toda proposição tem uma ementa: é o texto que aparece logo abaixo do número (\"PL 1234/2025\") e diz do que ela trata.",
+      "A ementa resume, mas não substitui o texto completo: os detalhes que mudam tudo costumam estar nos artigos.",
+    ],
+  },
+  {
+    id: "gabinete",
+    termo: "Gabinete",
+    tema: "congresso",
+    curto: "A sala e a equipe de cada deputado ou senador, que atendem o público por email, telefone e pessoalmente.",
+    explicacao: [
+      "Cada parlamentar tem um gabinete em Brasília, com assessores pagos com dinheiro público. Atender cidadãos faz parte do trabalho deles.",
+      "O email e o telefone do gabinete são publicados pela Câmara e pelo Senado. Muitos parlamentares também têm escritório no estado.",
+    ],
+    importancia: "Escrever ou ligar para o gabinete é o jeito mais direto de pedir explicação sobre um voto, um gasto ou uma ausência.",
   },
   {
     id: "presenca",
