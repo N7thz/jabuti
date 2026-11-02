@@ -31,10 +31,26 @@ export default function FeedbackPage({ searchParams }: PageProps<"/feedback">) {
   );
 }
 
-/** Quem está logado já vem com nome e email; `?de=` traz a página de onde a pessoa clicou no link. */
+/**
+ * Quem está logado já vem com nome e email; `?de=` traz a página de onde a pessoa clicou no link.
+ * `?erro=` vem das telas de erro: o assunto já fica em "Algo não funciona" e a mensagem começa com o código.
+ */
 async function FormularioPreenchido({ searchParams }: Pick<PageProps<"/feedback">, "searchParams">) {
-  const [{ de }, sessao] = await Promise.all([searchParams, getSession()]);
+  const [{ de, erro }, sessao] = await Promise.all([searchParams, getSession()]);
   const pagina = typeof de === "string" && de.startsWith("/") ? de.slice(0, 300) : "";
+  const codigo = typeof erro === "string" && /^[\w-]{1,40}$/.test(erro) ? erro : "";
 
-  return <FeedbackForm valores={{ nome: sessao?.user.name ?? "", email: sessao?.user.email ?? "", pagina }} />;
+  return (
+    <FeedbackForm
+      valores={{
+        nome: sessao?.user.name ?? "",
+        email: sessao?.user.email ?? "",
+        pagina,
+        ...(codigo && {
+          assunto: "problema",
+          mensagem: `A página não carregou (código do erro: ${codigo}).\n\nO que eu estava tentando fazer: `,
+        }),
+      }}
+    />
+  );
 }

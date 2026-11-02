@@ -1,9 +1,13 @@
 "use client";
 
-import { RefreshCwIcon } from "lucide-react";
 import { catchError, type ErrorInfo } from "next/error";
 
-import { Button } from "@/components/ui/button";
+import {
+  BotaoTentarDeNovo,
+  CodigoDoErro,
+  LinkAvisarProblema,
+  useTentarAoReconectar,
+} from "@/components/erro-acoes";
 import { codigoParaSuporte, descreverErro } from "@/lib/erros-motivos";
 
 interface Props {
@@ -19,7 +23,13 @@ interface Props {
  * O que aparece no lugar de uma seção que falhou. O resto da página continua: um portal com oito
  * fontes não pode sumir inteiro porque uma delas está fora do ar. "Tentar de novo" busca só esta parte.
  */
-function SecaoComErro({ titulo, fonte, id }: Props, { error, retry }: ErrorInfo) {
+function SecaoComErro(props: Props, { error, retry }: ErrorInfo) {
+  // Os hooks ficam num componente próprio: o callback do catchError não é um componente.
+  return <Conteudo {...props} error={error} retry={retry} />;
+}
+
+function Conteudo({ titulo, fonte, id, error, retry }: Props & Pick<ErrorInfo, "error" | "retry">) {
+  const conectado = useTentarAoReconectar(retry);
   const codigo = codigoParaSuporte(error);
   const { codigo: tipo, motivo, passageiro } = descreverErro(error);
 
@@ -31,18 +41,23 @@ function SecaoComErro({ titulo, fonte, id }: Props, { error, retry }: ErrorInfo)
     >
       <h2 className="text-xl font-bold">{titulo}</h2>
       <p className="max-w-[65ch] text-muted-foreground">
-        Não conseguimos carregar esta parte agora. Os dados vêm {fonte}.{" "}
-        {tipo === "desconhecido" ? "A fonte pode estar fora do ar ou lenta." : motivo} O resto da página não foi afetado.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        {passageiro && (
-          <Button variant="outline" onClick={() => retry()}>
-            <RefreshCwIcon data-icon="inline-start" aria-hidden="true" />
-            Tentar de novo
-          </Button>
+        {conectado ? (
+          <>
+            Não conseguimos carregar esta parte agora. Os dados vêm {fonte}.{" "}
+            {tipo === "desconhecido" ? "A fonte pode estar fora do ar ou lenta." : motivo} O resto da página não foi
+            afetado.
+          </>
+        ) : (
+          "Esta parte não carregou porque o seu aparelho está sem internet. Ela carrega sozinha quando a conexão voltar."
         )}
-        {codigo && <span className="font-mono text-xs text-muted-foreground">Código do erro: {codigo}</span>}
-      </div>
+      </p>
+      {conectado && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {passageiro && <BotaoTentarDeNovo retry={retry} destaque={false} />}
+          <LinkAvisarProblema codigo={codigo} tamanho="default" />
+          {codigo && <CodigoDoErro codigo={codigo} />}
+        </div>
+      )}
     </section>
   );
 }
