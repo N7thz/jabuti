@@ -18,6 +18,8 @@ const PAGINAS = [
   ["ranking da cota", "/rankings/cota"],
   ["leis e projetos", "/leis"],
   ["projetos prontos para votar", "/leis?etapa=plenario"],
+  ["ajuda", "/ajuda"],
+  ["apoie o projeto", "/apoie"],
 ] as const;
 
 for (const tema of ["light", "dark"] as const) {
@@ -35,6 +37,18 @@ for (const tema of ["light", "dark"] as const) {
         expect(resposta?.ok(), `${rota} respondeu ${resposta?.status()}`).toBe(true);
         // Espera os <Suspense> terminarem de chegar.
         await page.waitForLoadState("networkidle");
+        // O ScrollArea do Base UI mede o conteúdo depois de montar e só então põe tabindex=0 nas áreas que
+        // rolam; antes disso o axe veria uma área rolável sem acesso pelo teclado.
+        await page
+          .waitForFunction(
+            () =>
+              [...document.querySelectorAll('[data-slot="scroll-area-viewport"]')].every(
+                (el) => el.scrollHeight <= el.clientHeight || el.getAttribute("tabindex") === "0",
+              ),
+            null,
+            { timeout: 10_000 },
+          )
+          .catch(() => {});
         await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${tema}\\b`));
 
         const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

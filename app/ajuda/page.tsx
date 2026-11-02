@@ -219,6 +219,30 @@ const GRUPOS: Grupo[] = [
     ],
   },
   {
+    id: "apoiar",
+    titulo: "Apoiar o projeto",
+    perguntas: [
+      {
+        pergunta: "Como posso apoiar o Jabuti?",
+        resposta: (
+          <p>
+            Em <L href="/apoie">Apoie o projeto</L> há as formas de doar, como o Pix, e outras maneiras de ajudar: avisar
+            de erros, contribuir no código e mostrar o portal para mais gente.
+          </p>
+        ),
+      },
+      {
+        pergunta: "Quem doa ganha alguma vantagem?",
+        resposta: (
+          <p>
+            Não. Tudo continua aberto e gratuito para todos, com ou sem doação, e quem doa não escolhe o que aparece no
+            portal. Os dados vêm só de fontes oficiais.
+          </p>
+        ),
+      },
+    ],
+  },
+  {
     id: "fontes",
     titulo: "Sobre os dados",
     perguntas: [

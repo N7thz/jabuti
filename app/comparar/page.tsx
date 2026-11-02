@@ -195,27 +195,27 @@ async function Resultado({ searchParams }: Pick<PageProps<"/comparar">, "searchP
           Indicadores de {a.ano}
         </h3>
         <dl className="divide-y">
+          {/* <dt> e <dd> como filhos diretos do grupo (div), como o HTML exige; o grid de 2 colunas põe cada
+              valor embaixo do cartão de quem ele descreve, e o rótulo e a média ocupam a linha inteira. */}
           {linhas.map((l, i) => (
-            <div key={i} className="flex flex-col gap-2 py-4">
-              <dt className="px-4 text-center text-sm text-muted-foreground">{l.rotulo}</dt>
-              <div className="grid grid-cols-2 gap-4">
-                {[a, b].map((p) => (
-                  <dd key={p.chave} className="px-4 text-center font-mono text-lg tabular-nums">
-                    <span className="sr-only">{p.nome}: </span>
-                    {l.valor(p)}
-                    {/* No celular os cartões ficam empilhados: o nome diz de quem é cada coluna. */}
-                    <span aria-hidden="true" className="block font-sans text-xs text-muted-foreground sm:hidden">
-                      {p.nome}
-                    </span>
-                    {/* Casas diferentes: cada coluna mostra a média da sua. */}
-                    {a.casa !== b.casa && <Media valor={medias[p.chave] && l.media(medias[p.chave]!)} de={nomeDaCasa(p)} />}
-                  </dd>
-                ))}
-              </div>
+            <div key={i} className="grid grid-cols-2 gap-x-4 gap-y-2 py-4">
+              <dt className="col-span-2 px-4 text-center text-sm text-muted-foreground">{l.rotulo}</dt>
+              {[a, b].map((p) => (
+                <dd key={p.chave} className="px-4 text-center font-mono text-lg tabular-nums">
+                  <span className="sr-only">{p.nome}: </span>
+                  {l.valor(p)}
+                  {/* No celular os cartões ficam empilhados: o nome diz de quem é cada coluna. */}
+                  <span aria-hidden="true" className="block font-sans text-xs text-muted-foreground sm:hidden">
+                    {p.nome}
+                  </span>
+                  {/* Casas diferentes: cada coluna mostra a média da sua. */}
+                  {a.casa !== b.casa && <Media valor={medias[p.chave] && l.media(medias[p.chave]!)} de={nomeDaCasa(p)} />}
+                </dd>
+              ))}
               {a.casa === b.casa && (
-                <p className="px-4 text-center">
+                <dd className="col-span-2 px-4 text-center">
                   <Media valor={mediaA && l.media(mediaA)} de={nomeDaCasa(a)} />
-                </p>
+                </dd>
               )}
             </div>
           ))}

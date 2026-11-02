@@ -26,7 +26,7 @@ export function BotaoEntrar({ compacto = false }: { compacto?: boolean }) {
   const pathname = usePathname();
   const href = pathname === "/entrar" || pathname === "/" ? "/entrar" : `/entrar?de=${encodeURIComponent(pathname)}`;
   return (
-    <Button variant="outline" render={<Link href={href} />}>
+    <Button variant="outline" render={<Link href={href} />} nativeButton={false}>
       <LogInIcon data-icon="inline-start" aria-hidden="true" />
       Entrar{!compacto && " ou criar conta"}
     </Button>

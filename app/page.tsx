@@ -1,4 +1,5 @@
 import {
+  HeartHandshakeIcon,
   ArrowRightIcon,
   ArrowUpRightIcon,
   BookOpenIcon,
@@ -356,6 +357,30 @@ export default function Inicio() {
               , sob a licença AGPL-3.0.
             </p>
           </div>
+        </section>
+
+        {/* Convite discreto, no fim da página: nada de pop-up nem de interromper a leitura. */}
+        <section
+          aria-labelledby="apoie"
+          data-revelar
+          className="flex flex-col items-start gap-4 rounded-2xl border-2 border-secao bg-secao-suave p-5 animate-enter sm:flex-row sm:items-center sm:justify-between sm:p-6"
+        >
+          <div className="flex flex-col gap-1">
+            <h2 id="apoie" className="text-xl font-bold">
+              O Jabuti é gratuito e sem anúncios
+            </h2>
+            <p className="max-w-[60ch] text-muted-foreground">
+              Ele se mantém com o apoio de quem acompanha. Dá para doar por Pix ou ajudar de outros jeitos, como avisar
+              de erros e mostrar o portal para alguém.
+            </p>
+          </div>
+          <Link
+            href="/apoie"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:hover:scale-100"
+          >
+            <HeartHandshakeIcon aria-hidden="true" className="size-4" />
+            Apoie o projeto
+          </Link>
         </section>
       </div>
     </div>

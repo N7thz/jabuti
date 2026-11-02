@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenIcon, ChartNoAxesColumnIcon, CircleHelpIcon, GitCompareArrowsIcon, LandmarkIcon, MapIcon, MessageSquareTextIcon, ScrollTextIcon, SearchIcon, SettingsIcon, UsersIcon, WalletIcon } from "lucide-react";
+import { BookOpenIcon, ChartNoAxesColumnIcon, CircleHelpIcon, GitCompareArrowsIcon, HeartHandshakeIcon, LandmarkIcon, MapIcon, MessageSquareTextIcon, ScrollTextIcon, SearchIcon, SettingsIcon, UsersIcon, WalletIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -19,6 +19,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useAbrirApoio } from "@/components/apoio/dialog-apoio";
 import { LogoJabuti } from "@/components/logo-jabuti";
 
 // `cor`: acento da seção no ícone (ver "Cores das seções" no DESIGN.md); o nome continua em texto.
@@ -79,6 +80,34 @@ function FeedbackComRota() {
   return <NavButton {...FEEDBACK} href={href} active={pathname.startsWith("/feedback")} />;
 }
 
+/** "Apoie o projeto": abre o dialog de apoio (ApoioProvider, no layout); sem JavaScript, o link leva a /apoie. */
+function ApoioComRota() {
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const abrirApoio = useAbrirApoio();
+  const active = pathname === "/apoie";
+  return (
+    <SidebarMenuButton
+      isActive={active}
+      tooltip="Apoie o projeto"
+      render={
+        <Link
+          href="/apoie"
+          aria-haspopup="dialog"
+          aria-current={active ? "page" : undefined}
+          onClick={(e) => {
+            abrirApoio(e);
+            if (isMobile) setOpenMobile(false);
+          }}
+        />
+      }
+    >
+      <HeartHandshakeIcon aria-hidden="true" className="text-secao-glossario" />
+      <span>Apoie o projeto</span>
+    </SidebarMenuButton>
+  );
+}
+
 /** `fixados`: grupo pessoal de quem está logado, lido no servidor e passado pronto pelo layout. */
 export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
   const { isMobile, setOpenMobile } = useSidebar();
@@ -128,6 +157,11 @@ export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <Suspense fallback={<NavButton href="/apoie" label="Apoie o projeto" icon={HeartHandshakeIcon} cor="text-secao-glossario" active={false} />}>
+              <ApoioComRota />
+            </Suspense>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <Suspense fallback={<NavButton {...AJUDA} active={false} />}>
               <NavButtonComRota {...AJUDA} />

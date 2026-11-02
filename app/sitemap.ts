@@ -7,7 +7,7 @@ import { urlDoSite } from "@/lib/site";
 import { UFS } from "@/lib/ufs";
 
 // Páginas fixas, das mais importantes para as menos.
-const FIXAS = ["/", "/parlamentares", "/empresas", "/estados", "/orcamento", "/orcamento/loa", "/rankings/cota", "/leis", "/comparar", "/glossario", "/ajuda", "/feedback"];
+const FIXAS = ["/", "/parlamentares", "/empresas", "/estados", "/orcamento", "/orcamento/loa", "/rankings/cota", "/leis", "/comparar", "/glossario", "/ajuda", "/apoie", "/feedback"];
 
 async function listarMunicipios() {
   "use cache";

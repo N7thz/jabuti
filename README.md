@@ -32,6 +32,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano, no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
 | Ajuda | `/ajuda` | Perguntas frequentes sobre como usar o portal, a conta e os dados |
+| Apoie o projeto | `/apoie` | Para onde vai o dinheiro, doação por Pix (QR Code e copia e cola, com valor à escolha), apoio mensal e outras formas de ajudar. O botão "Apoie o projeto" do menu abre o mesmo conteúdo num dialog |
 | Sugestões e problemas | `/feedback` | Formulário para avisar de erro ou sugerir melhoria, com anexos (vai por email) |
 | Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta e dados salvos |
 
@@ -93,6 +94,9 @@ Para ver se o app alcança o banco, abra `GET /api/health`.
 | `FEEDBACK_EMAIL` | Quem recebe as mensagens do `/feedback` (vários separados por vírgula) |
 | `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend (opcional: sem ele vale o remetente de teste, que só entrega ao dono da conta) |
 | `EMAIL_REMETENTE` | Remetente dos emails do login (opcional: sem ele vale o `FEEDBACK_REMETENTE`) |
+| `APOIO_PIX_CHAVE`, `APOIO_PIX_NOME`, `APOIO_PIX_CIDADE` | Pix de apoio ao projeto em `/apoie` (opcional: sem os três, o Pix não aparece). O portal gera o QR Code e o copia e cola |
+| `APOIO_GITHUB_SPONSORS_URL`, `APOIO_APOIASE_URL` | Links de apoio mensal (opcionais, só `https`) |
+| `NEXT_PUBLIC_REPOSITORIO_URL` | Repositório citado em "contribuir no código" (opcional) |
 
 ## Carga de dados
 

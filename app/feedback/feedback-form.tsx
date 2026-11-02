@@ -66,7 +66,7 @@ function Formulario({ valores, onNova }: { valores: Valores; onNova: () => void 
         <AlertDescription className="flex flex-col items-start gap-3">
           <p>Lemos tudo o que chega. Se precisar de mais detalhes, respondemos no email que você informou.</p>
           {/* Sem JavaScript o link recarrega a página; com ele, o onNova limpa o formulário na hora. */}
-          <Button variant="outline" size="sm" render={<Link href="/feedback" onClick={onNova} />}>
+          <Button variant="outline" size="sm" render={<Link href="/feedback" onClick={onNova} />} nativeButton={false}>
             Enviar outra mensagem
           </Button>
         </AlertDescription>

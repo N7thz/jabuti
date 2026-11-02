@@ -6,6 +6,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 
 import { AnimacoesProvider } from "@/components/animacoes-provider";
+import { ApoioProvider } from "@/components/apoio/dialog-apoio";
 import { AppSidebar } from "@/components/app-sidebar";
 import { GlossarioDaPagina } from "@/components/glossario-da-pagina";
 import { GuiaSecoes } from "@/components/guia-secoes";
@@ -21,6 +22,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/user-menu";
 
 import { SCRIPT_ACESSIBILIDADE } from "@/lib/acessibilidade";
+import { apoioPublico } from "@/lib/apoio/config";
 import { SCRIPT_ANIMACOES } from "@/lib/animacoes";
 import { metadados } from "@/lib/metadados";
 import { SITE_URL } from "@/lib/site";
@@ -84,6 +86,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </a>
 
               <TooltipProvider>
+                {/* Dialog "Apoie o Jabuti": fora da sidebar, que fecha no celular ao abri-lo. */}
+                <ApoioProvider apoio={apoioPublico()}>
                 <SidebarProvider>
                   <AppSidebar
                     fixados={
@@ -125,6 +129,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     <RevelarAoRolar />
                   </div>
                 </SidebarProvider>
+                </ApoioProvider>
               </TooltipProvider>
             </AnimacoesProvider>
           </ThemeProvider>
