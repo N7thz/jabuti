@@ -11,12 +11,14 @@ import {
   TimerIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { PainelPix } from "@/components/apoio/painel-pix";
 import { svgDoQr } from "@/components/apoio/qr";
 import { Compartilhar } from "@/components/compartilhar";
 import { HeroFundo } from "@/components/hero-fundo";
 import { buttonVariants } from "@/components/ui/button";
+import { getApoiadores } from "@/lib/apoio/apoiadores";
 import { apoioPublico, getApoio, temApoioFinanceiro } from "@/lib/apoio/config";
 import { metadados } from "@/lib/metadados";
 import { cn } from "@/lib/utils";
@@ -82,6 +84,10 @@ export default async function ApoiePage() {
       </section>
 
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-[clamp(2.5rem,5vw,4rem)]">
+        <Suspense fallback={null}>
+          <Mural />
+        </Suspense>
+
         <section aria-labelledby="custos" className="flex flex-col gap-4 animate-enter">
           <h2 id="custos" className="border-b pb-3 text-2xl font-bold">
             Para onde vai o dinheiro
@@ -206,5 +212,33 @@ export default async function ApoiePage() {
         </section>
       </div>
     </div>
+  );
+}
+
+/** Mural de quem apoiou e autorizou mostrar o nome. Os nomes entram pelo admin (/admin/apoiadores). Vazio, não aparece. */
+async function Mural() {
+  const apoiadores = await getApoiadores();
+  if (apoiadores.length === 0) return null;
+
+  return (
+    <section aria-labelledby="mural" className="flex scroll-mt-24 flex-col gap-4 animate-enter">
+      <div className="flex flex-col gap-1 border-b pb-3">
+        <h2 id="mural" className="scroll-mt-24 text-2xl font-bold">
+          Quem já apoiou
+        </h2>
+        <p className="text-muted-foreground">
+          {apoiadores.length === 1 ? "Uma pessoa já ajudou" : `${apoiadores.length} pessoas já ajudaram`} a manter o
+          portal no ar. Obrigado! Aparece aqui só quem quis ter o nome no mural.
+        </p>
+      </div>
+      <ul className="flex flex-wrap gap-2">
+        {apoiadores.map((a) => (
+          <li key={a.id} className="flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 shadow-soft">
+            <HeartHandshakeIcon aria-hidden="true" className="size-4 shrink-0 text-secao" />
+            <span className="font-medium">{a.nome}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

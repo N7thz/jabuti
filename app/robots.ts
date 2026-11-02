@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // API interna e páginas da conta: não têm conteúdo público para indexar.
-      disallow: ["/api/", "/fixados"],
+      disallow: ["/api/", "/fixados", "/admin"],
     },
     sitemap: urlDoSite("/sitemap.xml"),
   };

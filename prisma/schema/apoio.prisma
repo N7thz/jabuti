@@ -1,0 +1,14 @@
+// ── Apoio ───────────────────────────────────────────────────────────────────────────────────────────
+
+/// Nome no mural de apoiadores de /apoie. Só entra pelo painel de admin (/admin/apoiadores), com a
+/// autorização da pessoa para mostrar o nome em público.
+model Apoiador {
+  id        String   @id @default(cuid())
+  /// Como a pessoa pediu para aparecer (pode ser só o primeiro nome, um apelido ou o nome de uma empresa).
+  nome      String
+  /// Email de quem adicionou, para saber quem registrou cada nome.
+  criadoPor String
+  criadoEm  DateTime @default(now())
+
+  @@index([criadoEm])
+}

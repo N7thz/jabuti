@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ehAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { getFixados, LIMITE_FIXADOS, type TipoFixado } from "@/lib/fixados";
 import { getDono, getPerfil } from "@/lib/meu/perfil";
@@ -157,6 +158,11 @@ async function Conta({ searchParams }: Pick<PageProps<"/configuracoes">, "search
           <BotaoAcaoConta acao="sair" />
           <BotaoAcaoConta acao="excluir" />
         </div>
+      )}
+      {ehAdmin(sessao) && (
+        <Link href="/admin/apoiadores" className="w-fit text-sm text-link underline underline-offset-4">
+          Admin: mural de apoiadores
+        </Link>
       )}
       <p className="text-sm text-muted-foreground">
         Excluir a conta apaga seus atalhos, seguidos, notificações, listas, empresas vigiadas e a cidade do painel, e sai. Para apagar só esses dados e continuar logado, use &quot;Apagar meus
