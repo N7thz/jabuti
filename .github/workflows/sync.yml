@@ -18,6 +18,7 @@ on:
           - emendas
           - municipios
           - tse
+          - notificar
       argumentos:
         description: "Argumentos extras do script, ex.: --anos 2020-2025 (só com uma fonte escolhida)"
         type: string
@@ -27,6 +28,13 @@ env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   DIRECT_URL: ${{ secrets.DIRECT_URL }}
   PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
+  # Só o job de notificações usa: resumo por email (Resend) e links absolutos/assinados de descadastro.
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+  EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+  BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+  NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+  # "1" liga os resumos por email; fica desligado até haver domínio verificado no Resend.
+  NOTIFICACOES_POR_EMAIL: ${{ vars.NOTIFICACOES_POR_EMAIL }}
   ARGUMENTOS: ${{ inputs.argumentos }}
 
 jobs:
@@ -91,3 +99,20 @@ jobs:
         with: { bun-version-file: package.json }
       - run: bun install --frozen-lockfile
       - run: bun scripts/sync-tse.ts $ARGUMENTOS
+
+  # Depois da carga da Câmara e do Senado: votos e projetos novos de quem é seguido viram notificações,
+  # a situação dos projetos seguidos é conferida na API, e saem os resumos por email que estão na hora.
+  notificar:
+    needs: [camara, senado]
+    # Roda mesmo se uma das cargas falhar (a outra pode ter trazido novidades); não roda se foram puladas à mão.
+    if: >-
+      !cancelled() && (github.event.schedule == '0 6 * * *' || contains(fromJSON('["diaria","notificar"]'), inputs.fonte))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency: { group: notificar, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/notificar.ts

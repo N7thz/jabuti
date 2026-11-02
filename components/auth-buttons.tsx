@@ -1,6 +1,6 @@
 "use client";
 
-import { LogInIcon, LogOutIcon } from "lucide-react";
+import { LayoutDashboardIcon, ListIcon, LogInIcon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -106,6 +106,17 @@ export function AccountMenu({ user }: AccountMenuProps) {
             <span className="truncate text-foreground">{user.name}</span>
             <span className="truncate font-normal">{user.email}</span>
           </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href="/meu" />}>
+            <LayoutDashboardIcon aria-hidden="true" />
+            Meu painel
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/listas" />}>
+            <ListIcon aria-hidden="true" />
+            Minhas listas
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

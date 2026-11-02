@@ -1,0 +1,25 @@
+name: Verificação do HTML das fontes
+
+# O placar das consultas populares e as ideias legislativas não têm API: o portal lê o HTML das páginas do
+# Senado e da Câmara (lib/consultas/). Se o HTML mudar, o portal só deixa de mostrar esses dados, sem erro
+# visível. Esta rotina lê páginas conhecidas todo dia e falha quando algum leitor não acha mais o que
+# deveria; o GitHub manda email da falha para quem cuida do repositório. Detalhes em scripts/verificar-html.ts.
+
+on:
+  schedule:
+    - cron: "30 10 * * *" # todo dia, 07:30 em Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version-file: package.json }
+      # Sem `bun install`: o script e os leitores não usam pacotes, banco nem chaves.
+      - run: bun scripts/verificar-html.ts

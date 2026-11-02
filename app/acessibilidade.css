@@ -17,6 +17,10 @@ html[data-espacamento="amplo"] :where(p, li, dd, dt, td, th, label, blockquote, 
   letter-spacing: 0.04em;
   word-spacing: 0.12em;
 }
-html[data-espacamento="amplo"] :where(p, li, blockquote) + :where(p, li, blockquote) {
+/* Só em texto corrido: em listas flex/grid (botões, chips, âncoras) a margem desalinharia os itens em degrau,
+   porque o primeiro não a recebe; lá o espaço já vem do `gap`. */
+html[data-espacamento="amplo"]
+  :where(p, li, blockquote):not(:where(.flex, .inline-flex, .grid, .inline-grid) > *)
+  + :where(p, li, blockquote) {
   margin-top: 0.75em;
 }

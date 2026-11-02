@@ -14,7 +14,7 @@ import { getSession } from "@/lib/session";
 
 export const metadata = metadados({
   titulo: "Entrar · Jabuti",
-  descricao: "Entre com o Google ou com email e senha para fixar políticos, partidos e bancadas.",
+  descricao: "Entre com o Google, com um link no email ou com email e senha para fixar políticos, partidos e bancadas.",
 });
 
 export default function EntrarPage({ searchParams }: PageProps<"/entrar">) {
@@ -25,7 +25,7 @@ export default function EntrarPage({ searchParams }: PageProps<"/entrar">) {
       rodape={
         <>
           <p>
-            Não tem conta? <LinkConta href="/cadastrar">Criar conta com email</LinkConta>
+            Não tem conta ou não usa senha? <LinkConta href="/cadastrar">Receber um link no email</LinkConta>
           </p>
           <p>
             <LinkConta href="/recuperar-senha">Esqueci minha senha</LinkConta>
@@ -41,12 +41,20 @@ export default function EntrarPage({ searchParams }: PageProps<"/entrar">) {
 }
 
 async function Conteudo({ searchParams }: Pick<PageProps<"/entrar">, "searchParams">) {
-  const [{ de, senha, motivo }, sessao] = await Promise.all([searchParams, getSession()]);
+  const [{ de, senha, motivo, link }, sessao] = await Promise.all([searchParams, getSession()]);
   const destino = destinoSeguro(de);
   if (sessao) redirect(destino);
 
   return (
     <>
+      {link === "invalido" && (
+        <Alert variant="destructive" role="alert">
+          <AlertTitle>Este link venceu ou já foi usado.</AlertTitle>
+          <AlertDescription>
+            Cada link vale por 1 hora e funciona uma vez só. <LinkConta href="/cadastrar">Peça um link novo</LinkConta>.
+          </AlertDescription>
+        </Alert>
+      )}
       {motivo === "excluir" && (
         <Alert role="status">
           <AlertTitle>Por segurança, entre de novo para excluir sua conta.</AlertTitle>

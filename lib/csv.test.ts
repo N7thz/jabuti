@@ -18,6 +18,8 @@ test("celulaCsv usa vírgula decimal e neutraliza fórmulas vindas das fontes", 
   expect(celulaCsv(true)).toBe("sim");
   expect(celulaCsv("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");
   expect(celulaCsv("+55")).toBe("'+55");
+  expect(celulaCsv("\t=1+1")).toBe("'\t=1+1");
+  expect(celulaCsv("\r=1+1")).toBe("\"'\r=1+1\"");
 });
 
 test("gerarCsv começa com BOM e separa linhas com CRLF", () => {

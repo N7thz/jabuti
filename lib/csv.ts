@@ -15,9 +15,10 @@ export function celulaCsv(valor: Celula) {
           ? "sim"
           : "não"
         : valor;
-  // Aspas quando há separador, aspas ou quebra de linha; fórmulas (=, +, -, @) ganham um apóstrofo
-  // para a planilha não executar o conteúdo vindo das fontes.
-  const seguro = /^[=+\-@]/.test(texto) && typeof valor === "string" ? `'${texto}` : texto;
+  // Aspas quando há separador, aspas ou quebra de linha; fórmulas (=, +, -, @, e tab ou retorno antes
+  // delas, que algumas planilhas ignoram e executam o resto) ganham um apóstrofo para a planilha não
+  // executar o conteúdo vindo das fontes.
+  const seguro = /^[=+\-@\t\r]/.test(texto) && typeof valor === "string" ? `'${texto}` : texto;
   return /[";\r\n]/.test(seguro) ? `"${seguro.replaceAll('"', '""')}"` : seguro;
 }
 

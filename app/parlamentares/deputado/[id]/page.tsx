@@ -11,6 +11,7 @@ import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
+import { BotaoSeguir } from "@/components/seguir";
 import { LeisParlamentar } from "@/components/leis-parlamentar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
 import { PartidoEFidelidade } from "@/components/partido-fidelidade";
@@ -103,7 +104,10 @@ async function Deputado({ id, anoUrl }: { id: string; anoUrl?: string | string[]
         acoes={
           // Lê a sessão: fica fora do shell estático e não aparece para visitantes.
           <Suspense fallback={null}>
-            <BotoesFixar alvos={alvosDoParlamentar({ casa: "camara", id: deputado.id, nome: s.nome, partido: s.siglaPartido, uf: s.siglaUf })} />
+            <div className="flex flex-wrap items-start gap-2">
+              <BotaoSeguir tipo="PARLAMENTAR" chave={`camara-${deputado.id}`} rotulo={s.nome} nome="parlamentar" />
+              <BotoesFixar alvos={alvosDoParlamentar({ casa: "camara", id: deputado.id, nome: s.nome, partido: s.siglaPartido, uf: s.siglaUf })} />
+            </div>
           </Suspense>
         }
       />

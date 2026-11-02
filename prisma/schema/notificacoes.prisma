@@ -1,0 +1,72 @@
+// Parlamentares e projetos seguidos por quem está logado, as notificações geradas para eles e a
+// preferência de resumo por email. São dados pessoais: nunca ler em "use cache".
+// O dono é o email em minúsculas, como em Fixado.usuario (ver lib/fixados.ts).
+
+enum TipoSeguido {
+  PARLAMENTAR
+  /// Projeto de lei, PEC, medida provisória... (qualquer item de /leis).
+  LEI
+}
+
+/// Algo que a pessoa segue para receber notificações. Diferente de Fixado (atalho na barra lateral).
+model Seguido {
+  id       String      @id @default(cuid())
+  usuario  String
+  tipo     TipoSeguido
+  /// PARLAMENTAR: "camara-204379" ou "senado-5672" · LEI: "camara-2487436" ou "senado-8441243" (id do processo).
+  chave    String
+  /// Nome mostrado nas listas (ex.: "Acácio Favacho", "PL 2338/2023").
+  rotulo   String
+  criadoEm DateTime    @default(now())
+  /// LEI: última situação vista na API ("situação|data"); quando muda, gera notificação. Null até a primeira checagem.
+  estado   String?
+
+  @@unique([usuario, tipo, chave])
+  @@index([tipo, chave])
+}
+
+enum TipoNotificacao {
+  /// Votação nominal em que um ou mais parlamentares seguidos votaram (uma por votação, agrupando-os).
+  VOTO
+  /// Projeto novo apresentado por um parlamentar seguido.
+  PROPOSICAO
+  /// Mudança de situação de um projeto seguido.
+  LEI
+}
+
+model Notificacao {
+  id         String          @id @default(cuid())
+  usuario    String
+  tipo       TipoNotificacao
+  /// Chave do acontecimento, para não notificar duas vezes: "voto:<votacaoId>", "proposicao:<proposicaoId>",
+  /// "lei:<chave>:<hash da situação>".
+  evento     String
+  titulo     String
+  texto      String
+  /// Caminho no portal ou link da fonte.
+  url        String?
+  /// Quando aconteceu na fonte (data da votação, da apresentação, da nova situação).
+  ocorridoEm DateTime
+  criadaEm   DateTime        @default(now())
+  lidaEm     DateTime?
+  /// Quando entrou num resumo por email; null = ainda não enviada.
+  enviadaEm  DateTime?
+
+  @@unique([usuario, evento])
+  @@index([usuario, criadaEm])
+  @@index([usuario, lidaEm])
+}
+
+enum FrequenciaEmail {
+  NUNCA
+  DIARIO
+  SEMANAL
+}
+
+/// Preferência de resumo por email. Sem linha = NUNCA: o email é opt-in.
+model PreferenciaNotificacao {
+  usuario      String          @id
+  email        FrequenciaEmail @default(NUNCA)
+  ultimoEnvio  DateTime?
+  atualizadoEm DateTime        @updatedAt
+}

@@ -1,0 +1,69 @@
+// Área logada: perfil (representantes, preferências), listas com anotações e empresas vigiadas.
+// São dados pessoais: nunca ler em "use cache". O dono é o email em minúsculas, como em Fixado.usuario
+// (ver lib/fixados.ts, `donoDa`).
+
+/// Uma linha por pessoa, criada quando ela salva algo do perfil.
+model PerfilUsuario {
+  usuario       String    @id
+  /// Município escolhido em "Meus representantes" (código IBGE); o estado sai do próprio município.
+  municipioIbge Int?
+  /// Preferências do site para valer em todos os aparelhos: { menu, texto, espacamento, tema, animacoes }.
+  preferencias  Json?
+  /// Última vez que a pessoa abriu o painel: "novidades desde a última visita" contam a partir daqui.
+  painelVistoEm DateTime?
+  atualizadoEm  DateTime  @updatedAt
+}
+
+enum TipoItemLista {
+  VOTACAO
+  LEI
+  EMPRESA
+  EMENDA
+  PARLAMENTAR
+  PAGINA
+}
+
+/// Lista privada com nome (ex.: "Reportagem sobre a cota").
+model Lista {
+  id       String      @id @default(cuid())
+  usuario  String
+  nome     String
+  criadaEm DateTime    @default(now())
+  itens    ItemLista[]
+
+  @@index([usuario])
+}
+
+/// Item salvo numa lista, com uma anotação opcional da pessoa.
+model ItemLista {
+  id       String        @id @default(cuid())
+  listaId  String
+  lista    Lista         @relation(fields: [listaId], references: [id], onDelete: Cascade)
+  tipo     TipoItemLista
+  /// Identificador do item no portal (id da votação, CNPJ, "camara-204379"...) para não salvar duas vezes.
+  chave    String
+  rotulo   String
+  /// Caminho no portal ("/votacoes/camara/123") ou link da fonte.
+  url      String
+  nota     String?
+  criadoEm DateTime      @default(now())
+
+  @@unique([listaId, tipo, chave])
+}
+
+/// Empresa (CNPJ) que a pessoa quer acompanhar: o painel avisa quando aparece sanção ou contrato novo.
+model EmpresaVigiada {
+  id         String    @id @default(cuid())
+  usuario    String
+  /// Só os 14 dígitos.
+  cnpj       String
+  rotulo     String
+  /// Resumo da última checagem ("sancoes:2|contratos:15"); quando muda, o painel mostra a novidade.
+  estado     String?
+  checadaEm  DateTime?
+  /// Quando o estado mudou pela última vez (a novidade some depois que a pessoa vê o painel).
+  mudouEm    DateTime?
+  criadaEm   DateTime  @default(now())
+
+  @@unique([usuario, cnpj])
+}

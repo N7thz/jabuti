@@ -7,6 +7,22 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { CAMPOS_QUE_VOLTAM, destinoSeguro, SCHEMAS_CONTA, type FormularioConta } from "@/lib/conta/schemas";
+import { ipDoPedido, type Regra, todasPermitidas } from "@/lib/limite";
+
+const MINUTO = 60;
+
+/**
+ * Limites por endereço (IP) e por email. O do email protege uma conta de quem testa senhas de vários
+ * endereços e impede encher a caixa de alguém com links; o do IP segura quem testa vários emails.
+ */
+const LIMITES: Record<FormularioConta, { ip: Regra; email?: Regra }> = {
+  entrar: { ip: { janela: 15 * MINUTO, max: 20 }, email: { janela: 15 * MINUTO, max: 10 } },
+  cadastrar: { ip: { janela: 10 * MINUTO, max: 5 }, email: { janela: 60 * MINUTO, max: 3 } },
+  recuperar: { ip: { janela: 10 * MINUTO, max: 5 }, email: { janela: 60 * MINUTO, max: 3 } },
+  redefinir: { ip: { janela: 10 * MINUTO, max: 10 } },
+};
+
+const MUITAS_TENTATIVAS = "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
 
 export type EstadoConta =
   | { status: "inicial" }
@@ -57,6 +73,14 @@ export async function acaoConta(formulario: FormularioConta, _anterior: EstadoCo
     return { status: "erro", erros, valores };
   }
 
+  const limites = LIMITES[formulario];
+  const email = "email" in dados.data ? dados.data.email.toLowerCase() : null;
+  const permitido = await todasPermitidas([
+    [`${formulario}:ip:${await ipDoPedido()}`, limites.ip],
+    ...(email && limites.email ? [[`${formulario}:email:${email}`, limites.email] as [string, Regra]] : []),
+  ]);
+  if (!permitido) return { status: "erro", mensagem: MUITAS_TENTATIVAS, valores };
+
   const cabecalhos = await headers();
   const destino = destinoSeguro(bruto.de);
   try {
@@ -67,11 +91,17 @@ export async function acaoConta(formulario: FormularioConta, _anterior: EstadoCo
         break;
       }
       case "cadastrar": {
-        const { nome, email, senha } = SCHEMAS_CONTA.cadastrar.parse(bruto);
-        await auth.api.signUpEmail({ body: { name: nome, email, password: senha, callbackURL: destino }, headers: cabecalhos });
+        // Boas-vindas por magic link: a conta nasce (já confirmada) quando a pessoa abre o link. Se o email
+        // já tem conta, o mesmo pedido manda um link para entrar; a resposta é igual nos dois casos, para a
+        // tela não revelar quem tem cadastro.
+        const { nome, email } = SCHEMAS_CONTA.cadastrar.parse(bruto);
+        await auth.api.signInMagicLink({
+          body: { email, name: nome, callbackURL: destino, errorCallbackURL: "/entrar?link=invalido" },
+          headers: cabecalhos,
+        });
         return {
           status: "ok",
-          mensagem: `Enviamos um link de confirmação para ${email}. Abra o link para ativar a conta; ele vale por 1 hora. Se não chegar, confira a caixa de spam.`,
+          mensagem: `Enviamos um link para ${email}. Abra o link para entrar; se ainda não tiver conta, ela é criada na hora. Ele vale por 1 hora e funciona uma vez só. Se não chegar, confira a caixa de spam.`,
         };
       }
       case "recuperar": {

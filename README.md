@@ -35,8 +35,15 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Apoie o projeto | `/apoie` | Para onde vai o dinheiro, doação por Pix (QR Code e copia e cola, com valor à escolha), apoio mensal e outras formas de ajudar. O botão "Apoie o projeto" do menu abre o mesmo conteúdo num dialog |
 | Sugestões e problemas | `/feedback` | Formulário para avisar de erro ou sugerir melhoria, com anexos (vai por email) |
 | Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta e dados salvos |
+| Meu painel | `/meu` | Com login: novidades dos parlamentares fixados e seguidos desde a última visita, meus representantes (cidade e estado escolhidos), empresas vigiadas e as listas mais recentes |
+| Minhas listas | `/listas`, `/listas/[id]` | Com login: listas privadas de votações, leis, empresas, emendas, parlamentares e páginas, com anotações; cada lista baixa em CSV (`/api/csv/lista/[id]`) |
+| Notificações | `/notificacoes` | Com login: o que aconteceu com os parlamentares e projetos seguidos |
 
-O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. As preferências de leitura funcionam sem login.
+O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. Também dá para **seguir** parlamentares e projetos de lei (botão "Seguir" no perfil do senador ou deputado e em cada item de `/leis`): uma vez por dia, depois da carga, o portal gera notificações com o voto de cada parlamentar seguido nas votações nominais, os projetos que ele apresentou e as mudanças de situação dos projetos seguidos. Elas ficam em `/notificacoes` (com o contador no sino do cabeçalho) e, quando o envio por email for ligado (`NOTIFICACOES_POR_EMAIL=1`, depois de verificar um domínio próprio no Resend), também num resumo diário ou semanal escolhido em `/configuracoes`, com link para parar de receber sem login. As preferências de leitura funcionam sem login; com login, elas (e o menu) passam a valer em todos os aparelhos.
+
+Em `/meu` ficam as **empresas vigiadas** (até 20 CNPJs): a cada visita o painel confere sanções (CEIS, CNEP e TCU) e contratos novos no Portal da Transparência e mostra o que mudou desde a última vez. Na seção "Mais" de `/meu` dá para baixar tudo o que o portal guarda da conta num JSON (`/api/meus-dados`, direito previsto na LGPD, art. 18). Login, envio de links e feedback têm limite de tentativas (`lib/limite.ts`), contado no banco para valer em todas as instâncias.
+
+O menu lateral mostra sempre Parlamentares, Leis e projetos e Estados e cidades; os outros assuntos (Consulta CNPJ, Comparar, Ranking da cota, Emendas, LOA e Glossário) a pessoa liga em "Personalizar menu", no fim da lista. A escolha fica neste aparelho (localStorage, `lib/menu.ts`) e a página aberta sempre aparece no menu.
 
 ## Fontes de dados
 
@@ -110,6 +117,7 @@ bun scripts/sync-camara.ts                          # padrão: últimos 30 dias
 bun scripts/sync-senado.ts                          # padrão: últimos 30 dias
 bun scripts/sync-emendas.ts --anos 2020-2025        # precisa dos municípios
 bun scripts/sync-tse.ts                             # precisa de Câmara e Senado
+bun scripts/notificar.ts                            # notificações e resumos por email (--sem-email para não enviar)
 ```
 
 Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas (a etapa `orientacoes`, de Câmara e Senado, guarda a orientação de bancada usada no índice de fidelidade e deve rodar depois de `votacoes`), `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
@@ -120,8 +128,10 @@ O workflow [`.github/workflows/sync.yml`](.github/workflows/sync.yml) roda as ca
 
 | Quando | Fontes |
 | --- | --- |
-| Todo dia, 06:00 UTC | Câmara e Senado (últimos 30 dias) e emendas do ano corrente |
+| Todo dia, 06:00 UTC | Câmara e Senado (últimos 30 dias) e emendas do ano corrente; depois de Câmara e Senado, as notificações de quem segue parlamentares e projetos |
 | Domingo, 09:00 UTC | Municípios (IBGE) e TSE |
+
+Outro workflow, [`.github/workflows/verificar-html.yml`](.github/workflows/verificar-html.yml), roda todo dia às 10:30 UTC `bun scripts/verificar-html.ts`: o placar das consultas populares e as ideias legislativas não têm API e são lidos do HTML do Senado e da Câmara, então o script confere páginas conhecidas e falha (o GitHub avisa por email) se algum leitor parar de achar os dados. Não precisa de banco nem de secrets.
 
 Cada fonte é um job separado, e duas cargas da mesma fonte nunca rodam ao mesmo tempo (a segunda espera a primeira). Para rodar na mão, use **Actions → Carga de dados → Run workflow**, escolha a fonte e, se quiser, passe argumentos extras (ex.: `--anos 2020-2025` para emendas).
 
@@ -132,6 +142,10 @@ Secrets necessários no repositório (**Settings → Secrets and variables → A
 | `DATABASE_URL` | Conexão do Neon com pooling, onde os scripts gravam |
 | `DIRECT_URL` | Conexão direta do Neon |
 | `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência (emendas) |
+| `RESEND_API_KEY`, `EMAIL_REMETENTE` | Envio dos resumos de notificação por email (só com a variável `NOTIFICACOES_POR_EMAIL=1`) |
+| `BETTER_AUTH_SECRET` | O mesmo do app: assina o link de "parar de receber" dos emails |
+
+E a variável (não secret) `NEXT_PUBLIC_SITE_URL`, endereço público do portal usado nos links dos emails.
 
 ## Scripts do projeto
 

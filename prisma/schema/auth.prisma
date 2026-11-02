@@ -65,3 +65,15 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+/// Limite de tentativas (login, envio de links, feedback), contado no banco para valer em todas as
+/// instâncias do servidor. Usado pelo Better Auth nas rotas /api/auth/* e por lib/limite.ts nos formulários.
+/// `lastRequest` é o horário em milissegundos.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}

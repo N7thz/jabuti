@@ -235,6 +235,8 @@ export interface RelatoriaApi {
 
 /** Filtros de /processo usados pelo portal. Datas em AAAA-MM-DD; cada intervalo aceita no máximo 1 ano. */
 export interface FiltrosProcesso {
+  /** Um processo só, pelo id (o mesmo de `ProcessoApi.id`). */
+  idProcesso?: number;
   siglaSituacao?: string;
   tramitouLegislaturaAtual?: "S" | "N";
   anoNorma?: number;

@@ -9,13 +9,22 @@ import { db } from "@/lib/db";
 import { donoDa } from "@/lib/fixados";
 import { getSession, requireSession } from "@/lib/session";
 
-/** Fixados são ligados ao email (não ao usuário do banco), então saem à parte quando a conta é excluída. */
+/**
+ * Fixados, seguidos, notificações e a preferência de email são ligados ao email (não ao usuário do banco),
+ * então saem à parte quando a conta é excluída.
+ */
 function apagarFixadosDe(sessao: { user: { email: string } }) {
-  return db.fixado.deleteMany({ where: { usuario: donoDa(sessao) } });
+  const usuario = donoDa(sessao);
+  return db.$transaction([
+    db.fixado.deleteMany({ where: { usuario } }),
+    db.seguido.deleteMany({ where: { usuario } }),
+    db.notificacao.deleteMany({ where: { usuario } }),
+    db.preferenciaNotificacao.deleteMany({ where: { usuario } }),
+  ]);
 }
 
 /**
- * Apaga os atalhos fixados de quem está logado, mantendo a conta. Exige a caixa de confirmação marcada;
+ * Apaga atalhos fixados, seguidos e notificações de quem está logado, mantendo a conta. Exige a caixa de confirmação marcada;
  * funciona sem JavaScript, porque é um <form action> comum.
  */
 export async function apagarMeusDados(formData: FormData) {

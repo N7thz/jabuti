@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { enviarFeedback } from "@/lib/feedback/enviar";
 import { CAMPOS_TEXTO, feedbackSchema, type CampoDeTexto, type CampoFeedback } from "@/lib/feedback/schema";
+import { ipDoPedido, tentativaPermitida } from "@/lib/limite";
 
 export type EstadoFeedback =
   | { status: "inicial" }
@@ -33,6 +34,16 @@ export async function enviarFeedbackAction(_anterior: EstadoFeedback, formData: 
     const { fieldErrors } = z.flattenError(dados.error);
     const erros = Object.fromEntries(Object.entries(fieldErrors).map(([campo, lista]) => [campo, lista?.[0]]));
     return { status: "erro", erros, valores };
+  }
+
+  // Até 5 mensagens por hora de cada endereço: a armadilha `site` pega robô simples, este limite segura
+  // quem tenta encher a caixa do portal (e gastar a cota do Resend) com envios em sequência.
+  if (!(await tentativaPermitida(`feedback:ip:${await ipDoPedido()}`, { janela: 60 * 60, max: 5 }))) {
+    return {
+      status: "erro",
+      mensagem: "Você já enviou várias mensagens na última hora. Espere um pouco e tente de novo; o que você escreveu continua aqui.",
+      valores,
+    };
   }
 
   const falha = await enviarFeedback(dados.data);

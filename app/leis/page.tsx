@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { AvisoFonte } from "@/components/aviso-fonte";
 import { ConsultaPopular, ConsultaPopularCarregando } from "@/components/consulta-popular";
 import { Paginacao } from "@/components/paginacao";
+import { BotaoSeguir } from "@/components/seguir";
 import { RolarAoMudar } from "@/components/rolar-ao-mudar";
 import { Termo } from "@/components/termo";
 import { Badge } from "@/components/ui/badge";
@@ -374,6 +375,11 @@ function ProjetoItem({ projeto: p, rotuloData }: { projeto: Projeto; rotuloData:
           ))}
         </dl>
       )}
+
+      {/* Lê a sessão: só aparece para quem está logado. */}
+      <Suspense fallback={null}>
+        <BotaoSeguir tipo="LEI" chave={p.chave} rotulo={p.norma ? `${p.identificacao} (${p.norma})` : p.identificacao} nome="projeto" />
+      </Suspense>
 
       {p.idConsulta && (
         <Suspense fallback={<ConsultaPopularCarregando />}>

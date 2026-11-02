@@ -13,6 +13,7 @@ import { GuiaSecoes } from "@/components/guia-secoes";
 import { RevelarAoRolar } from "@/components/revelar-ao-rolar";
 import { LogoJabuti } from "@/components/logo-jabuti";
 import { SidebarFixados } from "@/components/sidebar-fixados";
+import { SinoNotificacoes } from "@/components/sino-notificacoes";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +25,7 @@ import { UserMenu } from "@/components/user-menu";
 import { SCRIPT_ACESSIBILIDADE } from "@/lib/acessibilidade";
 import { apoioPublico } from "@/lib/apoio/config";
 import { SCRIPT_ANIMACOES } from "@/lib/animacoes";
+import { SCRIPT_MENU } from "@/lib/menu";
 import { metadados } from "@/lib/metadados";
 import { SITE_URL } from "@/lib/site";
 
@@ -74,6 +76,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="preferencias-leitura" strategy="beforeInteractive">
           {SCRIPT_ACESSIBILIDADE}
         </Script>
+        {/* Assuntos opcionais do menu lateral escolhidos em "Personalizar menu" (ver lib/menu.ts). */}
+        <Script id="menu" strategy="beforeInteractive">
+          {SCRIPT_MENU}
+        </Script>
         {/* nuqs: estado de filtros na URL, para o link sempre reproduzir a mesma consulta. */}
         <NuqsAdapter>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -114,6 +120,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                         </Link>
                         <div className="ml-auto flex shrink-0 items-center gap-1 xs:gap-2">
                           <ThemeToggle />
+                          {/* Lê a sessão: só aparece para quem está logado. */}
+                          <Suspense fallback={null}>
+                            <SinoNotificacoes />
+                          </Suspense>
                           <Suspense fallback={<Skeleton className="h-10 w-24 sm:w-40" />}>
                             <UserMenu />
                           </Suspense>

@@ -10,6 +10,7 @@ import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
+import { BotaoSeguir } from "@/components/seguir";
 import { LeisParlamentar } from "@/components/leis-parlamentar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
 import { PartidoEFidelidade } from "@/components/partido-fidelidade";
@@ -93,7 +94,10 @@ async function Senador({ codigo, anoUrl }: { codigo: string; anoUrl?: string | s
         acoes={
           // Lê a sessão: fica fora do shell estático e não aparece para visitantes.
           <Suspense fallback={null}>
-            <BotoesFixar alvos={alvosDoParlamentar({ casa: "senado", id: codigo, nome: senador.nome, partido: senador.partido, uf: senador.uf })} />
+            <div className="flex flex-wrap items-start gap-2">
+              <BotaoSeguir tipo="PARLAMENTAR" chave={`senado-${codigo}`} rotulo={senador.nome} nome="parlamentar" />
+              <BotoesFixar alvos={alvosDoParlamentar({ casa: "senado", id: codigo, nome: senador.nome, partido: senador.partido, uf: senador.uf })} />
+            </div>
           </Suspense>
         }
       />

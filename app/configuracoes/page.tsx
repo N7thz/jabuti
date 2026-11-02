@@ -12,6 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getFixados, LIMITE_FIXADOS, type TipoFixado } from "@/lib/fixados";
 import { metadados } from "@/lib/metadados";
 import { getSession } from "@/lib/session";
+import { getSeguidos } from "@/lib/seguidos";
+import { PreferenciaEmail } from "@/app/notificacoes/preferencia-email";
+import { emailLigado } from "@/lib/notificacoes/email";
 
 import { apagarMeusDados } from "./actions";
 import { BotaoAcaoConta } from "./acoes-conta";
@@ -48,7 +51,13 @@ export default function ConfiguracoesPage({ searchParams }: PageProps<"/configur
         </Suspense>
       </Secao>
 
-      <Secao id="dados-salvos" titulo="Dados salvos" stagger={4}>
+      <Secao id="notificacoes" titulo="Notificações" stagger={4}>
+        <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+          <Notificacoes searchParams={searchParams} />
+        </Suspense>
+      </Secao>
+
+      <Secao id="dados-salvos" titulo="Dados salvos" stagger={5}>
         <Suspense fallback={<Skeleton className="h-32 w-full" />}>
           <DadosSalvos searchParams={searchParams} />
         </Suspense>
@@ -89,7 +98,7 @@ function AvisoConta({ conta }: { conta: unknown }) {
         <AlertTitle>Sua conta no Jabuti foi excluída.</AlertTitle>
         <AlertDescription>
           <p>
-            Apagamos sua conta e seus atalhos fixados. Se você entrava pelo Google, dá para tirar também a permissão
+            Apagamos sua conta, seus atalhos, o que você seguia e suas notificações. Se você entrava pelo Google, dá para tirar também a permissão
             que o Jabuti recebeu dele nas{" "}
             <a href="https://myaccount.google.com/connections" target="_blank" rel="noreferrer">
               conexões da sua conta Google
@@ -143,7 +152,7 @@ async function Conta({ searchParams }: Pick<PageProps<"/configuracoes">, "search
         </div>
       )}
       <p className="text-sm text-muted-foreground">
-        Excluir a conta apaga seus atalhos e sai. Para apagar só os atalhos e continuar logado, use &quot;Apagar meus
+        Excluir a conta apaga seus atalhos, seguidos e notificações e sai. Para apagar só esses dados e continuar logado, use &quot;Apagar meus
         dados&quot; logo abaixo.
       </p>
     </div>
@@ -184,10 +193,34 @@ function ConfirmarSemJs({ acao }: { acao: "sair" | "excluir" }) {
   );
 }
 
+async function Notificacoes({ searchParams }: Pick<PageProps<"/configuracoes">, "searchParams">) {
+  const [sessao, { email }] = await Promise.all([getSession(), searchParams]);
+  if (!sessao) {
+    return (
+      <p className="text-muted-foreground">
+        Com login, dá para seguir parlamentares e projetos e receber as novidades no portal e, se quiser, por email.
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground">
+        As novidades de quem você segue ficam em <Link href="/notificacoes">Notificações</Link>. Aqui você vai poder
+        escolher recebê-las também por email.
+      </p>
+      {emailLigado() ? (
+        <PreferenciaEmail sessao={sessao} voltar="/configuracoes" salvo={email === "salvo"} />
+      ) : (
+        <p className="text-sm text-muted-foreground">O aviso por email ainda não está disponível.</p>
+      )}
+    </div>
+  );
+}
+
 const TIPOS: Record<TipoFixado, string> = { PARLAMENTAR: "Parlamentares", PARTIDO: "Partidos", BANCADA: "Bancadas" };
 
 async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "searchParams">) {
-  const [{ dados: aviso }, fixados] = await Promise.all([searchParams, getFixados()]);
+  const [{ dados: aviso }, fixados, seguidos] = await Promise.all([searchParams, getFixados(), getSeguidos()]);
 
   if (!fixados) {
     return (
@@ -226,7 +259,8 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
       )}
 
       <p className="text-muted-foreground">
-        Além da sua conta (nome, email e, se você criou uma, a senha criptografada), o portal guarda só os atalhos que você fixou.
+        Além da sua conta (nome, email e, se você criou uma, a senha criptografada), o portal guarda só os atalhos que você
+        fixou, o que você segue, as notificações dos últimos 180 dias e a sua escolha de receber ou não emails.
       </p>
 
       {total === 0 ? (
@@ -268,7 +302,8 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
       <form action={apagarMeusDados} className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 p-4">
         <h3 className="font-semibold">Apagar meus dados</h3>
         <p className="text-sm text-muted-foreground">
-          Remove todos os atalhos fixados. Não dá para desfazer. Sua conta Google não é afetada.
+          Remove todos os atalhos fixados, o que você segue, as notificações e a preferência de email. Não dá para
+          desfazer. Sua conta continua existindo.
         </p>
         {aviso === "confirme" && (
           <Alert variant="destructive">
@@ -277,9 +312,9 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
         )}
         <label className="flex min-h-11 items-center gap-3">
           <input type="checkbox" name="confirmo" value="sim" required className="size-4 accent-destructive" />
-          Entendo que isso apaga todos os meus atalhos fixados.
+          Entendo que isso apaga meus atalhos, o que sigo e minhas notificações.
         </label>
-        <Button type="submit" variant="destructive" disabled={total === 0}>
+        <Button type="submit" variant="destructive" disabled={total === 0 && (seguidos?.parlamentares.length ?? 0) + (seguidos?.leis.length ?? 0) === 0}>
           <Trash2Icon data-icon="inline-start" aria-hidden="true" />
           Apagar meus dados
         </Button>

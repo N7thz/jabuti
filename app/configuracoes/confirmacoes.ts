@@ -13,7 +13,7 @@ export const CONFIRMACOES = {
     rotulo: "Sair da conta",
     titulo: "Sair da conta?",
     descricao:
-      "Você sai só neste navegador. Seus atalhos fixados continuam guardados e voltam quando você entrar de novo.",
+      "Você sai só neste navegador. Seus atalhos e o que você segue continuam guardados e voltam quando você entrar de novo.",
     confirmar: "Sair",
     variante: "outline",
     Icone: LogOutIcon,
@@ -23,7 +23,7 @@ export const CONFIRMACOES = {
     rotulo: "Excluir conta",
     titulo: "Excluir sua conta no Jabuti?",
     descricao:
-      "Apagamos sua conta, sua senha e todos os seus atalhos fixados, e você sai. Não dá para desfazer: se voltar, começa do zero. Se você entrava pelo Google, a conta Google continua existindo.",
+      "Apagamos sua conta, sua senha, seus atalhos fixados, o que você segue e suas notificações, e você sai. Não dá para desfazer: se voltar, começa do zero. Se você entrava pelo Google, a conta Google continua existindo.",
     confirmar: "Excluir minha conta",
     variante: "destructive",
     Icone: Trash2Icon,

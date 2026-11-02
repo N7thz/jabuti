@@ -37,10 +37,10 @@ const FORMULARIOS: Record<Tipo, { campos: Campo[]; enviar: string; enviando: str
     rotulo: "Entrar com email e senha",
   },
   cadastrar: {
-    campos: [{ nome: "nome", rotulo: "Seu nome", autoComplete: "name" }, EMAIL, SENHA_NOVA, CONFIRMAR],
-    enviar: "Criar conta",
-    enviando: "Criando…",
-    rotulo: "Criar conta",
+    campos: [{ nome: "nome", rotulo: "Seu nome", autoComplete: "name" }, EMAIL],
+    enviar: "Receber link no email",
+    enviando: "Enviando…",
+    rotulo: "Criar conta com um link no email",
   },
   recuperar: { campos: [EMAIL], enviar: "Enviar link", enviando: "Enviando…", rotulo: "Recuperar senha" },
   redefinir: {
