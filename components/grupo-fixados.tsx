@@ -1,6 +1,6 @@
 "use client";
 
-import { FlagIcon, MapPinIcon, PinIcon, UserIcon } from "lucide-react";
+import { Building2Icon, FlagIcon, MapPinIcon, PinIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -15,15 +15,51 @@ import {
 
 export type ItemFixado = { href: string; rotulo: string; tipo: "parlamentar" | "partido" | "bancada" };
 
+export type CidadeSidebar = { nome: string; uf: string };
+
 const ICONE = { parlamentar: UserIcon, partido: FlagIcon, bancada: MapPinIcon } as const;
 const TIPO = { parlamentar: "Parlamentar", partido: "Partido", bancada: "Bancada" } as const;
 
-/** Grupo "Fixados" da sidebar. A lista vem pronta do servidor (SidebarFixados), nunca de cache. */
-export function GrupoFixados({ itens }: { itens: ItemFixado[] }) {
+/**
+ * Grupos pessoais da sidebar: "Minha cidade" (a de "Meus representantes", em /meu) e "Fixados".
+ * Os dados vêm prontos do servidor (SidebarFixados), nunca de cache.
+ */
+export function GrupoFixados({ itens, cidade }: { itens: ItemFixado[]; cidade: CidadeSidebar | null }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const fechar = () => isMobile && setOpenMobile(false);
 
   return (
+    <>
+    <SidebarGroup>
+      <SidebarGroupLabel>Minha cidade</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <nav aria-label="Minha cidade">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              {cidade ? (
+                <SidebarMenuButton
+                  tooltip={`Minha cidade: ${cidade.nome} (${cidade.uf})`}
+                  render={<Link href="/meu#representantes" onClick={fechar} />}
+                >
+                  <Building2Icon aria-hidden="true" className="text-secao-cidades" />
+                  <span>
+                    {cidade.nome} ({cidade.uf})
+                  </span>
+                </SidebarMenuButton>
+              ) : (
+                <SidebarMenuButton
+                  tooltip="Escolher minha cidade"
+                  render={<Link href="/meu?trocar=1#representantes" onClick={fechar} />}
+                >
+                  <Building2Icon aria-hidden="true" className="text-secao-cidades" />
+                  <span>Escolher minha cidade</span>
+                </SidebarMenuButton>
+              )}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </nav>
+      </SidebarGroupContent>
+    </SidebarGroup>
     <SidebarGroup>
       <SidebarGroupLabel>Fixados</SidebarGroupLabel>
       <SidebarGroupContent>
@@ -62,5 +98,6 @@ export function GrupoFixados({ itens }: { itens: ItemFixado[] }) {
         </nav>
       </SidebarGroupContent>
     </SidebarGroup>
+    </>
   );
 }

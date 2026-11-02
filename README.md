@@ -22,8 +22,8 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
 | Perfil de deputado | `/parlamentares/deputado/[id]` | Escolha do ano (`?ano=`, anos da legislatura atual; o ano corrente aparece como "até o momento") para resumo, cota, proposições e emendas. Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, leis de toda a carreira (autoria e coautoria), emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
 | Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS, votações e matérias, todas por ano); nas leis, também as que o senador relatou |
-| Estados | `/estados`, `/estados/[uf]` | Emendas por estado, com links para cada ano carregado |
-| Município | `/estados/[uf]/[ibge]` | Emendas recebidas, emenda por habitante, contas do município (Siconfi) |
+| Estados | `/estados`, `/estados/[uf]` | Emendas por estado, com links para cada ano carregado e os autores que mais mandaram dinheiro (com partido/UF) |
+| Município | `/estados/[uf]/[ibge]` | Emendas recebidas (autor com partido/UF atual), emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
 | Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
@@ -43,7 +43,7 @@ O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar
 
 Em `/meu` ficam as **empresas vigiadas** (até 20 CNPJs): a cada visita o painel confere sanções (CEIS, CNEP e TCU) e contratos novos no Portal da Transparência e mostra o que mudou desde a última vez. Na seção "Mais" de `/meu` dá para baixar tudo o que o portal guarda da conta num JSON (`/api/meus-dados`, direito previsto na LGPD, art. 18). Login, envio de links e feedback têm limite de tentativas (`lib/limite.ts`), contado no banco para valer em todas as instâncias.
 
-O menu lateral mostra sempre Parlamentares, Leis e projetos e Estados e cidades; os outros assuntos (Consulta CNPJ, Comparar, Ranking da cota, Emendas, LOA e Glossário) a pessoa liga em "Personalizar menu", no fim da lista. A escolha fica neste aparelho (localStorage, `lib/menu.ts`) e a página aberta sempre aparece no menu.
+O menu lateral mostra sempre Parlamentares, Leis e projetos e Estados e cidades; os outros assuntos (Consulta CNPJ, Comparar, Ranking da cota, Emendas, LOA e Glossário) a pessoa liga em "Personalizar menu", no fim da lista. A escolha fica neste aparelho (localStorage, `lib/menu.ts`) e a página aberta sempre aparece no menu. Para quem está logado, a sidebar também mostra **Minha cidade** (a escolhida em "Meus representantes", com atalho para `/meu`) e os **Fixados**.
 
 ## Fontes de dados
 

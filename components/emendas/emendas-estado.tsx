@@ -120,6 +120,7 @@ export async function EmendasEstado({ uf, anoUrl }: { uf: SiglaUf; anoUrl?: stri
                   <Tr key={a.nome}>
                     <Th scope="row" className="font-normal">
                       {a.nome}
+                      {a.partido && <span className="text-muted-foreground"> ({a.partido})</span>}
                     </Th>
                     <Td numero rotulo="Registros">{a.quantidade.toLocaleString("pt-BR")}</Td>
                     <Td numero rotulo="Empenhado">{reaisDeCentavos(a.totais.empenhado)}</Td>

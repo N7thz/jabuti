@@ -144,7 +144,10 @@ async function Cidade({
                   {dados.emendas.map((e) => (
                     <Tr key={e.codigo}>
                       <Th scope="row" className="font-normal">
-                        <span className="block font-medium">{e.autorNome}</span>
+                        <span className="block font-medium">
+                          {e.autorNome}
+                          {e.partido && <span className="font-normal text-muted-foreground"> ({e.partido})</span>}
+                        </span>
                         <span className="block font-mono text-xs text-muted-foreground">Emenda {e.codigoEmenda}</span>
                       </Th>
                       <Td rotulo="Área">

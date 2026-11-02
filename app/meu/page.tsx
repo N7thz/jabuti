@@ -120,7 +120,7 @@ async function Painel({ searchParams }: Pick<PageProps<"/meu">, "searchParams">)
             crie uma em <Link href="/listas" className="text-link underline">Minhas listas</Link>.
           </p>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-2">
             {listas.map((l) => (
               <li key={l.id}>
                 <Link

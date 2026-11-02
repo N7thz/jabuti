@@ -159,7 +159,7 @@ async function EmendaPix({ id }: { id: number | null }) {
             gasto.
           </p>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] gap-4">
             {execucao.executores.map((executor) => (
               <Card key={executor.cnpj}>
                 <CardHeader>

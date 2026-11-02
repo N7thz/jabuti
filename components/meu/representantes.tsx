@@ -2,10 +2,10 @@ import { LandmarkIcon, MapPinIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 
 import { percentualPago, reaisDeCentavos } from "@/components/emendas/valores";
+import { SelectFormulario } from "@/components/form/select-formulario";
 import { Termo } from "@/components/termo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { rotuloAno } from "@/lib/anos";
 import { salvarMunicipio, tirarMunicipio } from "@/lib/meu/actions";
 import { getMunicipiosDaUf, getRepresentantes, type Representantes } from "@/lib/meu/representantes";
@@ -53,16 +53,14 @@ async function EscolherCidade({ ufUrl, temCidade }: { ufUrl?: string; temCidade:
           <label htmlFor="uf" className="text-sm font-medium">
             Estado
           </label>
-          <NativeSelect id="uf" name="uf" defaultValue={uf ?? ""} className="w-56">
-            <NativeSelectOption value="" disabled>
-              Escolha o estado
-            </NativeSelectOption>
-            {Object.entries(UFS).map(([sigla, nome]) => (
-              <NativeSelectOption key={sigla} value={sigla}>
-                {nome}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          <SelectFormulario
+            id="uf"
+            name="uf"
+            opcoes={Object.entries(UFS)}
+            placeholder="Escolha o estado"
+            defaultValue={uf}
+            className="w-56"
+          />
         </div>
         <input type="hidden" name="trocar" value="1" />
         <Button type="submit" variant="outline" className="h-10">
@@ -76,16 +74,14 @@ async function EscolherCidade({ ufUrl, temCidade }: { ufUrl?: string; temCidade:
             <label htmlFor="municipio" className="text-sm font-medium">
               Cidade em {UFS[uf]}
             </label>
-            <NativeSelect id="municipio" name="municipio" required defaultValue="" className="w-72">
-              <NativeSelectOption value="" disabled>
-                Escolha a cidade
-              </NativeSelectOption>
-              {cidades.map((c) => (
-                <NativeSelectOption key={c.ibge} value={c.ibge}>
-                  {c.nome}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <SelectFormulario
+              id="municipio"
+              name="municipio"
+              opcoes={cidades.map((c) => [c.ibge, c.nome] as const)}
+              placeholder="Escolha a cidade"
+              required
+              className="w-72"
+            />
           </div>
           <Button type="submit" className="h-10">
             Salvar cidade

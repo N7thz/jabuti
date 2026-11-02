@@ -40,7 +40,7 @@ export function Novidades({ itens, desde, ano }: { itens: NovidadeParlamentar[];
   }
 
   return (
-    <ul className="grid gap-4 lg:grid-cols-2">
+    <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] gap-4">
       {itens.map((p) => (
         <li key={p.chave} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
           <div className="flex items-center gap-3">

@@ -37,6 +37,12 @@ export async function getAnosEmendas() {
 }
 
 /** Resumo das emendas destinadas a um estado: ao governo estadual e aos seus municípios. */
+/** "PL/RJ" (ou só "PL" sem UF). É o partido atual do parlamentar, não o da época da emenda. */
+function siglaPartido(p: { partido: string | null; uf: string | null } | null) {
+  if (!p?.partido) return null;
+  return p.uf ? `${p.partido}/${p.uf}` : p.partido;
+}
+
 export async function getResumoEmendasUf(uf: Uf, ano: number) {
   "use cache";
   cacheLife("hours");
@@ -68,6 +74,11 @@ export async function getResumoEmendasUf(uf: Uf, ano: number) {
     select: { ibge: true, nome: true },
   });
   const nomePorIbge = new Map(nomes.map((m) => [m.ibge, m.nome]));
+  const autores = await db.parlamentar.findMany({
+    where: { id: { in: porAutor.flatMap((a) => (a.parlamentarId ? [a.parlamentarId] : [])) } },
+    select: { id: true, partido: true, uf: true },
+  });
+  const partidoPorId = new Map(autores.map((a) => [a.id, siglaPartido(a)]));
 
   return {
     quantidade: geral._count,
@@ -88,6 +99,7 @@ export async function getResumoEmendasUf(uf: Uf, ano: number) {
     autores: porAutor.map((a) => ({
       nome: a.autorNome,
       parlamentarId: a.parlamentarId,
+      partido: a.parlamentarId ? (partidoPorId.get(a.parlamentarId) ?? null) : null,
       quantidade: a._count,
       totais: totais(a._sum),
     })),
@@ -134,6 +146,7 @@ export async function getEmendasMunicipio(ibge: number, ano: number) {
         tipo: true,
         autorNome: true,
         parlamentarId: true,
+        parlamentar: { select: { partido: true, uf: true } },
         funcao: true,
         subfuncao: true,
         valorEmpenhado: true,
@@ -152,6 +165,8 @@ export async function getEmendasMunicipio(ibge: number, ano: number) {
       tipo: e.tipo,
       autorNome: e.autorNome,
       parlamentarId: e.parlamentarId,
+      /** Partido e UF atuais do autor ("PL/RJ"); null para bancadas e comissões. */
+      partido: siglaPartido(e.parlamentar),
       funcao: e.funcao,
       subfuncao: e.subfuncao,
       totais: totais(e),
