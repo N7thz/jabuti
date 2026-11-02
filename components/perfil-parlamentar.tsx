@@ -77,6 +77,7 @@ export const SECOES = [
   { id: "fidelidade", rotulo: "Partido e fidelidade" },
   { id: "cota", rotulo: "Cota parlamentar" },
   { id: "proposicoes", rotulo: "Proposições" },
+  { id: "leis", rotulo: "Leis" },
   { id: "emendas", rotulo: "Emendas" },
   { id: "votos-e-emendas", rotulo: "Votos e emendas" },
   { id: "campanha", rotulo: "Eleição e campanha" },

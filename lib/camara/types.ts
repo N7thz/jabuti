@@ -74,6 +74,16 @@ export interface VotoApi {
   deputado_: DeputadoResumo;
 }
 
+/** /proposicoes/{id}/autores. O primeiro a assinar (ordemAssinatura 1) é o autor; os demais, coautores. */
+export interface AutorProposicaoApi {
+  /** ".../api/v2/deputados/204554" para deputados; órgãos e o Executivo vêm com outra uri. */
+  uri: string | null;
+  nome: string;
+  tipo: string;
+  ordemAssinatura: number;
+  proponente: number;
+}
+
 export interface ProposicaoDetalhe extends ProposicaoResumo {
   uri: string;
   statusProposicao: {

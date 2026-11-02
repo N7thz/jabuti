@@ -84,8 +84,13 @@ export const naoEncontrado = (error: unknown) => error instanceof ErroHttp && er
  * Para consultas feitas durante a renderização de uma página: uma nova tentativa só, timeout curto e
  * espera máxima pequena. Quem está na página prefere ver o aviso de fonte fora do ar a esperar minutos.
  * Os scripts de carga usam o padrão, mais paciente.
+ *
+ * Sem intervalo mínimo: o cliente das páginas vive no módulo, e o intervalo vira uma fila única para todas
+ * as requisições do servidor. Um perfil dispara dezenas de chamadas, a última espera a vez por segundos, e
+ * em dev o Next acusa o "use cache" parado de esperar uma promise de fora (a mesma chamada isolada termina
+ * na hora). O 429 continua tratado pela nova tentativa. Fica depois do spread para vencer o padrão dos clientes.
  */
-export const NA_PAGINA = { retries: 1, timeoutMs: 15_000, esperaMaximaMs: 3_000 } as const;
+export const NA_PAGINA = { minIntervalMs: 0, retries: 1, timeoutMs: 15_000, esperaMaximaMs: 3_000 } as const;
 
 export interface OpcoesFetcher {
   minIntervalMs?: number;

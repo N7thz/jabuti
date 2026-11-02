@@ -213,6 +213,26 @@ export interface ProcessoApi {
   normaGerada?: string | null;
 }
 
+// ---------- processo/relatoria ----------
+
+/** Uma designação de relator; o mesmo processo aparece de novo a cada comissão ou redistribuição. */
+export interface RelatoriaApi {
+  id: number;
+  idProcesso: number;
+  codigoMateria: number | null;
+  /** "PLS 115/2018". */
+  identificacaoProcesso: string;
+  ementaProcesso: string | null;
+  autoriaProcesso: string | null;
+  /** "AAAA-MM-DD HH:mm:ss". */
+  dataApresentacaoProcesso: string | null;
+  dataDesignacao: string | null;
+  /** "Relator", "Relator Ad hoc", "Relator Revisor"... */
+  descricaoTipoRelator: string;
+  siglaColegiado: string | null;
+  nomeColegiado: string | null;
+}
+
 /** Filtros de /processo usados pelo portal. Datas em AAAA-MM-DD; cada intervalo aceita no máximo 1 ano. */
 export interface FiltrosProcesso {
   siglaSituacao?: string;

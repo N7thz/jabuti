@@ -10,6 +10,7 @@ import { EmendasLista } from "@/components/emendas-lista";
 import { CampanhaParlamentar } from "@/components/fiscalizacao/campanha-parlamentar";
 import { FiscalizacaoParlamentar } from "@/components/fiscalizacao/fiscalizacao-parlamentar";
 import { alvosDoParlamentar, BotoesFixar } from "@/components/fixar";
+import { LeisParlamentar } from "@/components/leis-parlamentar";
 import { Cabecalho, NavSecoes, PerfilSkeleton, Rolavel, Secao, Voltar } from "@/components/perfil-parlamentar";
 import { PartidoEFidelidade } from "@/components/partido-fidelidade";
 import { SecaoProtegida } from "@/components/secao-protegida";
@@ -26,6 +27,7 @@ import {
   getDeputado,
   getDespesasDeputado,
   getEmendasDoAutor,
+  getLeisDeputado,
   getPresencaDeputado,
   getProposicoesDeputado,
 } from "@/lib/parlamentares/queries";
@@ -126,6 +128,10 @@ async function Deputado({ id }: { id: string }) {
           <Proposicoes id={deputado.id} />
         </SecaoProtegida>
       </div>
+
+      <SecaoProtegida titulo="Leis" id="leis" fonte="das APIs da Câmara e do Senado">
+        <LeisDeputado id={deputado.id} />
+      </SecaoProtegida>
 
       <SecaoProtegida titulo="Emendas" id="emendas" fonte="do Portal da Transparência">
         <Emendas nome={s.nomeEleitoral || s.nome} />
@@ -405,6 +411,11 @@ async function Proposicoes({ id }: { id: number }) {
       )}
     </Secao>
   );
+}
+
+async function LeisDeputado({ id }: { id: number }) {
+  const { leis, naoVerificados } = await getLeisDeputado(id);
+  return <LeisParlamentar casa="camara" leis={leis} naoVerificados={naoVerificados} />;
 }
 
 async function Emendas({ nome }: { nome: string }) {

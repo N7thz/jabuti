@@ -8,6 +8,14 @@ import { mapearComparecimento } from "@/lib/senado/mapear";
 import type { VotacaoApi } from "@/lib/senado/types";
 import { fontesQueFalharam, tentar } from "@/lib/erros";
 import { mudancasCamara, periodosCamara, periodosSenado } from "@/lib/parlamentares/historico";
+import {
+  leiDaCamara,
+  leisDeAutoriaSenado,
+  leisRelatadasSenado,
+  maisRecentes,
+  papelNaCamara,
+  virouLeiNaCamara,
+} from "@/lib/parlamentares/leis";
 import { centavos, reais, somar } from "@/lib/format/dinheiro";
 import { createFetcher, NA_PAGINA, naoEncontrado, normalizarNome } from "@/lib/sync/run";
 import { getEmendas } from "@/lib/transparencia/queries";
@@ -15,7 +23,7 @@ import { getEmendas } from "@/lib/transparencia/queries";
 const camara = createCamaraClient(NA_PAGINA);
 // O JSON anual da CEAPS tem ~10 MB: precisa de mais tempo que o padrão das páginas.
 const senado = createSenadoClient({ ...NA_PAGINA, timeoutMs: 45_000 });
-const fetchJson = createFetcher({ minIntervalMs: 150, ...NA_PAGINA });
+const fetchJson = createFetcher(NA_PAGINA);
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -186,6 +194,90 @@ export async function getProcessosSenador(codigo: string) {
   const desde = new Date(ate.getTime() - 365 * 86_400_000);
   const processos = await senado.processosDoAutor(codigo, iso(desde), iso(ate));
   return processos.sort((a, b) => (b.dataApresentacao ?? "").localeCompare(a.dataApresentacao ?? ""));
+}
+
+/** Roda `fn` em todos os itens com no máximo `limite` chamadas ao mesmo tempo, na ordem original. */
+async function emLotes<T, R>(itens: T[], limite: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const resultados = new Array<R>(itens.length);
+  let proximo = 0;
+  async function trabalhador() {
+    while (proximo < itens.length) {
+      const i = proximo++;
+      resultados[i] = await fn(itens[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador));
+  return resultados;
+}
+
+/** Leis de autoria, coautoria e relatoria do senador, de toda a carreira: três chamadas ao Senado. */
+export async function getLeisSenador(codigo: string, nome: string) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("parlamentares", `senador:${codigo}`);
+
+  const [processos, relatadas, relatadasComVeto] = await Promise.all([
+    senado.processosComoAutor(codigo),
+    senado.relatorias(codigo, "TNJR"),
+    senado.relatorias(codigo, "TNJRVETO"),
+  ]);
+  const autoria = leisDeAutoriaSenado(processos, nome);
+  const relatoria = leisRelatadasSenado(
+    [...relatadas.map((relatoria) => ({ relatoria, comVeto: false })), ...relatadasComVeto.map((relatoria) => ({ relatoria, comVeto: true }))],
+    new Set(autoria.map((l) => l.identificacao)),
+  );
+  return { leis: [...autoria, ...relatoria].sort(maisRecentes), naoVerificados: 0 };
+}
+
+/** PL, PLP e PEC: o que o deputado pode propor e vira lei ou emenda à Constituição. */
+const TIPOS_LEI_DEPUTADO = ["PL", "PLP", "PEC"];
+/** Detalhes pedidos à Câmara ao mesmo tempo: quem tem centenas de projetos não dispara centenas de chamadas. */
+const DETALHES_SIMULTANEOS = 6;
+
+/**
+ * Lei gerada por um projeto da Câmara, buscada no Senado (casa revisora). Só PL e PLP desde 2019, quando
+ * as duas casas passaram a usar o mesmo número; antes, e nas PECs, o número no Senado é outro.
+ */
+async function normaNoSenado(p: { siglaTipo: string; numero: number; ano: number }) {
+  if (p.siglaTipo === "PEC" || p.ano < 2019) return null;
+  const processos = await senado.processoPorNumero(p.siglaTipo, p.numero, p.ano).catch(() => []);
+  return processos.find((s) => s.normaGerada)?.normaGerada ?? null;
+}
+
+/**
+ * Leis de autoria ou coautoria do deputado, de toda a carreira. A API da Câmara não filtra pela situação
+ * (o parâmetro é ignorado), então cada projeto é conferido no detalhe. Projeto que não respondeu entra em
+ * `naoVerificados`, e o resultado fica pouco tempo no cache para a próxima visita completar.
+ */
+export async function getLeisDeputado(id: number) {
+  "use cache";
+  cacheTag("parlamentares", `deputado:${id}`);
+
+  const proposicoes = await camara.proposicoesDoAutorPorTipo(id, TIPOS_LEI_DEPUTADO);
+  let naoVerificados = 0;
+  const situacoes = await emLotes(proposicoes, DETALHES_SIMULTANEOS, (p) =>
+    camara.proposicao(p.id).then(
+      (d) => d.statusProposicao?.descricaoSituacao ?? null,
+      () => {
+        naoVerificados++;
+        return null;
+      },
+    ),
+  );
+  if (proposicoes.length > 0 && naoVerificados === proposicoes.length) {
+    throw new Error(`A Câmara não respondeu a nenhum dos ${proposicoes.length} projetos do deputado ${id}.`);
+  }
+  if (naoVerificados > 0) cacheLife("minutes");
+  else cacheLife("days");
+
+  const viraramLei = proposicoes.flatMap((p, i) => (virouLeiNaCamara(situacoes[i]) ? [{ p, comVeto: /veto parcial/i.test(situacoes[i] ?? "") }] : []));
+  const leis = await Promise.all(
+    viraramLei.map(async ({ p, comVeto }) => {
+      const [autores, norma] = await Promise.all([camara.autores(p.id).catch(() => []), normaNoSenado(p)]);
+      return leiDaCamara(p, papelNaCamara(autores, id), norma, comVeto);
+    }),
+  );
+  return { leis: leis.sort(maisRecentes), naoVerificados };
 }
 
 /** Emendas do ano corrente em nome do parlamentar; a API só casa o nome exato, sem acento e em maiúsculas. */

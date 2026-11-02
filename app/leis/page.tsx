@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AvisoFonte } from "@/components/aviso-fonte";
+import { ConsultaPopular, ConsultaPopularCarregando } from "@/components/consulta-popular";
 import { Paginacao } from "@/components/paginacao";
 import { RolarAoMudar } from "@/components/rolar-ao-mudar";
 import { Termo } from "@/components/termo";
@@ -372,6 +373,12 @@ function ProjetoItem({ projeto: p, rotuloData }: { projeto: Projeto; rotuloData:
             </div>
           ))}
         </dl>
+      )}
+
+      {p.idConsulta && (
+        <Suspense fallback={<ConsultaPopularCarregando />}>
+          <ConsultaPopular casa={p.casa} id={p.idConsulta} identificacao={p.identificacao} />
+        </Suspense>
       )}
     </article>
   );

@@ -95,10 +95,10 @@ const FONTES = [
 export default function ConsultaCnpj({ searchParams }: PageProps<"/empresas">) {
   return (
     <div data-secao="empresas" className="mx-auto flex w-full max-w-7xl flex-col gap-[clamp(3rem,6vw,5rem)] px-4 xs:px-6 py-[clamp(2.5rem,6vw,5rem)]">
-      {/* Hero do Logoisum sem vídeo: bloco charcoal (tokens escuros via .dark nos dois temas) com SVG estático. */}
+      {/* Hero do Logoisum sem vídeo: bloco que segue o tema (oliva claro no claro, charcoal no escuro) com SVG estático. */}
       <section
         aria-labelledby="titulo"
-        className="dark relative isolate flex flex-col items-center justify-center gap-8 overflow-hidden rounded-2xl bg-card px-5 py-[clamp(3.5rem,9vw,7rem)] text-center text-foreground ring-1 ring-border md:min-h-[calc(90dvh-6rem)]"
+        className="relative isolate flex flex-col items-center justify-center gap-8 overflow-hidden rounded-2xl bg-muted dark:bg-card px-5 py-[clamp(3.5rem,9vw,7rem)] text-center text-foreground ring-1 ring-border md:min-h-[calc(90dvh-6rem)]"
       >
         <HeroFundo />
         <div className="flex flex-col items-center gap-5 animate-enter">
@@ -119,7 +119,7 @@ export default function ConsultaCnpj({ searchParams }: PageProps<"/empresas">) {
         </div>
         <Link
           href="/estados"
-          className="group inline-flex items-center gap-3 rounded-full bg-accent py-1.5 pr-1.5 pl-5 text-sm font-medium transition-transform duration-200 outline-none animate-enter hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card motion-reduce:hover:scale-100"
+          className="group inline-flex items-center gap-3 rounded-full bg-accent py-1.5 pr-1.5 pl-5 text-sm font-medium transition-transform duration-200 outline-none animate-enter hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted dark:focus-visible:ring-offset-card motion-reduce:hover:scale-100"
           style={stagger(2)}
         >
           Ver emendas por estado

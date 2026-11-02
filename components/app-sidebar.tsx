@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenIcon, ChartNoAxesColumnIcon, GitCompareArrowsIcon, LandmarkIcon, MapIcon, MessageSquareTextIcon, ScrollTextIcon, SearchIcon, SettingsIcon, UsersIcon, WalletIcon } from "lucide-react";
+import { BookOpenIcon, ChartNoAxesColumnIcon, CircleHelpIcon, GitCompareArrowsIcon, LandmarkIcon, MapIcon, MessageSquareTextIcon, ScrollTextIcon, SearchIcon, SettingsIcon, UsersIcon, WalletIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -62,6 +62,8 @@ function NavButtonComRota(link: Omit<NavLink, "href" | "label"> & { href: string
 }
 
 const FEEDBACK = { label: "Sugestões e problemas", icon: MessageSquareTextIcon, cor: "text-secao-glossario" } as const;
+
+const AJUDA = { href: "/ajuda", label: "Ajuda", icon: CircleHelpIcon, cor: "text-secao-glossario" } as const;
 
 const CONFIGURACOES = {
   href: "/configuracoes",
@@ -126,6 +128,11 @@ export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <Suspense fallback={<NavButton {...AJUDA} active={false} />}>
+              <NavButtonComRota {...AJUDA} />
+            </Suspense>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <Suspense fallback={<NavButton {...FEEDBACK} href="/feedback" active={false} />}>
               <FeedbackComRota />

@@ -20,17 +20,18 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Início | `/` | O que é o portal e tudo o que dá para consultar |
 | Empresas | `/empresas` | Consulta de empresas por CNPJ: contratos e sanções (CEIS, CNEP e TCU) |
 | Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
-| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
-| Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS e matérias) |
+| Perfil de deputado | `/parlamentares/deputado/[id]` | Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, leis de toda a carreira (autoria e coautoria), emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
+| Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS e matérias); nas leis, também as que o senador relatou |
 | Estados | `/estados`, `/estados/[uf]` | Emendas por estado |
 | Município | `/estados/[uf]/[ibge]` | Emendas recebidas, emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
 | Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
-| Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação e as leis mais recentes |
+| Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação, as leis mais recentes e o placar da consulta popular (e-Cidadania e enquetes da Câmara) |
 | Comparar | `/comparar` | Dois parlamentares lado a lado, com a concordância nos votos e a média da Casa como base |
 | Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano, no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
+| Ajuda | `/ajuda` | Perguntas frequentes sobre como usar o portal, a conta e os dados |
 | Sugestões e problemas | `/feedback` | Formulário para avisar de erro ou sugerir melhoria, com anexos (vai por email) |
 | Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta e dados salvos |
 
@@ -39,7 +40,8 @@ O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar
 ## Fontes de dados
 
 - [Portal da Transparência (CGU)](https://portaldatransparencia.gov.br/api-de-dados): emendas, CNPJ, contratos e sanções (precisa de chave)
-- [Câmara dos Deputados](https://dadosabertos.camara.leg.br/) e [Senado Federal](https://www12.senado.leg.br/dados-abertos): parlamentares, votações, eventos, despesas e proposições
+- [Câmara dos Deputados](https://dadosabertos.camara.leg.br/) e [Senado Federal](https://www12.senado.leg.br/dados-abertos): parlamentares, votações, eventos, despesas, proposições, autoria e relatoria
+- [e-Cidadania (Senado)](https://www12.senado.leg.br/ecidadania) e enquetes da Câmara: placar da consulta popular de cada projeto, lido da página pública porque não está nos dados abertos
 - [TSE, Dados Abertos](https://dadosabertos.tse.jus.br/): candidaturas, bens declarados, receitas de campanha e votos por município
 - [Transferegov](https://www.gov.br/transferegov/): emendas Pix (transferências especiais)
 - [Siconfi (Tesouro)](https://siconfi.tesouro.gov.br/): contas e relatórios fiscais de estados e municípios

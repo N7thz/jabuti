@@ -1,5 +1,6 @@
 import { createFetcher, type OpcoesFetcher } from "../sync/run";
 import type {
+  AutorProposicaoApi,
   Despesa,
   DeputadoResumo,
   Detalhe,
@@ -113,6 +114,13 @@ export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFet
      */
     despesas: (idDeputado: number, idLegislatura: number, ano: number, mes?: number) =>
       paginar<Despesa>(`/deputados/${idDeputado}/despesas`, { idLegislatura, ano, mes }),
+
+    /** Proposições do deputado, autor ou coautor, dos tipos pedidos, de toda a carreira (sem datas a API não limita). */
+    proposicoesDoAutorPorTipo: (idDeputadoAutor: number, siglaTipo: string[]) =>
+      paginar<ProposicaoResumo>("/proposicoes", { idDeputadoAutor, siglaTipo: siglaTipo.join(","), ordem: "DESC", ordenarPor: "id" }),
+
+    /** Quem assina a proposição, na ordem de assinatura. */
+    autores: (id: number) => get<Pagina<AutorProposicaoApi>>(montar(`/proposicoes/${id}/autores`)).then((p) => p.dados),
 
     /** Proposições em que o deputado consta como autor, apresentadas no intervalo. */
     proposicoesDoAutor: (idDeputadoAutor: number, dataApresentacaoInicio: string, dataApresentacaoFim: string) =>

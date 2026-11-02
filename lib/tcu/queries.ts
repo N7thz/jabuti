@@ -8,7 +8,7 @@ import { inabilitacoesDaPessoa, inidoneidadesDe, type InabilitadoTcu, type Inido
 
 const BASE = "https://contas.tcu.gov.br/ords/condenacao/consulta";
 // Listas e relatórios grandes: timeout maior que o padrão das páginas, mas desiste logo se a fonte estiver fora.
-const get = createFetcher({ minIntervalMs: 200, ...NA_PAGINA, timeoutMs: 60_000 });
+const get = createFetcher({ ...NA_PAGINA, timeoutMs: 60_000 });
 
 type PaginaOrds<T> = { items: T[]; hasMore: boolean };
 

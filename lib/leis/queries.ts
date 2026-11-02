@@ -42,6 +42,8 @@ export interface Projeto {
   decisao: ReturnType<typeof decisaoLegivel>;
   origem: string | null;
   url: string | null;
+  /** Id da consulta popular: o código da matéria no e-Cidadania, o id da proposição na enquete da Câmara. */
+  idConsulta: number | null;
 }
 
 // O "use cache" guarda só o que a página usa: a resposta crua do Senado tem dezenas de campos por processo.
@@ -61,6 +63,7 @@ function doSenado(p: ProcessoApi, data: string | null): Projeto {
     decisao: decisaoLegivel(p.siglaTipoDeliberacao),
     origem: origemNoSenado(p.objetivo),
     url: p.codigoMateria ? urlMateriaSenado(p.codigoMateria) : null,
+    idConsulta: p.codigoMateria ?? null,
   };
 }
 
@@ -173,6 +176,7 @@ export async function getNovosNaCamara() {
         decisao: null,
         origem: "Começou na Câmara",
         url: urlProposicaoCamara(p.id),
+        idConsulta: p.id,
       };
     }),
   );

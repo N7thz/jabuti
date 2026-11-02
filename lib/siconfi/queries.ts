@@ -9,7 +9,7 @@ import { balancoOrcamentario, despesaPorFuncaoLoa, receitaCorrenteLiquida, type 
 
 const BASE = "https://apidatalake.tesouro.gov.br/ords/siconfi/tt";
 // Listas e relatórios grandes: timeout maior que o padrão das páginas, mas desiste logo se a fonte estiver fora.
-const get = createFetcher({ minIntervalMs: 200, ...NA_PAGINA, timeoutMs: 60_000 });
+const get = createFetcher({ ...NA_PAGINA, timeoutMs: 60_000 });
 
 type RespostaOrds<T> = { items: T[]; hasMore: boolean };
 

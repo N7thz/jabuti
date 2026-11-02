@@ -347,6 +347,39 @@ export const GLOSSARIO = [
     importancia: "A maior parte das regras que mudam a vida das pessoas passa por um projeto de lei. Acompanhar em que etapa ele está mostra quem está segurando ou acelerando o assunto.",
   },
   {
+    id: "autoria",
+    termo: "Autor e coautor de um projeto",
+    tema: "congresso",
+    curto: "O autor é quem apresenta o projeto e assina primeiro. Coautores são os parlamentares que assinam junto, depois dele.",
+    explicacao: [
+      "Um projeto pode ter um autor só ou dezenas de coautores. Assinar como coautor mostra apoio à ideia, mas quem escreveu e defende o texto costuma ser o autor.",
+      "Aqui contamos só projetos que viraram lei, lei complementar ou emenda à Constituição. O projeto pode ter sido muito mudado no caminho até virar lei.",
+    ],
+    importancia: "Muitos políticos dizem que \"fizeram\" uma lei. Ver se foram autores, coautores ou só votaram a favor ajuda a conferir essa afirmação.",
+  },
+  {
+    id: "relator",
+    termo: "Relator",
+    tema: "congresso",
+    curto: "Parlamentar escolhido para estudar um projeto numa comissão ou no Plenário e dizer se ele deve ser aprovado, mudado ou rejeitado.",
+    explicacao: [
+      "O parecer do relator é o que a comissão vota. Ele pode reescrever boa parte do texto com emendas ou um substitutivo, então o relator muitas vezes tem tanta influência sobre a lei final quanto o autor.",
+      "O mesmo projeto ganha um relator em cada comissão por onde passa. O Senado publica as relatorias de cada senador; a Câmara não publica essa lista por deputado, por isso ela só aparece para senadores.",
+    ],
+  },
+  {
+    id: "consulta-popular",
+    termo: "Consulta popular (e-Cidadania e enquetes)",
+    tema: "congresso",
+    curto: "Votação aberta no site do Senado ou da Câmara em que qualquer pessoa diz se apoia um projeto. Não é pesquisa de opinião e não decide nada.",
+    explicacao: [
+      "No Senado ela se chama consulta pública e fica no portal e-Cidadania: a pergunta é \"Você apoia essa proposição?\", com Sim ou Não. Na Câmara é a enquete do projeto, com cinco opções, de \"Concordo totalmente\" a \"Discordo totalmente\". Aqui as cinco viram três grupos: concordam, indecisos e discordam.",
+      "Vota quem quiser, uma vez por cadastro, sem sorteio de quem responde. Por isso o resultado mostra quem se mobilizou para votar, não o que a população pensa: uma campanha organizada nas redes muda o placar em poucas horas.",
+      "As Casas não publicam esses números nos dados abertos. O portal lê o placar da página pública de cada consulta, e ele pode estar algumas horas atrasado em relação ao site.",
+    ],
+    importancia: "O placar não obriga ninguém a votar de um jeito, mas mostra para os parlamentares, e para você, quanto um assunto mobiliza as pessoas e para que lado.",
+  },
+  {
     id: "lei-complementar",
     termo: "Lei complementar (PLP)",
     tema: "congresso",

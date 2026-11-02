@@ -16,6 +16,7 @@ import type {
   ParlamentarListaApi,
   ProcessoApi,
   ProcessoAutoria,
+  RelatoriaApi,
   ReuniaoApi,
   ReuniaoComissao,
   Senador,
@@ -292,6 +293,21 @@ export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFet
         dataFimApresentacao: ate,
       });
       return asArray(r);
+    },
+
+    /** Todos os processos de autoria ou coautoria do senador, de qualquer época (a lista não pagina). */
+    async processosComoAutor(codigo: string): Promise<ProcessoAutoria[]> {
+      return asArray(await get<ProcessoApi[]>("/processo", { codigoParlamentarAutor: codigo }));
+    },
+
+    /** Relatorias do senador em processos na situação pedida (ex.: "TNJR", transformada em norma jurídica). */
+    async relatorias(codigoParlamentar: string, siglaSituacao: string): Promise<RelatoriaApi[]> {
+      return asArray(await get<RelatoriaApi[]>("/processo/relatoria", { codigoParlamentar, siglaSituacao }));
+    },
+
+    /** Processo pelo número ("PL", 2832, 2021); vazio se o Senado não o tiver. */
+    async processoPorNumero(sigla: string, numero: number, ano: number): Promise<ProcessoApi[]> {
+      return asArray(await get<ProcessoApi[]>("/processo", { sigla, numero: String(numero), ano: String(ano) }));
     },
 
     /** Processos (projetos, requerimentos, vetos...) que atendem aos filtros, sem paginação. */
