@@ -1,4 +1,4 @@
-import { CircleCheckIcon, PinIcon, Trash2Icon, XIcon } from "lucide-react";
+import { CircleCheckIcon, LayoutDashboardIcon, PinIcon, Trash2Icon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -9,10 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { db } from "@/lib/db";
 import { getFixados, LIMITE_FIXADOS, type TipoFixado } from "@/lib/fixados";
+import { getDono, getPerfil } from "@/lib/meu/perfil";
 import { metadados } from "@/lib/metadados";
 import { getSession } from "@/lib/session";
-import { getSeguidos } from "@/lib/seguidos";
 import { PreferenciaEmail } from "@/app/notificacoes/preferencia-email";
 import { emailLigado } from "@/lib/notificacoes/email";
 
@@ -23,7 +24,7 @@ import { PreferenciasAparencia, PreferenciasLeitura } from "./preferencias";
 
 export const metadata = metadados({
   titulo: "Configurações · Jabuti",
-  descricao: "Tema, animações, tamanho do texto, sua conta e os dados que o portal guarda sobre você.",
+  descricao: "Tema, animações, tamanho do texto, sua conta, o seu painel e os dados que o portal guarda sobre você.",
 });
 
 export default function ConfiguracoesPage({ searchParams }: PageProps<"/configuracoes">) {
@@ -51,13 +52,19 @@ export default function ConfiguracoesPage({ searchParams }: PageProps<"/configur
         </Suspense>
       </Secao>
 
-      <Secao id="notificacoes" titulo="Notificações" stagger={4}>
+      <Secao id="meu-painel" titulo="Meu painel" stagger={4}>
+        <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+          <MeuPainel />
+        </Suspense>
+      </Secao>
+
+      <Secao id="notificacoes" titulo="Notificações" stagger={5}>
         <Suspense fallback={<Skeleton className="h-32 w-full" />}>
           <Notificacoes searchParams={searchParams} />
         </Suspense>
       </Secao>
 
-      <Secao id="dados-salvos" titulo="Dados salvos" stagger={5}>
+      <Secao id="dados-salvos" titulo="Dados salvos" stagger={6}>
         <Suspense fallback={<Skeleton className="h-32 w-full" />}>
           <DadosSalvos searchParams={searchParams} />
         </Suspense>
@@ -152,7 +159,7 @@ async function Conta({ searchParams }: Pick<PageProps<"/configuracoes">, "search
         </div>
       )}
       <p className="text-sm text-muted-foreground">
-        Excluir a conta apaga seus atalhos, seguidos e notificações e sai. Para apagar só esses dados e continuar logado, use &quot;Apagar meus
+        Excluir a conta apaga seus atalhos, seguidos, notificações, listas, empresas vigiadas e a cidade do painel, e sai. Para apagar só esses dados e continuar logado, use &quot;Apagar meus
         dados&quot; logo abaixo.
       </p>
     </div>
@@ -193,6 +200,81 @@ function ConfirmarSemJs({ acao }: { acao: "sair" | "excluir" }) {
   );
 }
 
+/** O que o "Meu painel" usa da conta (cidade, empresas vigiadas, listas), com atalho para cada parte do painel. */
+async function MeuPainel() {
+  const usuario = await getDono();
+  if (!usuario) {
+    return (
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-muted-foreground">
+          Com login, o seu painel junta num lugar só os parlamentares que você acompanha, quem representa a sua cidade, as
+          empresas que você vigia e as suas listas.
+        </p>
+        <Link href="/meu" className={buttonVariants({ variant: "outline" })}>
+          <LayoutDashboardIcon data-icon="inline-start" aria-hidden="true" />
+          Conhecer o painel
+        </Link>
+      </div>
+    );
+  }
+
+  const [perfil, empresas, listas] = await Promise.all([
+    getPerfil(usuario),
+    db.empresaVigiada.count({ where: { usuario } }),
+    db.lista.count({ where: { usuario } }),
+  ]);
+  const municipio = perfil?.municipioIbge
+    ? await db.municipio.findUnique({ where: { ibge: perfil.municipioIbge }, select: { nome: true, uf: true } })
+    : null;
+
+  const itens = [
+    {
+      href: municipio ? `/meu?trocar=1&uf=${municipio.uf}#representantes` : "/meu#representantes",
+      rotulo: "Sua cidade",
+      valor: municipio ? `${municipio.nome} (${municipio.uf})` : "Nenhuma escolhida",
+      acao: municipio ? "Trocar" : "Escolher",
+    },
+    {
+      href: "/meu#empresas",
+      rotulo: "Empresas vigiadas",
+      valor: empresas === 0 ? "Nenhuma" : `${empresas} ${empresas === 1 ? "empresa" : "empresas"}`,
+      acao: "Ver",
+    },
+    {
+      href: "/listas",
+      rotulo: "Listas",
+      valor: listas === 0 ? "Nenhuma" : `${listas} ${listas === 1 ? "lista" : "listas"}`,
+      acao: "Ver",
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground">
+        O que o seu painel usa para mostrar as novidades. A cidade define os seus representantes; ela fica só na sua conta.
+      </p>
+      <ul className="flex flex-col divide-y rounded-xl border">
+        {itens.map((item) => (
+          <li key={item.rotulo} className="flex flex-wrap items-center justify-between gap-2 py-2 pr-2 pl-3">
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm text-muted-foreground">{item.rotulo}</span>
+              <span className="truncate font-medium">{item.valor}</span>
+            </span>
+            <Link href={item.href} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              {item.acao}
+              <span className="sr-only"> {item.rotulo.toLowerCase()}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link href="/meu" className={`w-fit ${buttonVariants({ variant: "default" })}`}>
+        <LayoutDashboardIcon data-icon="inline-start" aria-hidden="true" />
+        Abrir meu painel
+      </Link>
+    </div>
+  );
+}
+
 async function Notificacoes({ searchParams }: Pick<PageProps<"/configuracoes">, "searchParams">) {
   const [sessao, { email }] = await Promise.all([getSession(), searchParams]);
   if (!sessao) {
@@ -220,7 +302,7 @@ async function Notificacoes({ searchParams }: Pick<PageProps<"/configuracoes">, 
 const TIPOS: Record<TipoFixado, string> = { PARLAMENTAR: "Parlamentares", PARTIDO: "Partidos", BANCADA: "Bancadas" };
 
 async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "searchParams">) {
-  const [{ dados: aviso }, fixados, seguidos] = await Promise.all([searchParams, getFixados(), getSeguidos()]);
+  const [{ dados: aviso }, fixados] = await Promise.all([searchParams, getFixados()]);
 
   if (!fixados) {
     return (
@@ -260,7 +342,8 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
 
       <p className="text-muted-foreground">
         Além da sua conta (nome, email e, se você criou uma, a senha criptografada), o portal guarda só os atalhos que você
-        fixou, o que você segue, as notificações dos últimos 180 dias e a sua escolha de receber ou não emails.
+        fixou, o que você segue, as notificações dos últimos 180 dias, a sua escolha de receber ou não emails e, do seu
+        painel, a cidade escolhida, as empresas vigiadas, as listas com as suas anotações e as preferências do site.
       </p>
 
       {total === 0 ? (
@@ -302,8 +385,9 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
       <form action={apagarMeusDados} className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 p-4">
         <h3 className="font-semibold">Apagar meus dados</h3>
         <p className="text-sm text-muted-foreground">
-          Remove todos os atalhos fixados, o que você segue, as notificações e a preferência de email. Não dá para
-          desfazer. Sua conta continua existindo.
+          Remove todos os atalhos fixados, o que você segue, as notificações, a preferência de email, a cidade do painel,
+          as empresas vigiadas, as listas e as preferências do site guardadas na conta. Não dá para desfazer. Sua conta
+          continua existindo; se quiser uma cópia antes, use <a href="/api/meus-dados" download>Baixar meus dados</a>.
         </p>
         {aviso === "confirme" && (
           <Alert variant="destructive">
@@ -312,9 +396,9 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
         )}
         <label className="flex min-h-11 items-center gap-3">
           <input type="checkbox" name="confirmo" value="sim" required className="size-4 accent-destructive" />
-          Entendo que isso apaga meus atalhos, o que sigo e minhas notificações.
+          Entendo que isso apaga meus atalhos, o que sigo, minhas notificações, listas e empresas vigiadas.
         </label>
-        <Button type="submit" variant="destructive" disabled={total === 0 && (seguidos?.parlamentares.length ?? 0) + (seguidos?.leis.length ?? 0) === 0}>
+        <Button type="submit" variant="destructive">
           <Trash2Icon data-icon="inline-start" aria-hidden="true" />
           Apagar meus dados
         </Button>

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 import { BaixarCsv } from "@/components/baixar-csv";
 import { Compartilhar } from "@/components/compartilhar";
+import { OpiniaoNaVotacao, OpiniaoNaVotacaoCarregando } from "@/components/consulta-popular";
 import { Secao } from "@/components/perfil-parlamentar";
 import { Termo } from "@/components/termo";
 import { Badge } from "@/components/ui/badge";
@@ -56,11 +57,22 @@ export default function VotacaoPage({ params }: PageProps<"/votacoes/[casa]/[id]
   );
 }
 
+/**
+ * Id da consulta popular da proposição votada: no Senado, o código da matéria (no link oficial, porque o
+ * idExterno guardado é o id do processo); na Câmara, o próprio id da proposição, que é o id da enquete.
+ */
+function idConsulta(casa: CasaUrl, proposicao: { idExterno: string; url: string | null } | null) {
+  if (!proposicao) return null;
+  const texto = casa === "senado" ? proposicao.url?.match(/\/materia\/(\d+)/)?.[1] : proposicao.idExterno;
+  return texto && /^\d+$/.test(texto) ? Number(texto) : null;
+}
+
 async function Votacao({ params }: { params: PageProps<"/votacoes/[casa]/[id]">["params"] }) {
   const v = await votacaoDaUrl(params);
   if (!v) notFound();
 
   const placar = contarPlacar(v.votos);
+  const consulta = idConsulta(v.casa, v.proposicao);
   const nomeCasa = v.casa === "camara" ? "Câmara dos Deputados" : "Senado Federal";
   const titulo = v.proposicao ? `Votação do ${v.proposicao.rotulo}` : "Votação no plenário";
   const textoCompartilhar =
@@ -97,6 +109,12 @@ async function Votacao({ params }: { params: PageProps<"/votacoes/[casa]/[id]">[
         </div>
         <Compartilhar texto={textoCompartilhar} caminho={linkVotacao(v.casa, v.id)} />
       </header>
+
+      {consulta && v.proposicao && (
+        <Suspense fallback={<OpiniaoNaVotacaoCarregando />}>
+          <OpiniaoNaVotacao casa={v.casa} id={consulta} identificacao={v.proposicao.rotulo} aprovada={v.aprovada} />
+        </Suspense>
+      )}
 
       {placar.total === 0 ? (
         <p className="rounded-lg border bg-card p-4">

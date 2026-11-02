@@ -1,6 +1,7 @@
-import { LightbulbIcon } from "lucide-react";
+import { LightbulbIcon, ScaleIcon } from "lucide-react";
 
 import { Termo } from "@/components/termo";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type OrigemPopular, urlIdeia } from "@/lib/consultas/ideias";
 import { tentar } from "@/lib/erros";
@@ -161,6 +162,73 @@ function Placar({ placar: { titulo, partes, url, site }, identificacao }: { plac
       </a>
     </div>
   );
+}
+
+/**
+ * "A população disse X, o plenário votou Y": o placar da consulta popular da proposição ao lado do resultado
+ * da votação. Sem consulta, ou sem votos nela, não renderiza; fonte fora do ar vira uma linha discreta.
+ * A comparação só aparece quando a votação tem resultado (aprovada ou rejeitada) e a consulta tem um lado
+ * majoritário; empate ou resultado em aberto mostram só o placar.
+ */
+export async function OpiniaoNaVotacao({
+  casa,
+  id,
+  identificacao,
+  aprovada,
+}: {
+  casa: "camara" | "senado";
+  id: number;
+  identificacao: string;
+  aprovada: boolean | null;
+}) {
+  const fonte = casa === "senado" ? "o e-Cidadania" : "as enquetes da Câmara";
+  const r = await tentar(fonte, () => (casa === "senado" ? placarSenado(id) : placarCamara(id)));
+  if (!r.ok) return <p className="text-sm text-muted-foreground">Não conseguimos consultar {fonte} agora para comparar com a opinião popular.</p>;
+  const placar = r.dados;
+  if (!placar) return null;
+
+  const favor = placar.partes[0].votos;
+  const contra = placar.partes[placar.partes.length - 1].votos;
+  const total = placar.partes.reduce((soma, p) => soma + p.votos, 0);
+  if (total === 0) return null;
+
+  const maioria = favor === contra ? null : favor > contra ? "favor" : "contra";
+  const mesmoLado = maioria && aprovada !== null ? (maioria === "favor") === aprovada : null;
+  const plenario = casa === "senado" ? "o Senado" : "a Câmara";
+  const lado =
+    maioria === "favor"
+      ? `${pct.format(favor / total)} apoiam ${identificacao}`
+      : maioria === "contra"
+        ? `${pct.format(contra / total)} são contra ${identificacao}`
+        : `o placar está empatado`;
+
+  return (
+    <section aria-labelledby="opiniao-popular" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+      <h2 id="opiniao-popular" className="flex items-center gap-2 text-xl font-bold">
+        <ScaleIcon aria-hidden="true" className="size-5 text-secao" />A população e o plenário
+      </h2>
+      <p className="max-w-[75ch] text-lg">
+        Entre as {inteiro.format(total)} pessoas que votaram na <Termo id="consulta-popular">consulta popular</Termo>, {lado}.
+        {aprovada !== null && ` Nesta votação, ${plenario} ${aprovada ? "aprovou" : "rejeitou"}.`}
+      </p>
+      {mesmoLado !== null && (
+        <p>
+          <Badge variant={mesmoLado ? "secondary" : "destructive"} className="text-sm">
+            {mesmoLado ? "O plenário foi para o mesmo lado da consulta" : "O plenário foi para o lado oposto ao da consulta"}
+          </Badge>
+        </p>
+      )}
+      <Placar placar={placar} identificacao={identificacao} />
+      <p className="max-w-[75ch] text-sm text-muted-foreground">
+        A consulta é aberta a quem quiser votar no site {placar.site}: mostra quem se mobilizou, não é uma pesquisa com amostra
+        da população. E se esta votação for de um requerimento ou de um destaque, aprovar não é o mesmo que aprovar o projeto.
+      </p>
+    </section>
+  );
+}
+
+export function OpiniaoNaVotacaoCarregando() {
+  return <Skeleton className="h-48 w-full rounded-xl" />;
 }
 
 export function ConsultaPopularCarregando() {

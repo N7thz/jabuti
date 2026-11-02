@@ -10,28 +10,33 @@ import { donoDa } from "@/lib/fixados";
 import { getSession, requireSession } from "@/lib/session";
 
 /**
- * Fixados, seguidos, notificações e a preferência de email são ligados ao email (não ao usuário do banco),
- * então saem à parte quando a conta é excluída.
+ * Tudo o que a conta guarda fora do usuário do banco: fixados, seguidos, notificações, preferência de email,
+ * perfil (cidade, preferências do site, última visita ao painel), listas (os itens caem junto por cascata) e
+ * empresas vigiadas. São ligados ao email, não ao usuário do banco, então saem à parte quando a conta é excluída.
+ * Mesma lista de /api/meus-dados: o que se baixa é o que se apaga.
  */
-function apagarFixadosDe(sessao: { user: { email: string } }) {
+function apagarDadosDe(sessao: { user: { email: string } }) {
   const usuario = donoDa(sessao);
   return db.$transaction([
     db.fixado.deleteMany({ where: { usuario } }),
     db.seguido.deleteMany({ where: { usuario } }),
     db.notificacao.deleteMany({ where: { usuario } }),
     db.preferenciaNotificacao.deleteMany({ where: { usuario } }),
+    db.perfilUsuario.deleteMany({ where: { usuario } }),
+    db.lista.deleteMany({ where: { usuario } }),
+    db.empresaVigiada.deleteMany({ where: { usuario } }),
   ]);
 }
 
 /**
- * Apaga atalhos fixados, seguidos e notificações de quem está logado, mantendo a conta. Exige a caixa de confirmação marcada;
+ * Apaga todos os dados de quem está logado (ver apagarDadosDe), mantendo a conta. Exige a caixa de confirmação marcada;
  * funciona sem JavaScript, porque é um <form action> comum.
  */
 export async function apagarMeusDados(formData: FormData) {
   const sessao = await requireSession();
   if (formData.get("confirmo") !== "sim") redirect("/configuracoes?dados=confirme#dados-salvos");
 
-  await apagarFixadosDe(sessao);
+  await apagarDadosDe(sessao);
   redirect("/configuracoes?dados=apagados#dados-salvos");
 }
 
@@ -50,7 +55,7 @@ export async function sairDaConta(formData: FormData) {
 
 /**
  * Exclui a conta de verdade: o usuário do banco (com sessões, senha e vínculo com o Google, que caem junto
- * por cascata) e os fixados do email. O Better Auth só aceita com login recente (até 1 dia); se a sessão for
+ * por cascata) e os dados ligados ao email. O Better Auth só aceita com login recente (até 1 dia); se a sessão for
  * mais antiga, a pessoa sai e é levada a entrar de novo para confirmar que é ela.
  */
 export async function excluirConta(formData: FormData) {
@@ -66,6 +71,6 @@ export async function excluirConta(formData: FormData) {
     await auth.api.signOut({ headers: cabecalhos });
     redirect(`/entrar?de=${encodeURIComponent("/configuracoes#conta")}&motivo=excluir`);
   }
-  await apagarFixadosDe(sessao);
+  await apagarDadosDe(sessao);
   redirect("/configuracoes?conta=excluida#conta");
 }

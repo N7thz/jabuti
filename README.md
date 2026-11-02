@@ -26,7 +26,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Município | `/estados/[uf]/[ibge]` | Emendas recebidas (autor com partido/UF atual), emenda por habitante, contas do município (Siconfi) |
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
-| Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado e o voto de cada parlamentar |
+| Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado o voto de cada parlamentar e a comparação com a consulta popular (o que a população disse e para que lado o plenário foi) |
 | Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação, as leis mais recentes e o placar da consulta popular (e-Cidadania e enquetes da Câmara) |
 | Comparar | `/comparar` | Dois parlamentares lado a lado no ano escolhido (`?ano=`), com a concordância nos votos e a média da Casa como base |
 | Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano (com links entre os anos), no total ou por tipo de gasto |
@@ -34,7 +34,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Ajuda | `/ajuda` | Perguntas frequentes sobre como usar o portal, a conta e os dados |
 | Apoie o projeto | `/apoie` | Para onde vai o dinheiro, doação por Pix (QR Code e copia e cola, com valor à escolha), apoio mensal e outras formas de ajudar. O botão "Apoie o projeto" do menu abre o mesmo conteúdo num dialog |
 | Sugestões e problemas | `/feedback` | Formulário para avisar de erro ou sugerir melhoria, com anexos (vai por email) |
-| Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta e dados salvos |
+| Configurações | `/configuracoes` | Tema, acessibilidade (tamanho do texto, espaçamento, animações), conta, resumo do meu painel (cidade, empresas vigiadas e listas), notificações e dados salvos, com "Apagar meus dados" removendo tudo o que a conta guarda |
 | Meu painel | `/meu` | Com login: novidades dos parlamentares fixados e seguidos desde a última visita, meus representantes (cidade e estado escolhidos), empresas vigiadas e as listas mais recentes |
 | Minhas listas | `/listas`, `/listas/[id]` | Com login: listas privadas de votações, leis, empresas, emendas, parlamentares e páginas, com anotações; cada lista baixa em CSV (`/api/csv/lista/[id]`) |
 | Notificações | `/notificacoes` | Com login: o que aconteceu com os parlamentares e projetos seguidos |
