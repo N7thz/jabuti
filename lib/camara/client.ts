@@ -18,6 +18,8 @@ import type {
 } from "./types";
 
 const BASE = "https://dadosabertos.camara.leg.br/api/v2";
+/** Teto de páginas de 100 itens numa listagem; a maior do portal (votações de um ano) fica bem abaixo. */
+export const MAX_PAGINAS = 1_000;
 
 /** Cliente tipado da API de Dados Abertos da Câmara. Chamadas simultâneas respeitam o mesmo intervalo mínimo. */
 export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFetcher = {}) {
@@ -31,12 +33,21 @@ export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFet
     return url.toString();
   }
 
-  /** Segue `links` rel="next" até acabar. Alguns endpoints (votos, eventos/deputados) não paginam. */
+  /**
+   * Segue `links` rel="next" até acabar. Alguns endpoints (votos, eventos/deputados) não paginam.
+   * Um "next" que aponta para uma página já lida, ou mais de MAX_PAGINAS páginas, é defeito da API: lança em
+   * vez de ficar em laço.
+   */
   async function paginar<T>(caminho: string, params: Record<string, string | number | undefined> = {}) {
     const itens: T[] = [];
+    const lidas = new Set<string>();
     let url: string | undefined = montar(caminho, { itens: 100, ...params });
 
     while (url) {
+      if (lidas.has(url) || lidas.size >= MAX_PAGINAS) {
+        throw new Error(`Paginação da Câmara sem fim em ${caminho} (${lidas.size} páginas lidas).`);
+      }
+      lidas.add(url);
       const pagina: Pagina<T> = await get<Pagina<T>>(url);
       itens.push(...pagina.dados);
       url = pagina.links.find((link) => link.rel === "next")?.href;
@@ -92,9 +103,19 @@ export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFet
       return (await get<Pagina<OrientacaoApi>>(montar(`/votacoes/${encodeURIComponent(id)}/orientacoes`))).dados;
     },
 
-    /** Últimas proposições apresentadas dos tipos pedidos (ex.: ["PL", "PEC"]), das mais novas para as mais antigas. */
-    async proposicoesRecentes(siglaTipo: string[], itens: number) {
-      const url = montar("/proposicoes", { siglaTipo: siglaTipo.join(","), ordem: "DESC", ordenarPor: "id", itens });
+    /**
+     * Últimas proposições apresentadas dos tipos pedidos (ex.: ["PL", "PEC"]), das mais novas para as mais antigas.
+     * `desde` (AAAA-MM-DD) limita a busca às apresentadas a partir da data: sem ela a API percorre o acervo
+     * inteiro e leva de 7 a mais de 15 s; com 30 dias, de 0,5 a 4 s (medido em novembro de 2026).
+     */
+    async proposicoesRecentes(siglaTipo: string[], itens: number, desde?: string) {
+      const url = montar("/proposicoes", {
+        siglaTipo: siglaTipo.join(","),
+        dataApresentacaoInicio: desde,
+        ordem: "DESC",
+        ordenarPor: "id",
+        itens,
+      });
       return (await get<Pagina<ProposicaoResumo>>(url)).dados;
     },
 

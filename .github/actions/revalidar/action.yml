@@ -1,0 +1,37 @@
+name: Renovar o cache do site
+description: >-
+  Depois de uma carga bem-sucedida, chama /api/revalidar para o site deixar de servir os números antigos guardados
+  no cache. Sem o segredo, só avisa e segue.
+
+inputs:
+  fonte:
+    description: Fonte carregada (camara, senado, emendas, municipios ou tse)
+    required: true
+  segredo:
+    description: O REVALIDAR_SEGREDO, igual ao da Vercel
+    required: false
+    default: ""
+  site:
+    description: Endereço público do portal
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        FONTE: ${{ inputs.fonte }}
+        REVALIDAR_SEGREDO: ${{ inputs.segredo }}
+        SITE: ${{ inputs.site }}
+      run: |
+        if [ -z "$REVALIDAR_SEGREDO" ]; then
+          echo "::warning::REVALIDAR_SEGREDO vazio: o cache de $FONTE não foi renovado; os números novos aparecem quando o cache vencer."
+          exit 0
+        fi
+        curl --fail-with-body --silent --show-error \
+          --retry 3 --retry-connrefused --retry-delay 15 --max-time 30 \
+          -X POST "${SITE%/}/api/revalidar" \
+          -H "Authorization: Bearer $REVALIDAR_SEGREDO" \
+          -H "Content-Type: application/json" \
+          -d "{\"fontes\":[\"$FONTE\"]}"           || echo "::warning::Não deu para renovar o cache de $FONTE (confira REVALIDAR_SEGREDO na Vercel e no GitHub). Os dados foram gravados; os números novos aparecem quando o cache vencer."
+        echo

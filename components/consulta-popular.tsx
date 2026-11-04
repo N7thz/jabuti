@@ -1,4 +1,5 @@
 import { LightbulbIcon, ScaleIcon } from "lucide-react";
+import { Suspense } from "react";
 
 import { Termo } from "@/components/termo";
 import { Badge } from "@/components/ui/badge";
@@ -55,11 +56,7 @@ async function placarCamara(id: number): Promise<Placar | null> {
  */
 export async function ConsultaPopular({ casa, id, identificacao }: { casa: "camara" | "senado"; id: number; identificacao: string }) {
   const fonte = casa === "senado" ? "o e-Cidadania" : "as enquetes da Câmara";
-  const [r, origem] = await Promise.all([
-    tentar(fonte, () => (casa === "senado" ? placarSenado(id) : placarCamara(id))),
-    casa === "senado" ? tentar("as ideias legislativas do e-Cidadania", () => getOrigemPopular(id)) : null,
-  ]);
-  const ideia = origem?.ok ? origem.dados : null;
+  const r = await tentar(fonte, () => (casa === "senado" ? placarSenado(id) : placarCamara(id)));
 
   const placar = !r.ok ? (
     <p className="text-sm text-muted-foreground">Não conseguimos consultar {fonte} agora para mostrar a opinião popular.</p>
@@ -67,13 +64,22 @@ export async function ConsultaPopular({ casa, id, identificacao }: { casa: "cama
     <Placar placar={r.dados} identificacao={identificacao} />
   ) : null;
 
-  if (!ideia) return placar;
+  if (casa !== "senado") return placar;
+  // A origem depende do índice de ideias, que pode levar alguns segundos para ser montado: chega depois, sem
+  // segurar o placar. Sem origem nem placar, o bloco some (empty:hidden) e não deixa espaço vazio no cartão.
   return (
-    <div className="flex flex-col gap-2">
-      <OrigemIdeia origem={ideia} identificacao={identificacao} />
+    <div className="flex flex-col gap-2 empty:hidden">
+      <Suspense fallback={null}>
+        <OrigemDaMateria codigoMateria={id} identificacao={identificacao} />
+      </Suspense>
       {placar}
     </div>
   );
+}
+
+async function OrigemDaMateria({ codigoMateria, identificacao }: { codigoMateria: number; identificacao: string }) {
+  const origem = await tentar("as ideias legislativas do e-Cidadania", () => getOrigemPopular(codigoMateria));
+  return origem.ok && origem.dados ? <OrigemIdeia origem={origem.dados} identificacao={identificacao} /> : null;
 }
 
 /** O que aconteceu entre a ideia e esta matéria, em uma frase. */

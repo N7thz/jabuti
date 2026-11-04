@@ -790,6 +790,17 @@ export const GLOSSARIO = [
     ],
     importancia: "Com a planilha, qualquer pessoa pode conferir os números do portal e fazer as próprias análises.",
   },
+  {
+    id: "beta",
+    termo: "Versão beta",
+    tema: "dados",
+    curto: "O portal já funciona, mas ainda está em testes: algumas páginas podem mudar e algum número pode sair errado.",
+    explicacao: [
+      "Os dados vêm das fontes oficiais (Câmara, Senado, TSE, Portal da Transparência e outras), mas o jeito de juntar e mostrar esses dados ainda está sendo conferido.",
+      "Antes de usar um número para cobrar alguém, abra a fonte oficial: cada página diz de onde veio o dado.",
+    ],
+    importancia: "Se achar um erro ou algo confuso, conte em /feedback. É assim que o portal sai do beta.",
+  },
 ] as const satisfies readonly Verbete[];
 
 export type IdTermo = (typeof GLOSSARIO)[number]["id"];

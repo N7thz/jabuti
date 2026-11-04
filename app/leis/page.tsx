@@ -110,7 +110,8 @@ function DescricaoEtapa({ etapa }: { etapa: Etapa }) {
     case "novos":
       return (
         <>
-          Projetos apresentados no Senado nos últimos {DIAS_NOVOS} dias e os {LIMITE_NOVOS_CAMARA} mais recentes da Câmara. O
+          Projetos apresentados no Senado nos últimos {DIAS_NOVOS} dias e os {LIMITE_NOVOS_CAMARA} mais recentes da Câmara no
+          mesmo período. O
           próximo passo é a análise nas <Termo id="comissao">comissões</Termo>, que pode levar meses ou anos.
         </>
       );

@@ -19,8 +19,12 @@ import {
   urlProposicaoCamara,
 } from "./etapas";
 
+// Toda chamada tem tempo máximo (NA_PAGINA: 15 s e uma nova tentativa). A Câmara às vezes demora segundos para
+// responder: 10 s por pedido basta para a listagem. A situação de cada projeto é um detalhe do cartão, então
+// tem prazo menor e nenhuma nova tentativa.
 const senado = createSenadoClient(NA_PAGINA);
-const camara = createCamaraClient(NA_PAGINA);
+const camara = createCamaraClient({ ...NA_PAGINA, timeoutMs: 10_000 });
+const camaraDetalhe = createCamaraClient({ ...NA_PAGINA, timeoutMs: 8_000, retries: 0 });
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const diasAtras = (dias: number) => iso(new Date(Date.now() - dias * 86_400_000));
@@ -151,17 +155,24 @@ export async function getNovosNoSenado() {
   return processos.map((p) => doSenado(p, p.dataApresentacao ?? null)).sort(maisRecentes);
 }
 
-/** Os últimos projetos apresentados na Câmara, com a situação de cada um. */
+/** Os últimos projetos apresentados na Câmara nos últimos 30 dias, com a situação de cada um. */
 export async function getNovosNaCamara() {
   "use cache";
-  cacheLife("hours");
   cacheTag("leis");
 
-  const recentes = await camara.proposicoesRecentes(TIPOS_CAMARA, LIMITE_NOVOS_CAMARA);
-  return Promise.all(
+  // A data limita a busca: sem ela a Câmara percorre o acervo inteiro e passa dos 10 s.
+  const recentes = await camara.proposicoesRecentes(TIPOS_CAMARA, LIMITE_NOVOS_CAMARA, diasAtras(DIAS_NOVOS));
+  let faltouSituacao = false;
+  const projetos = await Promise.all(
     recentes.map(async (p): Promise<Projeto> => {
       // Sem a situação o projeto continua na lista: falta um detalhe, não o projeto.
-      const status = await camara.proposicao(p.id).then((d) => d.statusProposicao, () => null);
+      const status = await camaraDetalhe.proposicao(p.id).then(
+        (d) => d.statusProposicao,
+        () => {
+          faltouSituacao = true;
+          return null;
+        },
+      );
       return {
         chave: `camara-${p.id}`,
         casa: "camara",
@@ -180,4 +191,8 @@ export async function getNovosNaCamara() {
       };
     }),
   );
+  // A lista sai mesmo sem alguma situação, mas a falta não fica guardada por horas: volta a consultar em minutos.
+  if (faltouSituacao) cacheLife("minutes");
+  else cacheLife("hours");
+  return projetos;
 }

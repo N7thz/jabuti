@@ -78,7 +78,8 @@ const porValor = (a: EmendaPix, b: EmendaPix) => b.total - a.total;
 export async function getEmendasPixParlamentar(parlamentar: { casa: Casa; idExterno: string }, ano?: number) {
   "use cache";
   cacheLife("days");
-  cacheTag("transferegov", `pix:parlamentar:${parlamentar.casa}:${parlamentar.idExterno}`);
+  // "emendas": lê as emendas gravadas pela carga, então renova junto com ela (lib/sync/revalidar.ts).
+  cacheTag("transferegov", "emendas", `pix:parlamentar:${parlamentar.casa}:${parlamentar.idExterno}`);
 
   const emendas = await db.emenda.findMany({
     where: {

@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Barlow, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
@@ -12,6 +14,7 @@ import { GlossarioDaPagina } from "@/components/glossario-da-pagina";
 import { GuiaSecoes } from "@/components/guia-secoes";
 import { RevelarAoRolar } from "@/components/revelar-ao-rolar";
 import { LogoJabuti } from "@/components/logo-jabuti";
+import { SeloBeta } from "@/components/selo-beta";
 import { SidebarFixados } from "@/components/sidebar-fixados";
 import { SinoNotificacoes } from "@/components/sino-notificacoes";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -26,6 +29,7 @@ import { SCRIPT_ACESSIBILIDADE } from "@/lib/acessibilidade";
 import { apoioPublico } from "@/lib/apoio/config";
 import { SCRIPT_ANIMACOES } from "@/lib/animacoes";
 import { SCRIPT_MENU } from "@/lib/menu";
+import { verbete } from "@/lib/glossario";
 import { metadados } from "@/lib/metadados";
 import { SITE_URL } from "@/lib/site";
 
@@ -118,6 +122,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                           <LogoJabuti className="shrink-0" />
                           <span className="truncate">Jabuti</span>
                         </Link>
+                        {/* Aviso de que o portal ainda está em testes; o balão explica e leva ao glossário. */}
+                        <SeloBeta termo={verbete("beta").termo} curto={verbete("beta").curto} />
                         <div className="ml-auto flex shrink-0 items-center gap-1 xs:gap-2">
                           <ThemeToggle />
                           {/* Lê a sessão: só aparece para quem está logado. */}
@@ -144,6 +150,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </AnimacoesProvider>
           </ThemeProvider>
         </NuqsAdapter>
+        {/* Contagem de visitas e medida de velocidade da Vercel: sem cookies e sem dado pessoal. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

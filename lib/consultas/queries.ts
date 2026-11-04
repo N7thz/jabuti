@@ -6,6 +6,7 @@ import { createFetchResiliente, ErroHttp, NA_PAGINA } from "@/lib/sync/run";
 
 import { type Ideia, indicePorMateria, lerIdeia, lerListaIdeias, type OrigemPopular, URL_IDEIAS_TRANSFORMADAS, urlIdeia } from "./ideias";
 import { lerConsultaSenado, lerEnqueteCamara, urlConsultaSenado, urlEnqueteCamara } from "./ler";
+import { lerEmLote } from "./lote";
 
 // Páginas HTML, não API; cada placar é guardado por horas, então o site da Casa recebe poucas visitas.
 const buscar = createFetchResiliente({ ...NA_PAGINA, headers: { Accept: "text/html" } });
@@ -34,24 +35,32 @@ export async function getEnqueteCamara(id: number) {
   return lerEnqueteCamara(await html(urlEnqueteCamara(id)));
 }
 
-// O índice de ideias lê ~80 páginas de uma vez: um intervalo curto entre pedidos e poucas em paralelo, para
-// não pesar no site do Senado. Roda uma vez por dia (cacheLife "days").
-const buscarIdeia = createFetchResiliente({ minIntervalMs: 150, retries: 2, timeoutMs: 15_000, esperaMaximaMs: 5_000, headers: { Accept: "text/html" } });
-const PARALELO = 4;
+// O índice de ideias lê ~80 páginas: um intervalo curto entre pedidos e poucas em paralelo, para não pesar no
+// site do Senado. Algumas páginas de ideia nunca respondem (em novembro de 2026, 7 de 82 ficavam penduradas
+// até o timeout, sempre as mesmas). Com nova tentativa e lotes fixos, cada uma segurava o lote por ~45 s e o
+// índice levava minutos, prendendo o fim da página /leis. Agora: sem nova tentativa, timeout curto, vagas
+// que não esperam a mais lenta e um prazo para o índice inteiro.
+const buscarIdeia = createFetchResiliente({ minIntervalMs: 100, retries: 0, timeoutMs: 6_000, headers: { Accept: "text/html" } });
+const PARALELO = 6;
+const PRAZO_INDICE_MS = 20_000;
+/** Acima disso o índice sai incompleto demais para ficar guardado por dias: falha e é refeito na próxima visita. */
+const FALTA_TOLERADA = 0.25;
 
 async function lerIdeiaRemota(id: number): Promise<Ideia | null> {
-  try {
-    const resposta = await buscarIdeia(urlIdeia(id));
-    return resposta.ok ? lerIdeia(id, await resposta.text()) : null;
-  } catch {
-    // Uma ideia fora do ar não derruba o índice: ela só fica de fora até a próxima leitura.
-    return null;
-  }
+  const url = urlIdeia(id);
+  const resposta = await buscarIdeia(url);
+  // 404: a ideia saiu do ar, não é falha da fonte. O resto (5xx, 429) conta como falta.
+  if (resposta.status === 404) return null;
+  if (!resposta.ok) throw new ErroHttp(resposta.status, url, resposta.statusText);
+  return lerIdeia(id, await resposta.text());
 }
 
 /**
  * Matéria do Senado → ideia legislativa de origem, para todas as ideias que viraram proposição.
  * Objeto simples (não Map) porque o resultado passa pelo cache, que guarda só dados serializáveis.
+ *
+ * Uma ideia que não responde fica de fora até a próxima leitura (é um complemento do cartão). Se faltarem
+ * muitas, o site está com problema: a função lança e nada fica guardado no "use cache".
  */
 export async function getIdeiasPorMateria(): Promise<Record<number, OrigemPopular>> {
   "use cache";
@@ -59,12 +68,13 @@ export async function getIdeiasPorMateria(): Promise<Record<number, OrigemPopula
   cacheTag("consultas");
 
   const lista = lerListaIdeias(await html(URL_IDEIAS_TRANSFORMADAS));
-  const ideias: Ideia[] = [];
-  for (let i = 0; i < lista.length; i += PARALELO) {
-    const lote = await Promise.all(lista.slice(i, i + PARALELO).map((ideia) => lerIdeiaRemota(ideia.id)));
-    for (const ideia of lote) if (ideia) ideias.push(ideia);
+  const { lidos, faltaram } = await lerEmLote(lista, { paralelo: PARALELO, prazoMs: PRAZO_INDICE_MS }, (ideia) =>
+    lerIdeiaRemota(ideia.id),
+  );
+  if (faltaram > lista.length * FALTA_TOLERADA) {
+    throw new Error(`O e-Cidadania não respondeu ${faltaram} de ${lista.length} ideias legislativas.`);
   }
-  return Object.fromEntries(indicePorMateria(ideias));
+  return Object.fromEntries(indicePorMateria(lidos));
 }
 
 /** Ideia legislativa que deu origem à matéria, ou null se ela não nasceu de uma. */
