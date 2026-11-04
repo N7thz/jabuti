@@ -9,8 +9,16 @@ describe("etiquetasDasFontes", () => {
   });
 
   test("junta as etiquetas de várias fontes sem repetir", () => {
-    expect(etiquetasDasFontes(["camara", "senado"])).toEqual(["votacoes", "cota", "medias", "sync", "cruzamentos", "emendas"]);
-    expect(etiquetasDasFontes(["emendas", "tse"])).toEqual(["emendas", "medias", "cruzamentos", "tse"]);
+    expect(etiquetasDasFontes(["camara", "senado"])).toEqual([
+      "votacoes",
+      "cota",
+      "medias",
+      "sync",
+      "cruzamentos",
+      "emendas",
+      "eleitos",
+    ]);
+    expect(etiquetasDasFontes(["emendas", "tse"])).toEqual(["emendas", "medias", "cruzamentos", "tse", "eleitos"]);
   });
 
   test("não inclui etiquetas de dado lido direto das APIs", () => {

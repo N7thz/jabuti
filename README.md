@@ -19,7 +19,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | --- | --- | --- |
 | Início | `/` | O que é o portal e tudo o que dá para consultar |
 | Empresas | `/empresas` | Consulta de empresas por CNPJ: contratos e sanções (CEIS, CNEP e TCU) |
-| Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros |
+| Parlamentares | `/parlamentares` | Lista de deputados e senadores com filtros. O campo "Mostrar" troca entre "Em exercício" (padrão) e "Eleitos em 2026" (`?eleitos=2026`): os 513 deputados federais e 54 senadores eleitos (TSE), com selos (Reeleito(a), Já está na Câmara/no Senado, Hoje é deputado(a)/senador(a), Já foi…, Novo(a)) e link ao perfil de quem já é parlamentar. Casa, UF, partido e nome valem nos dois modos; "só fixados" não vale nos eleitos. Um gráfico em meia-lua mostra a composição por partido: no modo "Em exercício", a atual (Câmara 513, Senado 81, pelo partido de hoje); no modo eleitos, a da Câmara (513) e do Senado a partir de 2027 (81 = 54 eleitos + 27 com mandato até 2031); com a UF escolhida, mostra a bancada do estado. Há também uma legenda em texto |
 | Perfil de deputado | `/parlamentares/deputado/[id]` | Escolha do ano (`?ano=`, anos da legislatura atual; o ano corrente aparece como "até o momento") para resumo, cota, proposições e emendas. Presença no plenário, como votou, fidelidade ao partido e ao governo, despesas da cota, proposições, leis de toda a carreira (autoria e coautoria), emendas, votos × emendas por cidade, campanha e evolução do patrimônio corrigida pela inflação (TSE), trocas de partido e trajetória política |
 | Perfil de senador | `/parlamentares/senador/[codigo]` | O mesmo com os dados do Senado (cota CEAPS, votações e matérias, todas por ano); nas leis, também as que o senador relatou |
 | Estados | `/estados`, `/estados/[uf]` | Emendas por estado, com links para cada ano carregado e os autores que mais mandaram dinheiro (com partido/UF) |
@@ -56,7 +56,7 @@ Para aparecer bem nos buscadores, cada página pública declara seu endereço ca
 - [Portal da Transparência (CGU)](https://portaldatransparencia.gov.br/api-de-dados): emendas, CNPJ, contratos e sanções (precisa de chave)
 - [Câmara dos Deputados](https://dadosabertos.camara.leg.br/) e [Senado Federal](https://www12.senado.leg.br/dados-abertos): parlamentares, votações, eventos, despesas, proposições, autoria e relatoria
 - [e-Cidadania (Senado)](https://www12.senado.leg.br/ecidadania) e enquetes da Câmara: placar da consulta popular de cada projeto, lido da página pública porque não está nos dados abertos
-- [TSE, Dados Abertos](https://dadosabertos.tse.jus.br/): candidaturas, bens declarados, receitas de campanha e votos por município
+- [TSE, Dados Abertos](https://dadosabertos.tse.jus.br/): candidaturas, bens declarados, receitas de campanha, votos por município e os eleitos de 2026
 - [Transferegov](https://www.gov.br/transferegov/): emendas Pix (transferências especiais)
 - [Siconfi (Tesouro)](https://siconfi.tesouro.gov.br/): contas e relatórios fiscais de estados e municípios
 - [TCU](https://portal.tcu.gov.br/): quem está inabilitado para cargo público ou declarado inidôneo para licitar
@@ -130,10 +130,11 @@ bun scripts/sync-camara.ts                          # padrão: últimos 30 dias
 bun scripts/sync-senado.ts                          # padrão: últimos 30 dias
 bun scripts/sync-emendas.ts --anos 2020-2025        # precisa dos municípios
 bun scripts/sync-tse.ts                             # precisa de Câmara e Senado
+bun scripts/sync-eleitos.ts                         # eleitos de 2026 (tabela Eleito); roda depois do sync-tse
 bun scripts/notificar.ts                            # notificações de quem segue parlamentares e projetos
 ```
 
-Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas (a etapa `orientacoes`, de Câmara e Senado, guarda a orientação de bancada usada no índice de fidelidade e deve rodar depois de `votacoes`), `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
+Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas (a etapa `orientacoes`, de Câmara e Senado, guarda a orientação de bancada usada no índice de fidelidade e deve rodar depois de `votacoes`), `--ufs AC,AM` e `--anos 2018,2022` (TSE) e `--ano 2026` (eleitos, lidos de `consulta_cand_{ano}.zip` do TSE e ligados aos parlamentares por CPF na Câmara ou por nome e UF). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
 
 ### Carga automática
 
@@ -142,7 +143,7 @@ O workflow [`.github/workflows/sync.yml`](.github/workflows/sync.yml) roda as ca
 | Quando | Fontes |
 | --- | --- |
 | Todo dia, 06:00 UTC | Câmara e Senado (últimos 30 dias) e emendas do ano corrente; depois de Câmara e Senado, as notificações de quem segue parlamentares e projetos |
-| Domingo, 09:00 UTC | Municípios (IBGE) e TSE |
+| Domingo, 09:00 UTC | Municípios (IBGE), TSE e, depois dele, os eleitos de 2026 (fonte manual "eleitos") |
 
 Outro workflow, [`.github/workflows/verificar-html.yml`](.github/workflows/verificar-html.yml), roda todo dia às 10:30 UTC `bun scripts/verificar-html.ts`: o placar das consultas populares e as ideias legislativas não têm API e são lidos do HTML do Senado e da Câmara, então o script confere páginas conhecidas e falha (o GitHub avisa por email) se algum leitor parar de achar os dados. Não precisa de banco nem de secrets.
 

@@ -24,12 +24,13 @@ export const ANOS_POR_CASA: Record<Casa, number[]> = {
 };
 
 /**
- * Parlamentares em exercício das UFs pedidas. Da Câmara busca `/deputados/{id}` para ter CPF e nome
- * civil (o banco não guarda CPF); o Senado não publica CPF, então senadores casam por nome.
+ * Parlamentares das UFs pedidas (só os em exercício, a menos que `todos`). Da Câmara busca
+ * `/deputados/{id}` para ter CPF e nome civil (o banco não guarda CPF); o Senado não publica CPF, então
+ * senadores casam por nome. Com `todos`, um deputado que a API não acha mais fica sem CPF (casa por nome).
  */
-export async function carregarAlvos(prisma: PrismaClient, ufs: Uf[]): Promise<Alvo[]> {
+export async function carregarAlvos(prisma: PrismaClient, ufs: Uf[], { todos = false } = {}): Promise<Alvo[]> {
   const parlamentares = await prisma.parlamentar.findMany({
-    where: { emExercicio: true, uf: { in: ufs } },
+    where: { ...(todos ? {} : { emExercicio: true }), uf: { in: ufs } },
     select: { id: true, casa: true, idExterno: true, nome: true, nomeCivil: true, uf: true },
   });
   const get = createFetcher({ minIntervalMs: 150 });
@@ -39,9 +40,10 @@ export async function carregarAlvos(prisma: PrismaClient, ufs: Uf[]): Promise<Al
       let { nomeCivil } = p;
       let cpf: string | null = null;
       if (p.casa === "CAMARA") {
-        const { dados } = await get<{ dados: { cpf: string | null; nomeCivil: string | null } }>(
+        const pedido = get<{ dados: { cpf: string | null; nomeCivil: string | null } }>(
           `https://dadosabertos.camara.leg.br/api/v2/deputados/${p.idExterno}`,
         );
+        const { dados } = todos ? await pedido.catch(() => ({ dados: { cpf: null, nomeCivil: null } })) : await pedido;
         cpf = dados.cpf?.replace(/\D/g, "").padStart(11, "0") || null;
         nomeCivil = dados.nomeCivil ?? nomeCivil;
       }

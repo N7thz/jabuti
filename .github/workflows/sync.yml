@@ -18,6 +18,7 @@ on:
           - emendas
           - municipios
           - tse
+          - eleitos
           - notificar
       argumentos:
         description: "Argumentos extras do script, ex.: --anos 2020-2025 (só com uma fonte escolhida)"
@@ -93,7 +94,7 @@ jobs:
         with: { fonte: municipios, segredo: "${{ secrets.REVALIDAR_SEGREDO }}", site: "${{ env.SITE_URL }}" }
 
   tse:
-    if: github.event.schedule == '0 9 * * 0' || contains(fromJSON('["semanal","tse"]'), inputs.fonte)
+    if: github.event.schedule == '0 9 * * 0' || contains(fromJSON('["semanal","tse","eleitos"]'), inputs.fonte)
     runs-on: ubuntu-latest
     timeout-minutes: 240
     concurrency: { group: sync-tse, cancel-in-progress: false }
@@ -102,7 +103,13 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with: { bun-version-file: package.json }
       - run: bun install --frozen-lockfile
-      - run: bun scripts/sync-tse.ts $ARGUMENTOS
+      - name: TSE dos parlamentares em exercício
+        if: inputs.fonte != 'eleitos'
+        run: bun scripts/sync-tse.ts $ARGUMENTOS
+      # Eleitos da última eleição geral (inclui quem ainda não é parlamentar); o TSE corrige o resultado por semanas.
+      - name: Eleitos
+        if: inputs.fonte != 'tse'
+        run: bun scripts/sync-eleitos.ts ${{ inputs.fonte == 'eleitos' && '$ARGUMENTOS' || '' }}
       - uses: ./.github/actions/revalidar
         with: { fonte: tse, segredo: "${{ secrets.REVALIDAR_SEGREDO }}", site: "${{ env.SITE_URL }}" }
 

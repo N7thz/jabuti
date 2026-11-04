@@ -20,6 +20,8 @@ export const filtrosParlamentares = z.object({
   ),
   /** "1": só parlamentares fixados, ou de partido/bancada fixados (precisa de login). */
   fixados: opcional(z.enum(["1"], { error: "Opção inválida." })),
+  /** "2026": eleitos em 2026 (tomam posse em 2027) no lugar dos parlamentares em exercício. */
+  eleitos: opcional(z.enum(["2026"], { error: "Escolha em exercício ou eleitos em 2026." })),
 });
 
 /** Lida à parte para a paginação continuar valendo quando um filtro é inválido (a lista vem completa). */
@@ -37,6 +39,7 @@ const url = {
   uf: parseAsString,
   partido: parseAsString,
   fixados: parseAsString,
+  eleitos: parseAsString,
   pagina: parseAsInteger,
 };
 export const lerUrlParlamentares = createLoader(url);
