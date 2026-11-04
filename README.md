@@ -87,7 +87,7 @@ bun run db:deploy      # aplica as migrations no banco
 bun dev                # http://localhost:3000
 ```
 
-Para ver se o app alcança o banco, abra `GET /api/health`.
+Para ver se o app alcança o banco, abra `GET /api/health`: além de `database: "up"`, ele mostra o `papel` com que o site entrou (em produção tem de ser `portal_app`; senão sai um aviso no log).
 
 ### Variáveis de ambiente
 
