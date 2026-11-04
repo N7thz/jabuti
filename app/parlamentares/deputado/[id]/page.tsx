@@ -18,6 +18,7 @@ import { PartidoEFidelidade } from "@/components/partido-fidelidade";
 import { SecaoProtegida } from "@/components/secao-protegida";
 import { Termo } from "@/components/termo";
 import { HistoricoVotos } from "@/components/votacoes/historico";
+import { JsonLd } from "@/components/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/parlamentares/queries";
 import { getVotosDeputado, ultimaCarga } from "@/lib/votacoes/queries";
 import { metadados } from "@/lib/metadados";
+import { perfilParlamentar, trilha } from "@/lib/seo/json-ld";
 import { AnoDoPerfil } from "@/components/navegacao-anos";
 import { anoDaUrl, anoEmAndamento, anosDesde, inicioDaLegislatura, rotuloAno } from "@/lib/anos";
 
@@ -45,6 +47,7 @@ export async function generateMetadata({ params }: PageProps<"/parlamentares/dep
   const partido = [s.siglaPartido, s.siglaUf].filter(Boolean).join("/");
   return metadados({
     titulo: `${s.nomeEleitoral || s.nome}${partido ? ` (${partido})` : ""} · Jabuti`,
+    caminho: `/parlamentares/deputado/${deputado.id}`,
     descricao: "Presença no plenário, como votou, gastos da cota, emendas e campanha deste deputado federal, com dados oficiais.",
     imagemPropria: true,
   });
@@ -91,8 +94,30 @@ async function Deputado({ id, anoUrl }: { id: string; anoUrl?: string | string[]
     dados.push(["Gabinete", `Sala ${s.gabinete.sala}, prédio ${s.gabinete.predio} · (61) ${s.gabinete.telefone}`]);
   }
 
+  const nome = s.nomeEleitoral || s.nome;
+  const caminho = `/parlamentares/deputado/${deputado.id}`;
+
   return (
     <>
+      <JsonLd
+        dados={[
+          perfilParlamentar({
+            casa: "camara",
+            id: deputado.id,
+            nome,
+            nomeCivil: deputado.nomeCivil,
+            foto: s.urlFoto,
+            partido: s.siglaPartido,
+            email: s.email,
+            redesSociais: deputado.redeSocial,
+          }),
+          trilha([
+            { nome: "Início", caminho: "/" },
+            { nome: "Parlamentares", caminho: "/parlamentares" },
+            { nome, caminho },
+          ]),
+        ]}
+      />
       <Cabecalho
         nome={s.nome}
         fotoUrl={s.urlFoto}

@@ -19,6 +19,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Meu painel · Jabuti",
+  indexar: false,
   descricao: "O que fizeram os parlamentares que você acompanha, seus representantes, empresas vigiadas e suas listas.",
 });
 

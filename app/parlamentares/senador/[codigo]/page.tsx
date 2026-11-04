@@ -35,6 +35,8 @@ import {
 } from "@/lib/parlamentares/queries";
 import { votacoesSenadoNoBanco } from "@/lib/votacoes/queries";
 import { metadados } from "@/lib/metadados";
+import { perfilParlamentar, trilha } from "@/lib/seo/json-ld";
+import { JsonLd } from "@/components/json-ld";
 import { AnoDoPerfil } from "@/components/navegacao-anos";
 import { anoCorrente, anoDaUrl, anoEmAndamento, anosDesde, inicioDaLegislaturaDoAno, rotuloAno } from "@/lib/anos";
 
@@ -44,6 +46,7 @@ export async function generateMetadata({ params }: PageProps<"/parlamentares/sen
   const partido = [senador.partido, senador.uf].filter(Boolean).join("/");
   return metadados({
     titulo: `${senador.nome}${partido ? ` (${partido})` : ""} · Jabuti`,
+    caminho: `/parlamentares/senador/${senador.codigo}`,
     descricao: "Presença no plenário, como votou, gastos da cota, emendas e campanha deste senador, com dados oficiais.",
     imagemPropria: true,
   });
@@ -84,6 +87,24 @@ async function Senador({ codigo, anoUrl }: { codigo: string; anoUrl?: string | s
 
   return (
     <>
+      <JsonLd
+        dados={[
+          perfilParlamentar({
+            casa: "senado",
+            id: senador.codigo,
+            nome: senador.nome,
+            nomeCivil: senador.nomeCompleto,
+            foto: senador.fotoUrl,
+            partido: senador.partido,
+            email: senador.email,
+          }),
+          trilha([
+            { nome: "Início", caminho: "/" },
+            { nome: "Parlamentares", caminho: "/parlamentares" },
+            { nome: senador.nome, caminho: `/parlamentares/senador/${senador.codigo}` },
+          ]),
+        ]}
+      />
       <Cabecalho
         nome={senador.nome}
         fotoUrl={senador.fotoUrl}

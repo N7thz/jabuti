@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { metadados } from "@/lib/metadados";
 
-export const metadata = metadados({ titulo: "Criar senha nova · Jabuti" });
+export const metadata = metadados({ titulo: "Criar senha nova · Jabuti", indexar: false });
 
 export default function RedefinirSenhaPage({ searchParams }: PageProps<"/redefinir-senha">) {
   return (

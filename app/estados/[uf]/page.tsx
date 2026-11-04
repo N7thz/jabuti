@@ -13,6 +13,8 @@ import { AvisoFonte } from "@/components/aviso-fonte";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { isUf, UFS } from "@/lib/ufs";
 import { metadados } from "@/lib/metadados";
+import { trilha } from "@/lib/seo/json-ld";
+import { JsonLd } from "@/components/json-ld";
 
 export function generateStaticParams() {
   return Object.keys(UFS).map((uf) => ({ uf }));
@@ -23,6 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/estados/[uf]">): 
   if (!isUf(uf)) return metadados({ titulo: "Estado · Jabuti" });
   return metadados({
     titulo: `${UFS[uf]}: bancada e emendas · Jabuti`,
+    caminho: `/estados/${uf}`,
     descricao: `Os deputados e senadores eleitos por ${UFS[uf]} e as emendas parlamentares que chegaram ao estado.`,
   });
 }
@@ -72,6 +75,13 @@ async function Bancada({ uf }: { uf: string }) {
 
   return (
     <>
+      <JsonLd
+        dados={trilha([
+          { nome: "Início", caminho: "/" },
+          { nome: "Estados", caminho: "/estados" },
+          { nome: UFS[uf], caminho: `/estados/${uf}` },
+        ])}
+      />
       <header className="flex flex-col gap-3 animate-enter">
         <p className="text-sm font-medium tracking-wide text-secao uppercase">Bancada de {uf}</p>
         <h1 className="text-[clamp(2rem,4vw,3rem)] leading-tight font-bold">{UFS[uf]}</h1>

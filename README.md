@@ -45,6 +45,8 @@ Em `/meu` ficam as **empresas vigiadas** (até 20 CNPJs): a cada visita o painel
 
 O menu lateral mostra sempre Parlamentares, Leis e projetos e Estados e cidades; os outros assuntos (Consulta CNPJ, Comparar, Ranking da cota, Emendas, LOA e Glossário) a pessoa liga em "Personalizar menu", no fim da lista. A escolha fica neste aparelho (localStorage, `lib/menu.ts`) e a página aberta sempre aparece no menu. Para quem está logado, a sidebar também mostra **Minha cidade** (a escolhida em "Meus representantes", com atalho para `/meu`) e os **Fixados**.
 
+Para aparecer bem nos buscadores, cada página pública declara seu endereço canônico, sem os filtros da URL (`metadados()` em `lib/metadados.ts`). As páginas da conta (entrar, cadastro, painel, listas, notificações, configurações e admin) ficam fora da busca com `noindex`. Os perfis de deputado e senador, os estados, as cidades e a página inicial levam dados estruturados em JSON-LD (`lib/seo/json-ld.ts`): perfil da pessoa, partido, casa e a trilha de navegação. O sitemap (`app/sitemap.ts`) lista as páginas fixas, os parlamentares, os estados, as cidades e as votações guardadas no banco.
+
 ## Fontes de dados
 
 - [Portal da Transparência (CGU)](https://portaldatransparencia.gov.br/api-de-dados): emendas, CNPJ, contratos e sanções (precisa de chave)

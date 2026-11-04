@@ -20,6 +20,7 @@ import { listarParlamentares } from "@/lib/parlamentares/queries";
 
 export const metadata = metadados({
   titulo: "Cobrar o parlamentar · Jabuti",
+  caminho: "/parlamentares/cobrar",
   descricao:
     "Escreva para o seu deputado ou senador com base num fato concreto do mandato: presença, gastos, votos e projetos. A mensagem sai do seu email.",
 });

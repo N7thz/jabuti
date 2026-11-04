@@ -8,6 +8,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Parar os emails de notificação · Jabuti",
+  indexar: false,
   descricao: "Pare de receber o resumo por email das novidades sobre quem você segue.",
 });
 

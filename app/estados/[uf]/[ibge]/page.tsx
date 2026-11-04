@@ -21,6 +21,8 @@ import { getAnosEmendas, getEmendasMunicipio, getMunicipio, getUltimaSyncEmendas
 import { anoDaUrl } from "@/lib/anos";
 import { isUf, UFS } from "@/lib/ufs";
 import { metadados } from "@/lib/metadados";
+import { trilha } from "@/lib/seo/json-ld";
+import { JsonLd } from "@/components/json-ld";
 
 async function municipioDaUrl(params: PageProps<"/estados/[uf]/[ibge]">["params"]) {
   const { uf, ibge } = await params;
@@ -34,6 +36,7 @@ export async function generateMetadata({ params }: PageProps<"/estados/[uf]/[ibg
   if (!municipio) return metadados({ titulo: "Cidade · Jabuti", imagemPropria: true });
   return metadados({
     titulo: `Emendas para ${municipio.nome} (${municipio.uf}) · Jabuti`,
+    caminho: `/estados/${municipio.uf}/${municipio.ibge}`,
     descricao: `Quanto ${municipio.nome} recebeu em emendas parlamentares, de quem, quanto isso dá por habitante e as contas da prefeitura.`,
     imagemPropria: true,
   });
@@ -81,6 +84,14 @@ async function Cidade({
 
   return (
     <>
+      <JsonLd
+        dados={trilha([
+          { nome: "Início", caminho: "/" },
+          { nome: "Estados", caminho: "/estados" },
+          { nome: UFS[municipio.uf], caminho: `/estados/${municipio.uf}` },
+          { nome: municipio.nome, caminho: `/estados/${municipio.uf}/${municipio.ibge}` },
+        ])}
+      />
       <Link
         href={linkAno(`/estados/${municipio.uf}`, { ano })}
         className="inline-flex h-10 w-fit items-center gap-2 rounded-lg text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"

@@ -25,6 +25,7 @@ import { PreferenciaEmail } from "./preferencia-email";
 
 export const metadata = metadados({
   titulo: "Notificações · Jabuti",
+  indexar: false,
   descricao: "Como votaram e o que apresentaram os parlamentares que você segue, e as mudanças nos projetos seguidos.",
 });
 

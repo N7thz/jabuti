@@ -14,6 +14,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Orçamento federal (LOA) · Jabuti",
+  caminho: "/orcamento/loa",
   descricao: "Quanto a Lei Orçamentária Anual autorizou o governo federal a gastar, em cada área, e quanto já foi executado.",
 });
 

@@ -12,10 +12,11 @@ import { metadados } from "@/lib/metadados";
 import { removerApoiador } from "./actions";
 import { FormularioApoiador } from "./formulario";
 
-export const metadata = {
-  ...metadados({ titulo: "Apoiadores (admin) · Jabuti", descricao: "Gerenciar o mural de apoiadores." }),
-  robots: { index: false, follow: false },
-};
+export const metadata = metadados({
+  titulo: "Apoiadores (admin) · Jabuti",
+  descricao: "Gerenciar o mural de apoiadores.",
+  indexar: false,
+});
 
 export default function AdminApoiadoresPage() {
   return (
