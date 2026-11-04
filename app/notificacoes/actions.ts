@@ -1,8 +1,6 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { redirect } from "next/navigation";
-import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { donoDa } from "@/lib/fixados";
@@ -19,21 +17,4 @@ export async function marcarComoLida(formData: FormData) {
     data: { lidaEm: new Date() },
   });
   refresh();
-}
-
-const frequencia = z.object({ email: z.enum(["NUNCA", "DIARIO", "SEMANAL"]), voltar: z.enum(["/notificacoes", "/configuracoes"]) });
-
-/** Liga, desliga ou muda a frequência do resumo por email. */
-export async function salvarFrequenciaEmail(formData: FormData) {
-  const sessao = await requireSession();
-  const dados = frequencia.safeParse(Object.fromEntries(formData));
-  if (!dados.success) return;
-
-  const usuario = donoDa(sessao);
-  await db.preferenciaNotificacao.upsert({
-    where: { usuario },
-    create: { usuario, email: dados.data.email },
-    update: { email: dados.data.email },
-  });
-  redirect(`${dados.data.voltar}?email=salvo#notificacoes`);
 }

@@ -14,14 +14,12 @@ import { donoDa } from "@/lib/fixados";
 import { formatarData } from "@/lib/format/datas";
 import type { TipoNotificacao } from "@/lib/generated/prisma/enums";
 import { metadados } from "@/lib/metadados";
-import { emailLigado } from "@/lib/notificacoes/email";
 import { lerChave } from "@/lib/notificacoes/textos";
 import { getSeguidos, LIMITE_SEGUIDOS } from "@/lib/seguidos";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 import { marcarComoLida } from "./actions";
-import { PreferenciaEmail } from "./preferencia-email";
 
 export const metadata = metadados({
   titulo: "Notificações · Jabuti",
@@ -35,7 +33,7 @@ const NA_PAGINA = 100;
 const ICONE: Record<TipoNotificacao, typeof BellIcon> = { VOTO: VoteIcon, PROPOSICAO: FileTextIcon, LEI: ScrollTextIcon };
 const TIPO: Record<TipoNotificacao, string> = { VOTO: "Votação", PROPOSICAO: "Projeto apresentado", LEI: "Projeto seguido" };
 
-export default function NotificacoesPage({ searchParams }: PageProps<"/notificacoes">) {
+export default function NotificacoesPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 xs:px-6 py-[clamp(2rem,5vw,4rem)]">
       <header className="flex flex-col gap-3 animate-enter">
@@ -49,14 +47,14 @@ export default function NotificacoesPage({ searchParams }: PageProps<"/notificac
       </header>
 
       <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-        <Conteudo searchParams={searchParams} />
+        <Conteudo />
       </Suspense>
     </div>
   );
 }
 
-async function Conteudo({ searchParams }: Pick<PageProps<"/notificacoes">, "searchParams">) {
-  const [sessao, { email }] = await Promise.all([getSession(), searchParams]);
+async function Conteudo() {
+  const sessao = await getSession();
   if (!sessao) {
     return (
       <Empty className="rounded-lg border bg-card shadow-soft">
@@ -174,15 +172,6 @@ async function Conteudo({ searchParams }: Pick<PageProps<"/notificacoes">, "sear
           </ul>
         )}
       </section>
-
-      {emailLigado() && (
-        <section id="notificacoes" aria-labelledby="titulo-email" className="flex scroll-mt-24 flex-col gap-4 rounded-2xl border bg-card p-4 shadow-soft sm:p-6">
-          <h2 id="titulo-email" className="text-xl font-bold">
-            Receber por email
-          </h2>
-          <PreferenciaEmail sessao={sessao} voltar="/notificacoes" salvo={email === "salvo"} />
-        </section>
-      )}
 
       <section aria-labelledby="seguindo" className="flex flex-col gap-4">
         <h2 id="seguindo" className="text-xl font-bold">

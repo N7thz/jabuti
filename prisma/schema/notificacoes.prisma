@@ -1,5 +1,5 @@
-// Parlamentares e projetos seguidos por quem está logado, as notificações geradas para eles e a
-// preferência de resumo por email. São dados pessoais: nunca ler em "use cache".
+// Parlamentares e projetos seguidos por quem está logado e as notificações geradas para eles (só dentro do
+// portal, em /notificacoes e no sino). São dados pessoais: nunca ler em "use cache".
 // O dono é o email em minúsculas, como em Fixado.usuario (ver lib/fixados.ts).
 
 enum TipoSeguido {
@@ -49,24 +49,8 @@ model Notificacao {
   ocorridoEm DateTime
   criadaEm   DateTime        @default(now())
   lidaEm     DateTime?
-  /// Quando entrou num resumo por email; null = ainda não enviada.
-  enviadaEm  DateTime?
 
   @@unique([usuario, evento])
   @@index([usuario, criadaEm])
   @@index([usuario, lidaEm])
-}
-
-enum FrequenciaEmail {
-  NUNCA
-  DIARIO
-  SEMANAL
-}
-
-/// Preferência de resumo por email. Sem linha = NUNCA: o email é opt-in.
-model PreferenciaNotificacao {
-  usuario      String          @id
-  email        FrequenciaEmail @default(NUNCA)
-  ultimoEnvio  DateTime?
-  atualizadoEm DateTime        @updatedAt
 }

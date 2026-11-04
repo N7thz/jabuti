@@ -15,8 +15,6 @@ import { getFixados, LIMITE_FIXADOS, type TipoFixado } from "@/lib/fixados";
 import { getDono, getPerfil } from "@/lib/meu/perfil";
 import { metadados } from "@/lib/metadados";
 import { getSession } from "@/lib/session";
-import { PreferenciaEmail } from "@/app/notificacoes/preferencia-email";
-import { emailLigado } from "@/lib/notificacoes/email";
 
 import { apagarMeusDados } from "./actions";
 import { BotaoAcaoConta } from "./acoes-conta";
@@ -61,8 +59,8 @@ export default function ConfiguracoesPage({ searchParams }: PageProps<"/configur
       </Secao>
 
       <Secao id="notificacoes" titulo="Notificações" stagger={5}>
-        <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-          <Notificacoes searchParams={searchParams} />
+        <Suspense fallback={<Skeleton className="h-12 w-full" />}>
+          <Notificacoes />
         </Suspense>
       </Secao>
 
@@ -282,27 +280,21 @@ async function MeuPainel() {
   );
 }
 
-async function Notificacoes({ searchParams }: Pick<PageProps<"/configuracoes">, "searchParams">) {
-  const [sessao, { email }] = await Promise.all([getSession(), searchParams]);
+async function Notificacoes() {
+  const sessao = await getSession();
   if (!sessao) {
     return (
       <p className="text-muted-foreground">
-        Com login, dá para seguir parlamentares e projetos e receber as novidades no portal e, se quiser, por email.
+        Com login, dá para seguir parlamentares e projetos e ver as novidades em Notificações, com o contador no sino
+        do cabeçalho.
       </p>
     );
   }
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">
-        As novidades de quem você segue ficam em <Link href="/notificacoes">Notificações</Link>. Aqui você vai poder
-        escolher recebê-las também por email.
-      </p>
-      {emailLigado() ? (
-        <PreferenciaEmail sessao={sessao} voltar="/configuracoes" salvo={email === "salvo"} />
-      ) : (
-        <p className="text-sm text-muted-foreground">O aviso por email ainda não está disponível.</p>
-      )}
-    </div>
+    <p className="text-muted-foreground">
+      As novidades de quem você segue ficam em <Link href="/notificacoes">Notificações</Link>, com o contador no sino do
+      cabeçalho. Elas aparecem só aqui no portal: não são enviadas por email.
+    </p>
   );
 }
 
@@ -349,7 +341,7 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
 
       <p className="text-muted-foreground">
         Além da sua conta (nome, email e, se você criou uma, a senha criptografada), o portal guarda só os atalhos que você
-        fixou, o que você segue, as notificações dos últimos 180 dias, a sua escolha de receber ou não emails e, do seu
+        fixou, o que você segue, as notificações dos últimos 180 dias e, do seu
         painel, a cidade escolhida, as empresas vigiadas, as listas com as suas anotações e as preferências do site.
       </p>
 
@@ -392,7 +384,7 @@ async function DadosSalvos({ searchParams }: Pick<PageProps<"/configuracoes">, "
       <form action={apagarMeusDados} className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 p-4">
         <h3 className="font-semibold">Apagar meus dados</h3>
         <p className="text-sm text-muted-foreground">
-          Remove todos os atalhos fixados, o que você segue, as notificações, a preferência de email, a cidade do painel,
+          Remove todos os atalhos fixados, o que você segue, as notificações, a cidade do painel,
           as empresas vigiadas, as listas e as preferências do site guardadas na conta. Não dá para desfazer. Sua conta
           continua existindo; se quiser uma cópia antes, use <a href="/api/meus-dados" download>Baixar meus dados</a>.
         </p>

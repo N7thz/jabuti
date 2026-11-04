@@ -4,8 +4,8 @@ import { getSeguidos, LIMITE_SEGUIDOS, type Seguidos, type TipoSeguido } from "@
 import { EnviarSeguido } from "./seguir-enviar";
 
 /**
- * Botão "Seguir" de um parlamentar ou projeto: quem segue recebe notificações em /notificacoes
- * (e por email, se pedir em /configuracoes). Só aparece para quem está logado.
+ * Botão "Seguir" de um parlamentar ou projeto: quem segue recebe notificações em /notificacoes.
+ * Só aparece para quem está logado.
  * É um `<form>` com a Server Action, então funciona sem JavaScript.
  * Lê a sessão: use dentro de `<Suspense>` e nunca em "use cache".
  */

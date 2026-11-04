@@ -28,13 +28,6 @@ env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
   DIRECT_URL: ${{ secrets.DIRECT_URL }}
   PORTAL_TRANSPARENCIA_API_KEY: ${{ secrets.PORTAL_TRANSPARENCIA_API_KEY }}
-  # Só o job de notificações usa: resumo por email (Resend) e links absolutos/assinados de descadastro.
-  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-  EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
-  BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-  NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
-  # "1" liga os resumos por email; fica desligado até haver domínio verificado no Resend.
-  NOTIFICACOES_POR_EMAIL: ${{ vars.NOTIFICACOES_POR_EMAIL }}
   ARGUMENTOS: ${{ inputs.argumentos }}
 
 jobs:
