@@ -39,7 +39,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Minhas listas | `/listas`, `/listas/[id]` | Com login: listas privadas de votações, leis, empresas, emendas, parlamentares e páginas, com anotações; cada lista baixa em CSV (`/api/csv/lista/[id]`) |
 | Notificações | `/notificacoes` | Com login: o que aconteceu com os parlamentares e projetos seguidos |
 
-O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. Também dá para **seguir** parlamentares e projetos de lei (botão "Seguir" no perfil do senador ou deputado e em cada item de `/leis`): uma vez por dia, depois da carga, o portal gera notificações com o voto de cada parlamentar seguido nas votações nominais, os projetos que ele apresentou e as mudanças de situação dos projetos seguidos. Elas ficam em `/notificacoes` (com o contador no sino do cabeçalho) e, quando o envio por email for ligado (`NOTIFICACOES_POR_EMAIL=1`, depois de verificar um domínio próprio no Resend), também num resumo diário ou semanal escolhido em `/configuracoes`, com link para parar de receber sem login. As preferências de leitura funcionam sem login; com login, elas (e o menu) passam a valer em todos os aparelhos.
+O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. Também dá para **seguir** parlamentares e projetos de lei (botão "Seguir" no perfil do senador ou deputado e em cada item de `/leis`): uma vez por dia, depois da carga, o portal gera notificações com o voto de cada parlamentar seguido nas votações nominais, os projetos que ele apresentou e as mudanças de situação dos projetos seguidos. Elas ficam só dentro do portal, em `/notificacoes` (com o contador no sino do cabeçalho); não há envio por email. As preferências de leitura funcionam sem login; com login, elas (e o menu) passam a valer em todos os aparelhos.
 
 Em `/meu` ficam as **empresas vigiadas** (até 20 CNPJs): a cada visita o painel confere sanções (CEIS, CNEP e TCU) e contratos novos no Portal da Transparência e mostra o que mudou desde a última vez. Na seção "Mais" de `/meu` dá para baixar tudo o que o portal guarda da conta num JSON (`/api/meus-dados`, direito previsto na LGPD, art. 18). Login, envio de links e feedback têm limite de tentativas (`lib/limite.ts`), contado no banco para valer em todas as instâncias.
 
@@ -66,7 +66,8 @@ Sempre que possível, o app consulta a API oficial direto. O banco guarda só o 
 - Tailwind CSS 4 + [shadcn/ui](https://ui.shadcn.com); o visual segue o [`DESIGN.md`](DESIGN.md)
 - [Neon](https://neon.tech) Postgres + [Prisma 7](https://www.prisma.io)
 - [Better Auth](https://www.better-auth.com) com login Google ou email e senha
-- [Resend](https://resend.com) para os emails (feedback, confirmação de email e redefinição de senha)
+- [Resend](https://resend.com) para os emails (feedback, confirmação de email e redefinição de senha), enviados do domínio próprio `portal-jabuti.com.br` (verificado no Resend, região `sa-east-1`)
+- [react-email](https://react.email) no layout dos emails: os modelos ficam em `emails/` e cada email sai em HTML e também em texto puro (`emails/renderizar.ts`)
 - [Motion](https://motion.dev) nas animações, que respeitam a preferência de movimento reduzido
 - [Biome](https://biomejs.dev) como linter
 - react-hook-form + zod nos formulários (que também funcionam sem JavaScript)
@@ -93,14 +94,14 @@ Para ver se o app alcança o banco, abra `GET /api/health`.
 | `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência ([cadastro](https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email)) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Login Google. Redirect URI: `http://localhost:3000/api/auth/callback/google` |
 | `BETTER_AUTH_SECRET` | Segredo das sessões (`openssl rand -base64 32`) |
-| `BETTER_AUTH_URL` | URL base do app (`http://localhost:3000` no dev) |
-| `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`) |
+| `BETTER_AUTH_URL` | URL base do app (`http://localhost:3000` no dev). Define os links dos emails de login; em produção é `https://portal-jabuti.com.br` |
+| `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`). Em produção é `https://portal-jabuti.com.br` |
 | `DATABASE_URL` | Conexão do Neon **com pooling** (host com `-pooler`), usada pelo app |
 | `DIRECT_URL` | Conexão **direta**, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
 | `RESEND_API_KEY` | Chave do [Resend](https://resend.com/api-keys), para enviar os emails |
 | `FEEDBACK_EMAIL` | Quem recebe as mensagens do `/feedback` (vários separados por vírgula) |
-| `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend (opcional: sem ele vale o remetente de teste, que só entrega ao dono da conta) |
-| `EMAIL_REMETENTE` | Remetente dos emails do login (opcional: sem ele vale o `FEEDBACK_REMETENTE`) |
+| `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend, ex.: `Jabuti <contato@portal-jabuti.com.br>`. Sem ele vale o `EMAIL_REMETENTE` e, sem os dois, o remetente de teste `onboarding@resend.dev`, que só entrega ao dono da conta |
+| `EMAIL_REMETENTE` | Remetente dos emails do login, ex.: `Jabuti <avisos@portal-jabuti.com.br>`. Sem ele vale o `FEEDBACK_REMETENTE`, depois o remetente de teste. Endereço de provedor gratuito (gmail, hotmail, outlook, yahoo...) gera aviso no log, porque o Resend não aceita. Todo envio passa por `lib/resend.ts` |
 | `ADMIN_EMAILS` | Emails (separados por vírgula) com acesso ao admin em `/admin/apoiadores`, onde se adicionam e tiram nomes do mural de `/apoie`. Para os outros, a página responde 404 |
 | `APOIO_PIX_CHAVE`, `APOIO_PIX_NOME`, `APOIO_PIX_CIDADE` | Pix de apoio ao projeto em `/apoie` (opcional: sem os três, o Pix não aparece). O portal gera o QR Code e o copia e cola |
 | `APOIO_GITHUB_SPONSORS_URL`, `APOIO_APOIASE_URL` | Links de apoio mensal (opcionais, só `https`) |
@@ -118,7 +119,7 @@ bun scripts/sync-camara.ts                          # padrão: últimos 30 dias
 bun scripts/sync-senado.ts                          # padrão: últimos 30 dias
 bun scripts/sync-emendas.ts --anos 2020-2025        # precisa dos municípios
 bun scripts/sync-tse.ts                             # precisa de Câmara e Senado
-bun scripts/notificar.ts                            # notificações e resumos por email (--sem-email para não enviar)
+bun scripts/notificar.ts                            # notificações de quem segue parlamentares e projetos
 ```
 
 Opções úteis: `--desde AAAA-MM-DD` / `--ate AAAA-MM-DD` (Câmara e Senado), `--so votacoes,despesas` para rodar só algumas etapas (a etapa `orientacoes`, de Câmara e Senado, guarda a orientação de bancada usada no índice de fidelidade e deve rodar depois de `votacoes`), `--ufs AC,AM` e `--anos 2018,2022` (TSE). O cabeçalho de cada script tem a lista completa. Cada execução fica registrada na tabela `SyncRun`.
@@ -143,10 +144,6 @@ Secrets necessários no repositório (**Settings → Secrets and variables → A
 | `DATABASE_URL` | Conexão do Neon com pooling, onde os scripts gravam |
 | `DIRECT_URL` | Conexão direta do Neon |
 | `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência (emendas) |
-| `RESEND_API_KEY`, `EMAIL_REMETENTE` | Envio dos resumos de notificação por email (só com a variável `NOTIFICACOES_POR_EMAIL=1`) |
-| `BETTER_AUTH_SECRET` | O mesmo do app: assina o link de "parar de receber" dos emails |
-
-E a variável (não secret) `NEXT_PUBLIC_SITE_URL`, endereço público do portal usado nos links dos emails.
 
 ## Scripts do projeto
 
@@ -157,6 +154,7 @@ E a variável (não secret) `NEXT_PUBLIC_SITE_URL`, endereço público do portal
 | `bun run check` | Checagem de tipos + lint (Biome) |
 | `bun test` (ou `bun run test`) | Testes unitários (`lib/**/*.test.ts`, com `bun:test`) |
 | `bun run test:a11y` | Acessibilidade (axe, WCAG 2 A e AA) nas páginas principais, temas claro e escuro. Precisa do banco e das chaves, então roda só local: sobe o `bun dev` ou usa o que já estiver na porta `PORTA_E2E` (padrão 3000). Na primeira vez: `bunx playwright install chromium` |
+| `bun run email:dev` | Abre a pré-visualização dos modelos de email (`emails/`) em http://localhost:3001 |
 | `bun run db:migrate` | Cria e aplica uma migration no desenvolvimento |
 | `bun run db:deploy` | Aplica as migrations pendentes |
 | `bun run db:studio` | Abre o Prisma Studio |
@@ -167,6 +165,7 @@ E a variável (não secret) `NEXT_PUBLIC_SITE_URL`, endereço público do portal
 ```
 app/            rotas (páginas, API em app/api)
 components/     componentes de interface (components/ui = shadcn)
+emails/         modelos dos emails (react-email), com HTML e texto puro
 lib/            um cliente por fonte de dados (camara, senado, tse, siconfi,
                 transferegov, tcu, ibge, transparencia), formatação e glossário
 prisma/         schema/ (um arquivo por escopo: votacoes, tse, auth...) e migrations

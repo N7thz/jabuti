@@ -1,5 +1,8 @@
 import "server-only";
 
+import FeedbackRecebido from "../../emails/feedback";
+import { renderizar } from "../../emails/renderizar";
+import { postarNoResend, remetente } from "../resend";
 import { ASSUNTOS, type Feedback } from "./schema";
 
 /**
@@ -11,8 +14,6 @@ import { ASSUNTOS, type Feedback } from "./schema";
 export async function enviarFeedback(dados: Feedback): Promise<string | null> {
   const chave = process.env.RESEND_API_KEY;
   const para = process.env.FEEDBACK_EMAIL;
-  // Sem domínio verificado no Resend, só o remetente de teste funciona (e entrega só para o dono da conta).
-  const de = process.env.FEEDBACK_REMETENTE || "Jabuti <onboarding@resend.dev>";
 
   if (!chave || !para) {
     console.error("[feedback] RESEND_API_KEY ou FEEDBACK_EMAIL não configurados; mensagem não enviada.");
@@ -21,17 +22,22 @@ export async function enviarFeedback(dados: Feedback): Promise<string | null> {
 
   const assunto = ASSUNTOS[dados.assunto];
   const resumo = dados.mensagem.replace(/\s+/g, " ").slice(0, 60);
+  const anexos = dados.anexos.map((arquivo) => arquivo.name);
+  // Texto puro escrito à mão: a conversão automática do HTML junta as quebras de linha da mensagem.
   const texto = [
     `Assunto: ${assunto}`,
     `Nome: ${dados.nome || "(não informado)"}`,
     `Email para resposta: ${dados.email}`,
     `Página: ${dados.pagina || "(não informada)"}`,
-    `Anexos: ${dados.anexos.length ? dados.anexos.map((arquivo) => arquivo.name).join(", ") : "nenhum"}`,
+    `Anexos: ${anexos.length ? anexos.join(", ") : "nenhum"}`,
     "",
     dados.mensagem,
   ].join("\n");
 
   try {
+    const { html } = await renderizar(
+      FeedbackRecebido({ assunto, nome: dados.nome, email: dados.email, pagina: dados.pagina, anexos, mensagem: dados.mensagem }),
+    );
     // O Resend recebe cada anexo como base64 no próprio JSON.
     const attachments = await Promise.all(
       dados.anexos.map(async (arquivo) => ({
@@ -39,19 +45,17 @@ export async function enviarFeedback(dados: Feedback): Promise<string | null> {
         content: Buffer.from(await arquivo.arrayBuffer()).toString("base64"),
       })),
     );
-    const resposta = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: de,
-        to: para.split(",").map((email) => email.trim()),
-        reply_to: dados.email,
-        subject: `[Jabuti] ${assunto}: ${resumo}`,
-        text: texto,
-        ...(attachments.length > 0 && { attachments }),
-      }),
+    const resposta = await postarNoResend({
+      // FEEDBACK_REMETENTE, depois EMAIL_REMETENTE; sem nenhum, o remetente de teste (entrega só ao dono da conta).
+      de: remetente("feedback"),
+      para: para.split(",").map((email) => email.trim()),
+      responderPara: dados.email,
+      assunto: `[Jabuti] ${assunto}: ${resumo}`,
+      texto,
+      html,
+      anexos: attachments,
       // Mais tempo quando há anexos: até 10 MB (uns 13 MB em base64) precisam subir para o Resend.
-      signal: AbortSignal.timeout(attachments.length > 0 ? 30_000 : 10_000),
+      tempoLimiteMs: attachments.length > 0 ? 30_000 : 10_000,
     });
     if (resposta.ok) return null;
     console.error("[feedback] Resend recusou:", resposta.status, await resposta.text());

@@ -6,6 +6,10 @@ import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 
+import BoasVindas, { assuntoBoasVindas } from "../emails/boas-vindas";
+import ConfirmarEmail, { assuntoConfirmarEmail } from "../emails/confirmar-email";
+import LinkDeEntrada, { assuntoLinkDeEntrada } from "../emails/link-de-entrada";
+import SenhaNova, { assuntoSenhaNova } from "../emails/senha-nova";
 import { db } from "./db";
 import { enviarEmail } from "./email";
 
@@ -44,18 +48,7 @@ export const auth = betterAuth({
     // Trocou a senha: derruba as outras sessões, caso alguém estivesse usando a senha antiga.
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await enviarEmail({
-        para: user.email,
-        assunto: "Jabuti: criar uma senha nova",
-        texto: [
-          "Olá.",
-          "",
-          "Recebemos um pedido para criar uma senha nova para a sua conta no Jabuti. Para escolher a senha, abra o link:",
-          url,
-          "",
-          "O link vale por 1 hora. Se não foi você, ignore este email: nada muda na sua conta.",
-        ].join("\n"),
-      });
+      await enviarEmail({ para: user.email, assunto: assuntoSenhaNova, email: SenhaNova({ url }) });
     },
   },
   emailVerification: {
@@ -64,18 +57,7 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await enviarEmail({
-        para: user.email,
-        assunto: "Jabuti: confirme seu email",
-        texto: [
-          "Olá.",
-          "",
-          "Para ativar sua conta no Jabuti, confirme seu email abrindo o link:",
-          url,
-          "",
-          "O link vale por 1 hora. Se você não criou uma conta, ignore este email.",
-        ].join("\n"),
-      });
+      await enviarEmail({ para: user.email, assunto: assuntoConfirmarEmail, email: ConfirmarEmail({ url }) });
     },
   },
   account: {
@@ -125,45 +107,16 @@ export const auth = betterAuth({
       storeToken: "hashed",
       sendMagicLink: async ({ email, url }) => {
         const jaTemConta = await db.user.findUnique({ where: { email: email.toLowerCase() }, select: { id: true } });
-        await enviarEmail(jaTemConta ? emailDeEntrada(email, url) : emailDeBoasVindas(email, url));
+        await enviarEmail(
+          jaTemConta
+            ? { para: email, assunto: assuntoLinkDeEntrada, email: LinkDeEntrada({ url }) }
+            : { para: email, assunto: assuntoBoasVindas, email: BoasVindas({ url }) },
+        );
       },
     }),
     // Deve ser o último plugin: permite que Server Actions gravem os cookies de sessão.
     nextCookies(),
   ],
 });
-
-function emailDeBoasVindas(para: string, url: string) {
-  return {
-    para,
-    assunto: "Boas-vindas ao Jabuti: ative sua conta",
-    texto: [
-      "Olá, boas-vindas ao Jabuti!",
-      "",
-      "Para criar sua conta e já entrar, abra o link:",
-      url,
-      "",
-      "Com a conta você fixa políticos, partidos e bancadas para acompanhar de perto. Não precisa de senha:",
-      "sempre que quiser entrar, peça um link novo. Se preferir uma senha, crie em \"Esqueci minha senha\".",
-      "",
-      "O link vale por 1 hora e funciona uma vez só. Se você não pediu para criar uma conta, ignore este email.",
-    ].join("\n"),
-  };
-}
-
-function emailDeEntrada(para: string, url: string) {
-  return {
-    para,
-    assunto: "Jabuti: seu link para entrar",
-    texto: [
-      "Olá.",
-      "",
-      "Você já tem conta no Jabuti com este email. Para entrar, abra o link:",
-      url,
-      "",
-      "O link vale por 1 hora e funciona uma vez só. Se não foi você, ignore este email: ninguém entra sem ele.",
-    ].join("\n"),
-  };
-}
 
 export type Session = typeof auth.$Infer.Session;

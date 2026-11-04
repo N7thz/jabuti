@@ -10,9 +10,8 @@ import { donoDa } from "@/lib/fixados";
 import { getSession, requireSession } from "@/lib/session";
 
 /**
- * Tudo o que a conta guarda fora do usuário do banco: fixados, seguidos, notificações, preferência de email,
- * perfil (cidade, preferências do site, última visita ao painel), listas (os itens caem junto por cascata) e
- * empresas vigiadas. São ligados ao email, não ao usuário do banco, então saem à parte quando a conta é excluída.
+ * Tudo o que a conta guarda fora do usuário do banco: fixados, seguidos, notificações, perfil (cidade, preferências
+ * do site, última visita ao painel), listas (os itens caem junto por cascata) e empresas vigiadas. São ligados ao email, não ao usuário do banco, então saem à parte quando a conta é excluída.
  * Mesma lista de /api/meus-dados: o que se baixa é o que se apaga.
  */
 function apagarDadosDe(sessao: { user: { email: string } }) {
@@ -21,7 +20,6 @@ function apagarDadosDe(sessao: { user: { email: string } }) {
     db.fixado.deleteMany({ where: { usuario } }),
     db.seguido.deleteMany({ where: { usuario } }),
     db.notificacao.deleteMany({ where: { usuario } }),
-    db.preferenciaNotificacao.deleteMany({ where: { usuario } }),
     db.perfilUsuario.deleteMany({ where: { usuario } }),
     db.lista.deleteMany({ where: { usuario } }),
     db.empresaVigiada.deleteMany({ where: { usuario } }),
