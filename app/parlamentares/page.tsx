@@ -18,6 +18,7 @@ import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { normalizarNome } from "@/lib/sync/run";
 import { cn } from "@/lib/utils";
 
+import { ComposicaoAtual } from "./composicao-atual";
 import { ListaEleitos, partidosDosEleitos } from "./eleitos";
 import { filtrosParlamentares, lerUrlParlamentares, linkParlamentares, paginaParlamentares } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
@@ -173,10 +174,17 @@ async function PainelFixados() {
 
 function ListaSkeleton() {
   return (
-    <div role="status" aria-label="Carregando parlamentares" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 9 }, (_, i) => (
-        <Skeleton key={i} className="h-16" />
-      ))}
+    <div role="status" aria-label="Carregando parlamentares" className="flex flex-col gap-8">
+      {/* Gráficos da composição, que vêm antes da lista nos dois modos. */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Skeleton className="h-80 rounded-2xl" />
+        <Skeleton className="hidden h-80 rounded-2xl xl:block" />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 9 }, (_, i) => (
+          <Skeleton key={i} className="h-16" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -198,7 +206,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
       consequencia={
         todos.length === 0
           ? "Sem as listas oficiais, não há como mostrar os parlamentares agora."
-          : `A lista mostra só os ${todos[0].casa === "camara" ? "deputados" : "senadores"}.`
+          : `A lista e o gráfico mostram só os ${todos[0].casa === "camara" ? "deputados" : "senadores"}.`
       }
     />
   );
@@ -228,10 +236,14 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
   if (siglaPartido) alvos.push({ tipo: "PARTIDO", chave: siglaPartido, rotulo: siglaPartido, nome: `partido ${siglaPartido}` });
   if (uf) alvos.push({ tipo: "BANCADA", chave: uf, rotulo: `Bancada de ${uf}`, nome: `bancada de ${uf}` });
 
+  // Composição atual da casa e do estado filtrados; não depende dos filtros de partido, nome e fixados.
+  const composicao = <ComposicaoAtual parlamentares={todos} casa={casa} uf={uf} />;
+
   if (lista.length === 0) {
     return (
       <>
         {aviso}
+        {composicao}
         <Empty className="rounded-lg border bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -257,8 +269,10 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
   const link = (p: number) => linkParlamentares("/parlamentares", { ...lerUrlParlamentares(params), pagina: p });
 
   return (
-    <section id="resultados" aria-labelledby="resultado" className="flex scroll-mt-24 flex-col gap-4">
+    <>
       {aviso}
+      {composicao}
+      <section id="resultados" aria-labelledby="resultado" className="flex scroll-mt-24 flex-col gap-4">
       <RolarAoMudar alvo="resultados" chave={`${nome ?? ""}|${casa ?? ""}|${uf ?? ""}|${partido ?? ""}|${soFixados ?? ""}|${pagina}`} />
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b pb-3">
         <h2 id="resultado" className="text-lg font-semibold" aria-live="polite">
@@ -281,6 +295,7 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
         ))}
       </ItemGroup>
       <Paginacao pagina={pagina} total={totalPaginas} href={link} scroll={false} />
-    </section>
+      </section>
+    </>
   );
 }

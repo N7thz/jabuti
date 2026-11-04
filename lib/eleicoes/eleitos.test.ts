@@ -3,7 +3,14 @@ import { describe, expect, test } from "bun:test";
 
 import { inicioDaLegislatura } from "@/lib/anos";
 
-import { type EleitoResumo, filtrarEleitos, legislaturaDaPosse, montarComposicao, situacaoDoEleito } from "./eleitos";
+import {
+  composicaoAtual,
+  type EleitoResumo,
+  filtrarEleitos,
+  legislaturaDaPosse,
+  montarComposicao,
+  situacaoDoEleito,
+} from "./eleitos";
 
 const eleito = (e: Partial<EleitoResumo>): EleitoResumo => ({
   id: "x",
@@ -123,4 +130,31 @@ describe("montarComposicao", () => {
       { partido: "PC do B", assentos: 2 },
     ]);
   });
+});
+
+test("composicaoAtual: parlamentares em exercício pelo partido atual, com a bancada do estado", () => {
+  const atuais = [
+    { casa: "camara" as const, uf: "SP", partido: "PL" },
+    { casa: "camara" as const, uf: "SP", partido: "PODE" },
+    { casa: "camara" as const, uf: "RJ", partido: "PODEMOS" },
+    { casa: "senado" as const, uf: "SP", partido: "PT" },
+    { casa: "senado" as const, uf: "BA", partido: null },
+  ];
+  const brasil = composicaoAtual(atuais);
+  expect(brasil.camara.total).toBe(3);
+  expect(brasil.camara.esperado).toBe(513);
+  // "PODE" e "PODEMOS" são o mesmo partido: uma fatia só, com a primeira grafia.
+  expect(brasil.camara.grupos).toEqual([
+    { partido: "PODE", assentos: 2 },
+    { partido: "PL", assentos: 1 },
+  ]);
+  expect(brasil.senado.total).toBe(2);
+  expect(brasil.senado.esperado).toBe(81);
+  expect(brasil.senado.grupos.map((g) => g.partido).sort()).toEqual(["PT", "Sem partido"]);
+
+  const sp = composicaoAtual(atuais, "SP");
+  expect(sp.camara.total).toBe(2);
+  expect(sp.camara.esperado).toBeNull();
+  expect(sp.senado.total).toBe(1);
+  expect(sp.senado.esperado).toBe(3);
 });

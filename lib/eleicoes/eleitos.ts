@@ -131,3 +131,25 @@ export function montarComposicao(
     },
   };
 }
+
+/** Parlamentar em exercício, como vem de `listarParlamentares` (lib/parlamentares/queries.ts). */
+export type ParlamentarAtual = { casa: CasaEleito; uf: string | null; partido: string | null };
+
+/**
+ * Composição de hoje: deputados e senadores em exercício, contados pelo partido atual de cada um. Com `uf`, a
+ * bancada daquele estado. Siglas com grafias diferentes ("PODEMOS" e "PODE") contam juntas, como em
+ * `montarComposicao`.
+ */
+export function composicaoAtual(parlamentares: ParlamentarAtual[], uf?: string): Record<CasaEleito, Composicao> {
+  const doEstado = parlamentares.filter((p) => !uf || p.uf === uf);
+  const montar = (casa: CasaEleito, esperado: number | null): Composicao => {
+    const daCasa = doEstado.filter((p) => p.casa === casa);
+    return {
+      casa,
+      grupos: agruparComposicao(contarPorPartido(daCasa.map((p) => p.partido ?? "Sem partido"))),
+      total: daCasa.length,
+      esperado,
+    };
+  };
+  return { camara: montar("camara", uf ? null : CADEIRAS.camara), senado: montar("senado", uf ? 3 : CADEIRAS.senado) };
+}
