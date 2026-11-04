@@ -41,8 +41,15 @@ export default function CompararPage({ searchParams }: PageProps<"/comparar">) {
       </header>
 
       {/* O fallback é o próprio formulário, vazio e com a lista de nomes (em cache): vai no HTML estático e
-          funciona sem JavaScript. Com os filtros da URL, a versão preenchida substitui a vazia. */}
-      <Suspense fallback={<Filtros />}>
+          funciona sem JavaScript. Com os filtros da URL, a versão preenchida substitui a vazia. Se a Câmara ou o
+          Senado falharem no build, a lista não vai para o HTML estático e o esqueleto ocupa o lugar dela. */}
+      <Suspense
+        fallback={
+          <Suspense fallback={<Skeleton className="h-40" />}>
+            <Filtros />
+          </Suspense>
+        }
+      >
         <Filtros searchParams={searchParams} />
       </Suspense>
 
