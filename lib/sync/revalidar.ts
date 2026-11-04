@@ -19,14 +19,15 @@ export type Fonte = (typeof FONTES)[number];
  * - "emendas": emenda, com nomes de municipio e de parlamentar.
  * - "tse": candidatura, bens, receitas e votos por município, com emenda e municipio ao lado.
  * - "municipios": municipio (IBGE).
+ * - "eleitos": eleito (TSE), com o parlamentar ao lado (o selo "Reeleito" depende de quem está em exercício).
  * Câmara e Senado também renovam "emendas": as listas de emendas mostram nome e partido do parlamentar.
  */
 export const ETIQUETAS_POR_FONTE: Record<Fonte, readonly string[]> = {
-  camara: ["votacoes", "cota", "medias", "sync", "cruzamentos", "emendas"],
-  senado: ["votacoes", "cota", "medias", "sync", "cruzamentos", "emendas"],
+  camara: ["votacoes", "cota", "medias", "sync", "cruzamentos", "emendas", "eleitos"],
+  senado: ["votacoes", "cota", "medias", "sync", "cruzamentos", "emendas", "eleitos"],
   emendas: ["emendas", "medias", "cruzamentos", "tse"],
   municipios: ["municipios", "emendas", "cruzamentos", "tse"],
-  tse: ["tse", "cruzamentos"],
+  tse: ["tse", "cruzamentos", "eleitos"],
 };
 
 export const pedidoRevalidar = z.object({

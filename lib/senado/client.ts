@@ -83,7 +83,16 @@ function normalizarSenador(p: ParlamentarListaApi): Senador {
     // A API ainda publica http://; o servidor redireciona para https.
     fotoUrl: texto(id.UrlFotoParlamentar)?.replace(/^http:/, "https:") ?? null,
     email: texto(id.EmailParlamentar),
+    ultimaLegislatura: ultimaLegislatura(mandatos),
   };
+}
+
+/** Maior número de legislatura entre os mandatos (Segunda do mandato, ou Primeira quando não há Segunda). */
+function ultimaLegislatura(mandatos: { PrimeiraLegislaturaDoMandato?: { NumeroLegislatura: string }; SegundaLegislaturaDoMandato?: { NumeroLegislatura: string } }[]) {
+  const numeros = mandatos
+    .map((m) => Number(m.SegundaLegislaturaDoMandato?.NumeroLegislatura ?? m.PrimeiraLegislaturaDoMandato?.NumeroLegislatura))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return numeros.length > 0 ? Math.max(...numeros) : null;
 }
 
 function normalizarVotacao(v: VotacaoApi): VotacaoPlenario {

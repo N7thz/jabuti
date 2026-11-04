@@ -277,6 +277,11 @@ export interface Senador {
   uf: string | null;
   fotoUrl: string | null;
   email: string | null;
+  /**
+   * Número da última legislatura do mandato (a Segunda do mandato de 8 anos; a Primeira se não houver). Diz até
+   * quando vai o mandato: a legislatura N termina em 1º de fevereiro de 1795 + 4·(N + 1).
+   */
+  ultimaLegislatura: number | null;
 }
 
 export interface VotoSenador {

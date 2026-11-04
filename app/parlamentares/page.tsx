@@ -11,12 +11,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { ItemGroup } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { chavePartido } from "@/lib/eleicoes/cores";
 import { lerFiltros } from "@/lib/filtros/schemas";
 import { getFixados } from "@/lib/fixados";
 import { listarParlamentares } from "@/lib/parlamentares/queries";
 import { normalizarNome } from "@/lib/sync/run";
 import { cn } from "@/lib/utils";
 
+import { ListaEleitos, partidosDosEleitos } from "./eleitos";
 import { filtrosParlamentares, lerUrlParlamentares, linkParlamentares, paginaParlamentares } from "./filtros";
 import { FiltrosForm } from "./filtros-form";
 import { metadados } from "@/lib/metadados";
@@ -32,13 +34,10 @@ const POR_PAGINA = 30;
 export default function ParlamentaresPage({ searchParams }: PageProps<"/parlamentares">) {
   return (
     <div data-secao="parlamentares" className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 xs:px-6 py-[clamp(2rem,5vw,4rem)]">
-      <header className="flex flex-col gap-3 animate-enter">
-        <p className="text-sm font-medium tracking-wide text-secao uppercase">Câmara e Senado</p>
-        <h1 className="text-[clamp(2rem,4vw,3rem)] leading-tight font-bold">Parlamentares em exercício</h1>
-        <p className="max-w-[60ch] text-lg text-muted-foreground">
-          Escolha um deputado ou senador para ver gastos da cota, proposições apresentadas e emendas.
-        </p>
-      </header>
+      {/* O título depende do modo (em exercício ou eleitos), que vem da URL; sem ela, o de em exercício. */}
+      <Suspense fallback={<Cabecalho eleitos={false} />}>
+        <CabecalhoDaUrl searchParams={searchParams} />
+      </Suspense>
 
       {/* Atalhos de quem está logado; não aparece para visitantes nem para quem não fixou nada. */}
       <Suspense fallback={null}>
@@ -59,15 +58,57 @@ export default function ParlamentaresPage({ searchParams }: PageProps<"/parlamen
   );
 }
 
-async function Filtros({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
-  const [params, { lista: todos }, fixados] = await Promise.all([searchParams, listarParlamentares(), getFixados()]);
-  const partidos = [...new Set(todos.map((p) => p.partido).filter((p): p is string => Boolean(p)))].sort((a, b) =>
+/** "?eleitos=2026" válido: a página mostra os eleitos no lugar dos parlamentares em exercício. */
+const modoEleitos = (params: Awaited<PageProps<"/parlamentares">["searchParams"]>) =>
+  lerFiltros(filtrosParlamentares, params).valores?.eleitos === "2026";
+
+function Cabecalho({ eleitos }: { eleitos: boolean }) {
+  return (
+    <header className="flex flex-col gap-3 animate-enter">
+      <p className="text-sm font-medium tracking-wide text-secao uppercase">Câmara e Senado</p>
+      <h1 className="text-[clamp(2rem,4vw,3rem)] leading-tight font-bold">
+        {eleitos ? "Eleitos em 2026" : "Parlamentares em exercício"}
+      </h1>
+      <p className="max-w-[60ch] text-lg text-muted-foreground">
+        {eleitos
+          ? "Deputados federais e senadores eleitos em outubro de 2026. Tomam posse em 1º de fevereiro de 2027 e ficam até 2031 (deputados) ou 2035 (senadores)."
+          : "Escolha um deputado ou senador para ver gastos da cota, proposições apresentadas e emendas."}
+      </p>
+    </header>
+  );
+}
+
+async function CabecalhoDaUrl({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
+  return <Cabecalho eleitos={modoEleitos(await searchParams)} />;
+}
+
+/** Siglas dos partidos com parlamentar em exercício, em ordem alfabética. */
+async function partidosEmExercicio() {
+  const { lista: todos } = await listarParlamentares();
+  return [...new Set(todos.map((p) => p.partido).filter((p): p is string => Boolean(p)))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
+}
+
+async function Filtros({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
+  const params = await searchParams;
+  const [lista, fixados] = await Promise.all([
+    modoEleitos(params) ? partidosDosEleitos() : partidosEmExercicio(),
+    getFixados(),
+  ]);
+  // A sigla da URL pode vir em outra grafia ("PCdoB" de um fixado, "PC DO B" do TSE): o select mostra a da lista;
+  // se o partido não estiver nela, entra assim mesmo, para o filtro escolhido continuar visível.
+  const valores = lerUrlParlamentares(params);
+  let partidos = lista;
+  if (valores.partido) {
+    const igual = lista.find((p) => chavePartido(p) === chavePartido(valores.partido ?? ""));
+    if (igual) valores.partido = igual;
+    else partidos = [...lista, valores.partido].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
   return (
     // Sem JS o navegador envia o formulário cru; o servidor valida com o mesmo schema e devolve os erros.
     <FiltrosForm
-      valores={lerUrlParlamentares(params)}
+      valores={valores}
       erros={lerFiltros(filtrosParlamentares, params).erros}
       partidos={partidos}
       logado={fixados !== null}
@@ -141,6 +182,11 @@ function ListaSkeleton() {
 }
 
 async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "searchParams">) {
+  const urlParams = await searchParams;
+  if (modoEleitos(urlParams)) {
+    const querFixados = lerFiltros(filtrosParlamentares, urlParams).valores?.fixados === "1";
+    return <ListaEleitos params={urlParams} querFixados={querFixados} />;
+  }
   const [params, { lista: todos, indisponiveis }, fixados] = await Promise.all([
     searchParams,
     listarParlamentares(),
@@ -170,13 +216,15 @@ async function Lista({ searchParams }: Pick<PageProps<"/parlamentares">, "search
     (p) =>
       (!casa || p.casa === casa) &&
       (!uf || p.uf === uf) &&
-      (!partido || p.partido?.toUpperCase() === partido) &&
+      (!partido || (p.partido !== null && chavePartido(p.partido) === chavePartido(partido))) &&
       (!nome || normalizarNome(p.nome).includes(nome)) &&
       (!soFixados || ehFixado(p)),
   );
   // Partido ou bancada filtrados viram atalho fixável (o botão só aparece para quem está logado).
   const alvos: AlvoFixado[] = [];
-  const siglaPartido = partido ? todos.find((p) => p.partido?.toUpperCase() === partido)?.partido : null;
+  const siglaPartido = partido
+    ? todos.find((p) => p.partido !== null && chavePartido(p.partido) === chavePartido(partido))?.partido
+    : null;
   if (siglaPartido) alvos.push({ tipo: "PARTIDO", chave: siglaPartido, rotulo: siglaPartido, nome: `partido ${siglaPartido}` });
   if (uf) alvos.push({ tipo: "BANCADA", chave: uf, rotulo: `Bancada de ${uf}`, nome: `bancada de ${uf}` });
 

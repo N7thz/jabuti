@@ -23,6 +23,7 @@ model Parlamentar {
   proposicoes  ProposicaoAutor[]
   candidaturas Candidatura[]
   patrimonios  PatrimonioEleicao[]
+  eleicoes     Eleito[]
 
   @@unique([casa, idExterno])
   @@index([nomeBusca])

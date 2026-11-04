@@ -9,6 +9,7 @@ import { useFiltroForm } from "@/components/form/use-filtro-form";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { mascaraNome } from "@/lib/filtros/mascaras";
 import { UFS } from "@/lib/ufs";
+import { cn } from "@/lib/utils";
 
 import { filtrosParlamentares, linkParlamentares } from "./filtros";
 
@@ -18,6 +19,7 @@ type Valores = {
   uf?: string | null;
   partido?: string | null;
   fixados?: string | null;
+  eleitos?: string | null;
 };
 
 export function FiltrosForm({
@@ -28,7 +30,7 @@ export function FiltrosForm({
 }: {
   valores?: Valores;
   erros?: Record<string, string>;
-  /** Siglas dos partidos com parlamentar em exercício, em ordem alfabética. */
+  /** Siglas dos partidos com parlamentar em exercício (ou com eleitos, no modo eleitos), em ordem alfabética. */
   partidos?: string[];
   /** Mostra o filtro "Só os fixados" (os fixados são por usuário). */
   logado?: boolean;
@@ -40,11 +42,14 @@ export function FiltrosForm({
       uf: valores.uf ?? "",
       partido: valores.partido ?? "",
       fixados: valores.fixados ?? "",
+      eleitos: valores.eleitos ?? "",
     },
     acao: "/parlamentares",
     link: linkParlamentares,
   });
-  const erro = (campo: "casa" | "uf" | "partido" | "fixados") => form.formState.errors[campo]?.message?.toString() ?? erros[campo];
+  // "Só os fixados" vale só para quem está em exercício: some quando a lista é a dos eleitos.
+  const comFixados = logado && form.watch("eleitos") !== "2026";
+  const erro = (campo: "eleitos" | "casa" | "uf" | "partido" | "fixados") => form.formState.errors[campo]?.message?.toString() ?? erros[campo];
 
   return (
     <form
@@ -55,8 +60,13 @@ export function FiltrosForm({
       noValidate
       role="search"
       aria-label="Filtrar parlamentares"
-      className="grid gap-4 sm:grid-cols-2 sm:items-start lg:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_repeat(var(--selects),10rem)_auto]"
-      style={{ "--selects": logado ? 4 : 3 } as React.CSSProperties}
+      className={cn(
+        "grid gap-4 sm:grid-cols-2 sm:items-start lg:grid-cols-3",
+        // Tudo numa linha só quando cabe: com o filtro de fixados são cinco listas, e o nome ficaria espremido.
+        comFixados
+          ? "2xl:grid-cols-[minmax(12rem,1fr)_repeat(5,10rem)_auto]"
+          : "xl:grid-cols-[minmax(12rem,1fr)_repeat(4,10rem)_auto]",
+      )}
     >
       <CampoTexto
         form={form}
@@ -71,6 +81,14 @@ export function FiltrosForm({
       {(
         [
           {
+            campo: "eleitos",
+            rotulo: "Mostrar",
+            opcoes: [
+              ["", "Em exercício"],
+              ["2026", "Eleitos em 2026"],
+            ],
+          },
+          {
             campo: "casa",
             rotulo: "Casa",
             opcoes: [
@@ -81,11 +99,11 @@ export function FiltrosForm({
           },
           { campo: "uf", rotulo: "Estado", opcoes: [["", "Todos"], ...Object.entries(UFS)] },
           { campo: "partido", rotulo: "Partido", opcoes: [["", "Todos"], ...partidos.map((p) => [p, p] as const)] },
-          ...(logado
+          ...(comFixados
             ? [
                 {
                   campo: "fixados",
-                  rotulo: "Mostrar",
+                  rotulo: "Fixados",
                   opcoes: [
                     ["", "Todos"],
                     ["1", "Só os fixados"],

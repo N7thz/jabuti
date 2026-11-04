@@ -103,3 +103,31 @@ model PatrimonioEleicao {
 
   @@id([parlamentarId, ano])
 }
+
+/// Eleito numa eleição do TSE para a Câmara ou o Senado (inclui quem ainda não é parlamentar).
+model Eleito {
+  id            String   @id @default(cuid())
+  ano           Int
+  casa          Casa
+  uf            Uf
+  /// SQ_CANDIDATO: id do candidato naquela eleição.
+  sqCandidato   String
+  /// NM_CANDIDATO
+  nome          String
+  nomeUrna      String
+  numero        Int
+  /// SG_PARTIDO pelo qual foi eleito
+  partido       String
+  /// DS_SIT_TOT_TURNO: "ELEITO POR QP", "ELEITO POR MÉDIA" ou "ELEITO"
+  resultado     String
+  /// Só para casar registros entre fontes. Nunca exibir.
+  cpf           String?
+  /// Mesma pessoa já sincronizada como parlamentar (em exercício ou não); null para quem nunca foi.
+  parlamentarId String?
+  atualizadoEm  DateTime @updatedAt
+
+  parlamentar Parlamentar? @relation(fields: [parlamentarId], references: [id], onDelete: SetNull)
+
+  @@unique([ano, sqCandidato])
+  @@index([ano, casa, uf])
+}

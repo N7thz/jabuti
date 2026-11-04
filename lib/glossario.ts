@@ -296,6 +296,27 @@ export const GLOSSARIO = [
     ],
   },
   {
+    id: "composicao-casa",
+    termo: "Composição (hemiciclo)",
+    tema: "congresso",
+    curto: "Quantas cadeiras cada partido tem na Câmara ou no Senado. O gráfico em meia-lua imita o plenário: cada bolinha é uma cadeira.",
+    explicacao: [
+      "Hemiciclo é o formato de meio círculo do plenário. No gráfico, as cadeiras de cada partido ficam juntas, numa fatia, da esquerda para a direita, do partido com mais cadeiras para o com menos.",
+      "A composição muda ao longo do mandato: parlamentares trocam de partido, se afastam e dão lugar a suplentes. A dos eleitos mostra o partido pelo qual cada um foi eleito.",
+    ],
+    importancia: "Quem tem mais cadeiras tem mais peso nas votações, preside mais comissões e recebe mais tempo de fala. Projetos precisam de maioria para passar: 257 votos na Câmara para uma lei complementar, 308 para mudar a Constituição.",
+  },
+  {
+    id: "renovacao-senado",
+    termo: "Renovação do Senado",
+    tema: "eleicoes",
+    curto: "O Senado não troca todo de uma vez: a cada quatro anos, a eleição renova um terço (27) ou dois terços (54) das 81 cadeiras.",
+    explicacao: [
+      "Cada estado tem três senadores, com mandato de oito anos. Numa eleição o estado escolhe um senador; na seguinte, dois. Em 2022 foi eleito um por estado; em 2026, dois.",
+      "Por isso, a partir de 2027, o Senado junta os 54 eleitos em 2026 com os 27 eleitos em 2022, que ficam até 2031. Se um titular sai, quem ocupa a cadeira é o suplente dele.",
+    ],
+  },
+  {
     id: "jabuti",
     termo: "Jabuti",
     tema: "congresso",
