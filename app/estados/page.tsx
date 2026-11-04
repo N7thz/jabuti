@@ -9,6 +9,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Estados · Jabuti",
+  caminho: "/estados",
   descricao: "Quem representa cada estado na Câmara e no Senado, e as emendas que cada cidade recebeu.",
 });
 

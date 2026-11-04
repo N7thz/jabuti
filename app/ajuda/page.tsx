@@ -8,6 +8,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Ajuda · Jabuti",
+  caminho: "/ajuda",
   descricao:
     "Como encontrar um político, comparar, baixar os dados, fixar quem você acompanha, ajustar o texto e falar com a gente.",
 });

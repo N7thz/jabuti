@@ -25,6 +25,7 @@ import { PreferenciasAparencia, PreferenciasLeitura } from "./preferencias";
 
 export const metadata = metadados({
   titulo: "Configurações · Jabuti",
+  indexar: false,
   descricao: "Tema, animações, tamanho do texto, sua conta, o seu painel e os dados que o portal guarda sobre você.",
 });
 

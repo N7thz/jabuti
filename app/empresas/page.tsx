@@ -54,6 +54,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Consulta CNPJ · Jabuti",
+  caminho: "/empresas",
   descricao: "Digite um CNPJ e veja os contratos da empresa com o governo federal e se ela tem sanções no CEIS, no CNEP ou no TCU.",
 });
 

@@ -12,6 +12,7 @@ import { Termo } from "@/components/termo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMunicipioPorNome } from "@/lib/emendas/queries";
 import { formatarData } from "@/lib/format/datas";
+import { metadados } from "@/lib/metadados";
 import { municipioDoBeneficiario } from "@/lib/transferegov/beneficiario";
 import { getEmendaPix, getExecucaoEmendaPix } from "@/lib/transferegov/queries";
 import { areasDaEmendaPix, situacaoPlanoTrabalho } from "@/lib/transferegov/rotulos";
@@ -26,11 +27,12 @@ const idDaUrl = async (params: PageProps<"/emendas-pix/[id]">["params"]) => {
 export async function generateMetadata({ params }: PageProps<"/emendas-pix/[id]">): Promise<Metadata> {
   const id = await idDaUrl(params);
   const emenda = id ? await getEmendaPix(id) : null;
-  return {
-    title: emenda
-      ? `Emenda Pix de ${emenda.autor} para ${emenda.beneficiario} · Jabuti`
-      : "Emenda Pix · Jabuti",
-  };
+  if (!emenda) return metadados({ titulo: "Emenda Pix · Jabuti" });
+  return metadados({
+    titulo: `Emenda Pix de ${emenda.autor} para ${emenda.beneficiario} · Jabuti`,
+    caminho: `/emendas-pix/${emenda.id}`,
+    descricao: `Emenda Pix de ${emenda.autor} para ${emenda.beneficiario} em ${emenda.ano}: quanto vale, quanto foi empenhado e o que quem recebeu declarou ter feito.`,
+  });
 }
 
 export default function EmendaPixPage({ params }: PageProps<"/emendas-pix/[id]">) {

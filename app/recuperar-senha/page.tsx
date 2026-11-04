@@ -4,6 +4,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Recuperar senha · Jabuti",
+  indexar: false,
   descricao: "Receba por email um link para criar uma senha nova.",
 });
 

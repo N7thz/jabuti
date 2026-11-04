@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata = metadados({
   titulo: "Apoie o projeto · Jabuti",
+  caminho: "/apoie",
   descricao: "O Jabuti é gratuito, sem anúncios e de código aberto. Veja como apoiar com Pix, apoio mensal ou ajudando a melhorar o portal.",
 });
 

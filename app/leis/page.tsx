@@ -36,6 +36,7 @@ import { FiltrosForm } from "./filtros-form";
 
 export const metadata = metadados({
   titulo: "Leis e projetos · Jabuti",
+  caminho: "/leis",
   descricao:
     "As últimas leis publicadas e os projetos em cada etapa do Congresso: apresentados, prontos para votar, votados e esperando sanção.",
 });

@@ -24,6 +24,7 @@ import { FiltrosForm } from "./filtros-form";
 
 export const metadata = metadados({
   titulo: "Comparar parlamentares · Jabuti",
+  caminho: "/comparar",
   descricao: "Presença, gastos da cota, proposições, emendas e votos de dois parlamentares lado a lado.",
 });
 

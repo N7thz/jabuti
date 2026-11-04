@@ -15,6 +15,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Minhas listas · Jabuti",
+  indexar: false,
   descricao: "Votações, leis, empresas e emendas que você salvou, com anotações.",
 });
 

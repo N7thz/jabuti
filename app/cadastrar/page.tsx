@@ -4,6 +4,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Criar conta · Jabuti",
+  indexar: false,
   descricao: "Crie uma conta com um link no seu email, sem senha, para fixar políticos, partidos e bancadas.",
 });
 

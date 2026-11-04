@@ -23,6 +23,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Parlamentares · Jabuti",
+  caminho: "/parlamentares",
   descricao: "Todos os deputados e senadores em exercício: presença, votos, gastos da cota, emendas e campanha de cada um.",
 });
 

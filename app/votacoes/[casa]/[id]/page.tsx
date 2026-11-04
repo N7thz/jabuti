@@ -31,6 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/votacoes/[casa]/[
   const placar = contarPlacar(v.votos);
   return metadados({
     titulo: `${v.proposicao?.rotulo ?? "Votação"} de ${formatarData(v.data)} · Jabuti`,
+    caminho: linkVotacao(v.casa, v.id),
     descricao:
       placar.total > 0
         ? `${placar.SIM} votos sim e ${placar.NAO} não. Veja como votou cada parlamentar, cada partido e cada estado.`

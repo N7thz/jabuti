@@ -16,6 +16,7 @@ import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
   titulo: "Entenda os termos · Jabuti",
+  caminho: "/glossario",
   descricao: "O que significam empenho, emenda Pix, cota parlamentar, fundo eleitoral, inabilitação no TCU e outros termos do portal.",
 });
 

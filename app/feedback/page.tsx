@@ -7,6 +7,7 @@ import { FeedbackForm } from "./feedback-form";
 
 export const metadata = metadados({
   titulo: "Sugestões e problemas · Jabuti",
+  caminho: "/feedback",
   descricao: "Mande uma sugestão de melhoria, avise de um erro ou de um dado errado no portal.",
 });
 

@@ -20,6 +20,7 @@ import { anoCorrente, rotuloAno } from "@/lib/anos";
 
 export const metadata = metadados({
   titulo: "Ranking da cota parlamentar · Jabuti",
+  caminho: "/rankings/cota",
   descricao: "Quem mais gastou da cota parlamentar, no total e por tipo de gasto.",
 });
 

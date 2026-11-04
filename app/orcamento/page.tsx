@@ -17,6 +17,7 @@ import { rotuloAno } from "@/lib/anos";
 
 export const metadata = metadados({
   titulo: "Emendas no orçamento · Jabuti",
+  caminho: "/orcamento",
   descricao: "As emendas parlamentares do orçamento federal por ano, autor e destino, com quanto já foi pago.",
 });
 

@@ -14,6 +14,7 @@ import { getSession } from "@/lib/session";
 
 export const metadata = metadados({
   titulo: "Entrar · Jabuti",
+  indexar: false,
   descricao: "Entre com o Google, com um link no email ou com email e senha para fixar políticos, partidos e bancadas.",
 });
 

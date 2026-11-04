@@ -28,9 +28,11 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { JsonLd } from "@/components/json-ld";
 import { metadados } from "@/lib/metadados";
+import { siteJabuti } from "@/lib/seo/json-ld";
 
-export const metadata = metadados({ titulo: "Jabuti · Acompanhe e cobre os políticos com dados públicos" });
+export const metadata = metadados({ titulo: "Jabuti · Acompanhe e cobre os políticos com dados públicos", caminho: "/" });
 
 const stagger = (i: number) => ({ "--stagger": i }) as React.CSSProperties;
 
@@ -197,6 +199,7 @@ const FONTES = [
 export default function Inicio() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 xs:px-6 py-[clamp(1rem,3vw,2rem)]">
+      <JsonLd dados={siteJabuti()} />
       {/* A página inteira fica no bloco charcoal do hero (tokens escuros via .dark nos dois temas), com a grade de fundo do começo ao fim. */}
       <div className="dark relative isolate flex flex-col gap-[clamp(3rem,6vw,5rem)] overflow-hidden rounded-2xl bg-card px-5 pb-[clamp(3rem,6vw,5rem)] text-foreground ring-1 ring-border md:px-[clamp(2rem,4vw,3.5rem)]">
         <FundoGrade />

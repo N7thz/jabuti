@@ -16,7 +16,7 @@ import { getLista, ROTULO_TIPO } from "@/lib/meu/listas";
 import { getDono } from "@/lib/meu/perfil";
 import { metadados } from "@/lib/metadados";
 
-export const metadata = metadados({ titulo: "Lista · Jabuti", descricao: "Uma das suas listas, com anotações." });
+export const metadata = metadados({ titulo: "Lista · Jabuti", indexar: false, descricao: "Uma das suas listas, com anotações." });
 
 export default function ListaPage({ params, searchParams }: PageProps<"/listas/[id]">) {
   return (

@@ -13,6 +13,7 @@ import { Questionario } from "./questionario";
 
 export const metadata = metadados({
   titulo: "Como eu votaria? · Jabuti",
+  caminho: "/como-eu-votaria",
   descricao:
     "Responda votações nominais do plenário e veja quais deputados, senadores e partidos votaram como você. Suas respostas não saem do seu aparelho.",
 });
