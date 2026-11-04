@@ -1,6 +1,7 @@
 import { tipoDaOrientacao } from "../fidelidade";
 import type { Prisma } from "../generated/prisma/client";
 import type { PrismaClient } from "../prisma";
+import { emLotes, gravarEmLote } from "../sync/lote";
 import type { SenadoClient } from "./client";
 import {
   ehProponente,
@@ -28,10 +29,24 @@ import type { OrientacaoBancadaApi, ReuniaoComissao, Senador, SessaoPlenario, Vo
 type ParlamentarInput = Prisma.ParlamentarCreateManyInput;
 type ProposicaoInput = Prisma.ProposicaoCreateManyInput;
 
-function emLotes<T>(itens: T[], tamanho: number) {
-  const lotes: T[][] = [];
-  for (let i = 0; i < itens.length; i += tamanho) lotes.push(itens.slice(i, i + tamanho));
-  return lotes;
+/**
+ * Apaga e recria uma CEAPS anual inteira (milhares de linhas, lotes de 1000) numa transação só, para
+ * a tabela nunca ficar com o ano pela metade. Do runner nos EUA isso passa dos 5 s padrão do Prisma.
+ */
+const TIMEOUT_DESPESAS_MS = 120_000;
+
+/** Tira a chave (casa + idExterno) dos dados do update. */
+function semChave<T extends { casa?: unknown; idExterno?: unknown }>({ casa: _casa, idExterno: _id, ...resto }: T) {
+  return resto;
+}
+
+/** Mapa idExterno -> id a partir de uma busca por idExterno. */
+async function mapaIds(buscar: (ids: string[]) => Promise<{ id: string; idExterno: string }[]>, idsExternos: string[]) {
+  const mapa = new Map<string, string>();
+  for (const lote of emLotes([...new Set(idsExternos)], 5000)) {
+    for (const linha of await buscar(lote)) mapa.set(linha.idExterno, linha.id);
+  }
+  return mapa;
 }
 
 /** No update, campo null não apaga o que outra fonte já preencheu (ex.: situação da proposição). */
@@ -59,21 +74,20 @@ async function garantirParlamentares(prisma: PrismaClient, minimos: ParlamentarI
 }
 
 async function upsertProposicoes(prisma: PrismaClient, proposicoes: ProposicaoInput[]) {
-  const ids = new Map<string, string>();
-  for (const lote of emLotes(proposicoes, 50)) {
-    const gravadas = await prisma.$transaction(
-      lote.map((p) =>
-        prisma.proposicao.upsert({
-          where: { casa_idExterno: { casa: "SENADO", idExterno: p.idExterno } },
-          create: p,
-          update: semNulos(p),
-          select: { id: true, idExterno: true },
-        }),
-      ),
-    );
-    for (const g of gravadas) ids.set(g.idExterno, g.id);
-  }
-  return ids;
+  await gravarEmLote({
+    dados: proposicoes,
+    chave: (p) => p.idExterno,
+    buscar: (ids) => prisma.proposicao.findMany({ where: { casa: "SENADO", idExterno: { in: ids } } }),
+    chaveDaLinha: (l) => l.idExterno,
+    criar: (novas) => prisma.proposicao.createMany({ data: novas, skipDuplicates: true }),
+    atualizar: (l, d) => prisma.proposicao.update({ where: { id: l.id }, data: d as Prisma.ProposicaoUpdateInput }),
+    paraAtualizar: (p) => semNulos(semChave(p)),
+  });
+  return mapaIds(
+    (ids) =>
+      prisma.proposicao.findMany({ where: { casa: "SENADO", idExterno: { in: ids } }, select: { id: true, idExterno: true } }),
+    proposicoes.map((p) => p.idExterno),
+  );
 }
 
 // ---------------------------------- 1. senadores ----------------------------------
@@ -95,17 +109,15 @@ export async function gravarSenadores(
   prisma: PrismaClient,
   { senadores, atuais }: Awaited<ReturnType<typeof buscarSenadores>>,
 ) {
-  for (const lote of emLotes(senadores, 50)) {
-    await prisma.$transaction(
-      lote.map((s) =>
-        prisma.parlamentar.upsert({
-          where: { casa_idExterno: { casa: "SENADO", idExterno: s.idExterno } },
-          create: s,
-          update: s,
-        }),
-      ),
-    );
-  }
+  await gravarEmLote({
+    dados: senadores,
+    chave: (s) => s.idExterno,
+    buscar: (ids) => prisma.parlamentar.findMany({ where: { casa: "SENADO", idExterno: { in: ids } } }),
+    chaveDaLinha: (l) => l.idExterno,
+    criar: (novos) => prisma.parlamentar.createMany({ data: novos, skipDuplicates: true }),
+    atualizar: (l, d) => prisma.parlamentar.update({ where: { id: l.id }, data: d as Prisma.ParlamentarUpdateInput }),
+    paraAtualizar: semChave,
+  });
 
   // Quem saiu da lista atual (fim de mandato, licença longa, suplente que devolveu a vaga).
   if (atuais.length > 0) {
@@ -147,29 +159,37 @@ export async function gravarVotacoes(prisma: PrismaClient, dados: ReturnType<typ
   }
   const idsProposicao = await upsertProposicoes(prisma, [...proposicoes.values()]);
 
+  const votacoes = dados.votacoes.map(({ votacao, proposicao }) => ({
+    ...votacao,
+    proposicaoId: proposicao ? (idsProposicao.get(proposicao.idExterno) ?? null) : null,
+  }));
+  await gravarEmLote({
+    dados: votacoes,
+    chave: (v) => v.idExterno,
+    buscar: (ids) => prisma.votacao.findMany({ where: { casa: "SENADO", idExterno: { in: ids } } }),
+    chaveDaLinha: (l) => l.idExterno,
+    criar: (novas) => prisma.votacao.createMany({ data: novas, skipDuplicates: true }),
+    atualizar: (l, d) => prisma.votacao.update({ where: { id: l.id }, data: d as Prisma.VotacaoUncheckedUpdateInput }),
+    paraAtualizar: semChave,
+  });
+  const idsVotacao = await mapaIds(
+    (ids) => prisma.votacao.findMany({ where: { casa: "SENADO", idExterno: { in: ids } }, select: { id: true, idExterno: true } }),
+    votacoes.map((v) => v.idExterno),
+  );
+
   let registros = 0;
   for (const lote of emLotes(dados.votacoes, 20)) {
-    const gravadas = await prisma.$transaction(
-      lote.map(({ votacao, proposicao }) => {
-        const data = {
-          ...votacao,
-          proposicaoId: proposicao ? (idsProposicao.get(proposicao.idExterno) ?? null) : null,
-        };
-        return prisma.votacao.upsert({
-          where: { casa_idExterno: { casa: "SENADO", idExterno: votacao.idExterno } },
-          create: data,
-          update: data,
-          select: { id: true },
-        });
-      }),
-    );
+    const gravadas = lote.flatMap(({ votacao }) => idsVotacao.get(votacao.idExterno) ?? []).map((id) => ({ id }));
 
-    const votos = lote.flatMap(({ votos }, i) =>
-      votos.flatMap(({ codigoParlamentar, ...voto }) => {
+    // Apagar e recriar os votos de 20 votações são 2 comandos: a transação fica bem abaixo dos 5 s.
+    const votos = lote.flatMap(({ votacao, votos: lista }) => {
+      const votacaoId = idsVotacao.get(votacao.idExterno);
+      if (!votacaoId) return [];
+      return lista.flatMap(({ codigoParlamentar, ...voto }) => {
         const parlamentarId = parlamentares.get(codigoParlamentar);
-        return parlamentarId ? [{ ...voto, votacaoId: gravadas[i].id, parlamentarId }] : [];
-      }),
-    );
+        return parlamentarId ? [{ ...voto, votacaoId, parlamentarId }] : [];
+      });
+    });
 
     await prisma.$transaction([
       prisma.voto.deleteMany({ where: { votacaoId: { in: gravadas.map((g) => g.id) } } }),
@@ -262,21 +282,29 @@ export function mapearEventos(
 export async function gravarEventos(prisma: PrismaClient, dados: ReturnType<typeof mapearEventos>) {
   const parlamentares = await garantirParlamentares(prisma, dados.senadores);
 
+  await gravarEmLote({
+    dados: dados.eventos.map(({ evento }) => evento),
+    chave: (e) => e.idExterno,
+    buscar: (ids) => prisma.evento.findMany({ where: { casa: "SENADO", idExterno: { in: ids } } }),
+    chaveDaLinha: (l) => l.idExterno,
+    criar: (novos) => prisma.evento.createMany({ data: novos, skipDuplicates: true }),
+    atualizar: (l, d) => prisma.evento.update({ where: { id: l.id }, data: d as Prisma.EventoUpdateInput }),
+    paraAtualizar: semChave,
+  });
+  const idsEvento = await mapaIds(
+    (ids) => prisma.evento.findMany({ where: { casa: "SENADO", idExterno: { in: ids } }, select: { id: true, idExterno: true } }),
+    dados.eventos.map(({ evento }) => evento.idExterno),
+  );
+
   let registros = 0;
   for (const lote of emLotes(dados.eventos, 30)) {
-    const gravados = await prisma.$transaction(
-      lote.map(({ evento }) =>
-        prisma.evento.upsert({
-          where: { casa_idExterno: { casa: "SENADO", idExterno: evento.idExterno } },
-          create: evento,
-          update: evento,
-          select: { id: true },
-        }),
-      ),
-    );
+    const gravados = lote.flatMap((item) => {
+      const id = idsEvento.get(item.evento.idExterno);
+      return id ? [{ ...item, id }] : [];
+    });
 
     // Só mexe nas presenças de eventos que têm votação nominal no intervalo buscado.
-    const comPresenca = lote.flatMap((item, i) => (item.presencas ? [{ ...item, id: gravados[i].id }] : []));
+    const comPresenca = gravados.filter((item) => item.presencas);
     const presencas = comPresenca.flatMap(({ id, presencas: lista }) =>
       (lista ?? []).flatMap(({ codigoParlamentar, ...p }) => {
         const parlamentarId = parlamentares.get(codigoParlamentar);
@@ -345,7 +373,7 @@ export async function gravarDespesas(
     await prisma.$transaction([
       prisma.despesaCota.deleteMany({ where: { ano, parlamentar: { casa: "SENADO" } } }),
       ...emLotes(data, 1000).map((lote) => prisma.despesaCota.createMany({ data: lote, skipDuplicates: true })),
-    ]);
+    ], { timeout: TIMEOUT_DESPESAS_MS, maxWait: 10_000 });
     registros += data.length;
   }
   return registros;
@@ -391,16 +419,25 @@ export async function gravarMaterias(prisma: PrismaClient, materias: Awaited<Ret
     }),
   );
 
-  for (const lote of emLotes(autorias, 100)) {
-    await prisma.$transaction(
-      lote.map((a) =>
-        prisma.proposicaoAutor.upsert({
-          where: { proposicaoId_parlamentarId: { proposicaoId: a.proposicaoId, parlamentarId: a.parlamentarId } },
-          create: a,
-          update: { proponente: a.proponente },
-        }),
-      ),
+  // Autoria nova entra por createMany; a que já existe só muda se o proponente mudou (até 2 updateMany por lote).
+  const chaveAutoria = (a: { proposicaoId: string; parlamentarId: string }) => `${a.proposicaoId}|${a.parlamentarId}`;
+  for (const lote of emLotes(autorias, 1000)) {
+    const pares = lote.map(({ proposicaoId, parlamentarId }) => ({ proposicaoId, parlamentarId }));
+    const existentes = new Map(
+      (await prisma.proposicaoAutor.findMany({ where: { OR: pares } })).map((a) => [chaveAutoria(a), a.proponente]),
     );
+    const novas = lote.filter((a) => !existentes.has(chaveAutoria(a)));
+    if (novas.length > 0) await prisma.proposicaoAutor.createMany({ data: novas, skipDuplicates: true });
+
+    for (const proponente of [true, false]) {
+      const mudaram = lote.filter((a) => a.proponente === proponente && existentes.get(chaveAutoria(a)) === !proponente);
+      if (mudaram.length > 0) {
+        await prisma.proposicaoAutor.updateMany({
+          where: { OR: mudaram.map(({ proposicaoId, parlamentarId }) => ({ proposicaoId, parlamentarId })) },
+          data: { proponente },
+        });
+      }
+    }
   }
   return materias.length + autorias.length;
 }

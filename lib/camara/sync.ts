@@ -1,5 +1,7 @@
 import { tipoDaOrientacao } from "../fidelidade";
+import type { Prisma } from "../generated/prisma/client";
 import type { PrismaClient } from "../prisma";
+import { emLotes, emParalelo, gravarEmLote } from "../sync/lote";
 import type { CamaraClient } from "./client";
 import { janelasMensais } from "./client";
 import {
@@ -18,7 +20,6 @@ import type { DeputadoResumo, VotacaoDetalhe } from "./types";
 // no dry-run) e os 2 primeiros registros mapeados. Com `prisma: null` só busca e mapeia.
 
 const CONCORRENCIA = 4;
-const LOTE_UPSERT = 50;
 const LOTE_CREATE = 1000;
 const CHUNK = 40;
 
@@ -34,28 +35,6 @@ export interface Contexto {
 export interface Resultado {
   registros: number;
   exemplos: unknown[];
-}
-
-function emLotes<T>(itens: T[], tamanho: number) {
-  const lotes: T[][] = [];
-  for (let i = 0; i < itens.length; i += tamanho) lotes.push(itens.slice(i, i + tamanho));
-  return lotes;
-}
-
-/** Executa `fn` sobre os itens com no máximo `limite` chamadas simultâneas, mantendo a ordem. */
-async function emParalelo<T, R>(itens: T[], limite: number, fn: (item: T) => Promise<R>) {
-  const resultados = new Array<R>(itens.length);
-  let proximo = 0;
-
-  async function trabalhador() {
-    while (proximo < itens.length) {
-      const indice = proximo++;
-      resultados[indice] = await fn(itens[indice]);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador));
-  return resultados;
 }
 
 /** Falhas isoladas (um deputado, um evento) não derrubam a etapa; ela termina com erro depois de gravar o resto. */
@@ -135,17 +114,16 @@ export async function sincronizarDeputados({ api, prisma, log }: Contexto): Prom
   log(`${dados.length} deputados na legislatura, ${dados.filter((d) => d.emExercicio).length} em exercício`);
 
   if (prisma) {
-    for (const lote of emLotes(dados, LOTE_UPSERT)) {
-      await prisma.$transaction(
-        lote.map(({ casa, idExterno, ...resto }) =>
-          prisma.parlamentar.upsert({
-            where: { casa_idExterno: { casa, idExterno } },
-            create: { casa, idExterno, ...resto },
-            update: resto,
-          }),
-        ),
-      );
-    }
+    const { criados, atualizados } = await gravarEmLote({
+      dados,
+      chave: (d) => d.idExterno,
+      buscar: (ids) => prisma.parlamentar.findMany({ where: { casa: "CAMARA", idExterno: { in: ids } } }),
+      chaveDaLinha: (l) => l.idExterno,
+      criar: (novos) => prisma.parlamentar.createMany({ data: novos, skipDuplicates: true }),
+      atualizar: (l, d) => prisma.parlamentar.update({ where: { id: l.id }, data: d as Prisma.ParlamentarUpdateInput }),
+      paraAtualizar: ({ casa: _casa, idExterno: _id, ...resto }) => resto,
+    });
+    log(`${criados} deputados novos, ${atualizados} atualizados`);
   }
   return { registros: dados.length, exemplos: dados.slice(0, 2) };
 }
@@ -196,17 +174,15 @@ export async function sincronizarVotacoes({ api, prisma, log }: Contexto, desde:
           ...mapearVotacao(c.votacao),
           proposicaoId: c.idProposicao ? (propIds.get(String(c.idProposicao)) ?? null) : null,
         }));
-        for (const lote of emLotes(votacoesMapeadas, LOTE_UPSERT)) {
-          await prisma.$transaction(
-            lote.map(({ casa, idExterno, ...resto }) =>
-              prisma.votacao.upsert({
-                where: { casa_idExterno: { casa, idExterno } },
-                create: { casa, idExterno, ...resto },
-                update: resto,
-              }),
-            ),
-          );
-        }
+        await gravarEmLote({
+          dados: votacoesMapeadas,
+          chave: (v) => v.idExterno,
+          buscar: (ids) => prisma.votacao.findMany({ where: { casa: "CAMARA", idExterno: { in: ids } } }),
+          chaveDaLinha: (l) => l.idExterno,
+          criar: (novas) => prisma.votacao.createMany({ data: novas, skipDuplicates: true }),
+          atualizar: (l, d) => prisma.votacao.update({ where: { id: l.id }, data: d as Prisma.VotacaoUncheckedUpdateInput }),
+          paraAtualizar: ({ casa: _casa, idExterno: _id, ...resto }) => resto,
+        });
 
         const votacaoIds = new Map(
           (
@@ -329,17 +305,15 @@ export async function sincronizarEventos({ api, prisma, log }: Contexto, desde: 
       let eventoIds = new Map<string, string>();
 
       if (prisma) {
-        for (const lote of emLotes(mapeados, LOTE_UPSERT)) {
-          await prisma.$transaction(
-            lote.map(({ casa, idExterno, ...resto }) =>
-              prisma.evento.upsert({
-                where: { casa_idExterno: { casa, idExterno } },
-                create: { casa, idExterno, ...resto },
-                update: resto,
-              }),
-            ),
-          );
-        }
+        await gravarEmLote({
+          dados: mapeados,
+          chave: (e) => e.idExterno,
+          buscar: (ids) => prisma.evento.findMany({ where: { casa: "CAMARA", idExterno: { in: ids } } }),
+          chaveDaLinha: (l) => l.idExterno,
+          criar: (novos) => prisma.evento.createMany({ data: novos, skipDuplicates: true }),
+          atualizar: (l, d) => prisma.evento.update({ where: { id: l.id }, data: d as Prisma.EventoUpdateInput }),
+          paraAtualizar: ({ casa: _casa, idExterno: _id, ...resto }) => resto,
+        });
         const linhas = await prisma.evento.findMany({
           where: { casa: "CAMARA", idExterno: { in: mapeados.map((e) => e.idExterno) } },
           select: { id: true, idExterno: true, _count: { select: { presencas: true } } },

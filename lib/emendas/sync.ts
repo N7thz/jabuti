@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { Prisma } from "../generated/prisma/client";
 import type { PrismaClient } from "../prisma";
+import { gravarEmLote } from "../sync/lote";
 import { createFetcher, normalizarNome } from "../sync/run";
 import type { components } from "../transparencia/schema";
 import { criarIndiceMunicipios, interpretarLocalidade, type IndiceMunicipios } from "./localidade";
@@ -182,26 +183,19 @@ export async function gravarEmendas(
   registros: EmendaRegistro[],
   { completo }: { completo: boolean },
 ) {
-  for (let i = 0; i < registros.length; i += TAMANHO_LOTE) {
-    const lote = registros.slice(i, i + TAMANHO_LOTE);
-    const existentes = new Set(
-      (
-        await prisma.emenda.findMany({
-          where: { codigo: { in: lote.map((r) => r.codigo) } },
-          select: { codigo: true },
-        })
-      ).map((e) => e.codigo),
-    );
-
-    const novos = lote.filter((r) => !existentes.has(r.codigo));
-    if (novos.length) await prisma.emenda.createMany({ data: novos, skipDuplicates: true });
-
+  // Só as emendas cujo valor ou localidade mudou recebem update (antes eram 500 updates por transação,
+  // uma ida e volta cada, o que estoura os 5 s do Prisma quando a carga roda longe do banco).
+  await gravarEmLote({
+    dados: registros,
+    chave: (r) => r.codigo,
+    buscar: (codigos) => prisma.emenda.findMany({ where: { codigo: { in: codigos } } }),
+    chaveDaLinha: (l) => l.codigo,
+    criar: (novos) => prisma.emenda.createMany({ data: novos, skipDuplicates: true }),
+    atualizar: (l, d) => prisma.emenda.update({ where: { codigo: l.codigo }, data: d as Prisma.EmendaUpdateInput }),
     // parlamentarId fica de fora do update para não desfazer o vínculo feito por vincularAutores().
-    const atualizacoes = lote
-      .filter((r) => existentes.has(r.codigo))
-      .map(({ codigo, ...dados }) => prisma.emenda.update({ where: { codigo }, data: dados }));
-    if (atualizacoes.length) await prisma.$transaction(atualizacoes);
-  }
+    paraAtualizar: ({ codigo: _codigo, parlamentarId: _parlamentarId, ...dados }) => dados,
+    tamanhoLote: TAMANHO_LOTE,
+  });
 
   if (completo) {
     const vigentes = new Set(registros.map((r) => r.codigo));
