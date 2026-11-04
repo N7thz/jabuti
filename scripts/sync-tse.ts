@@ -78,7 +78,7 @@ async function patrimonio(uf: Uf) {
 
 console.log(`TSE ${anos.join(",")} · ${ufs.length} UF(s)${dryRun ? " (dry-run, sem gravar)" : ""}`);
 
-const prisma = createPrisma();
+const prisma = createPrisma({ dono: true });
 const client = createTseClient();
 try {
   // Só a evolução do patrimônio parte das candidaturas gravadas: não precisa da Câmara nem dos municípios.

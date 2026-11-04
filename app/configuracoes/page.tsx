@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ehAdmin } from "@/lib/admin";
+import { comoUsuario } from "@/lib/como-usuario";
 import { db } from "@/lib/db";
 import { getFixados, LIMITE_FIXADOS, type TipoFixado } from "@/lib/fixados";
 import { getDono, getPerfil } from "@/lib/meu/perfil";
@@ -225,8 +226,8 @@ async function MeuPainel() {
 
   const [perfil, empresas, listas] = await Promise.all([
     getPerfil(usuario),
-    db.empresaVigiada.count({ where: { usuario } }),
-    db.lista.count({ where: { usuario } }),
+    comoUsuario(usuario).empresaVigiada.count({ where: { usuario } }),
+    comoUsuario(usuario).lista.count({ where: { usuario } }),
   ]);
   const municipio = perfil?.municipioIbge
     ? await db.municipio.findUnique({ where: { ibge: perfil.municipioIbge }, select: { nome: true, uf: true } })

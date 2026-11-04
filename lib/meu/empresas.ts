@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { comoUsuario, type TransacaoDaPessoa } from "@/lib/como-usuario";
 import { tentar } from "@/lib/erros";
 import { getInidoneidadesTcu } from "@/lib/tcu/queries";
 import { getContratosPorFornecedor, getSancoesCeis, getSancoesCnep } from "@/lib/transparencia/queries";
@@ -65,16 +65,24 @@ export interface EmpresaNoPainel {
   mudouEm: Date | null;
 }
 
-/**
- * Confere as empresas da pessoa e grava o que mudou. A novidade continua aparecendo por 7 dias depois
- * de detectada, para não sumir antes de a pessoa ver.
- */
-export async function conferirEmpresas(usuario: string): Promise<EmpresaNoPainel[]> {
-  const vigiadas = await db.empresaVigiada.findMany({ where: { usuario }, orderBy: { criadaEm: "asc" } });
-  const agora = new Date();
+/** Empresas vigiadas da pessoa, dentro de uma transação já aberta (ver /meu, que junta as leituras do painel). */
+export function lerVigiadas(tx: TransacaoDaPessoa, usuario: string) {
+  return tx.empresaVigiada.findMany({ where: { usuario }, orderBy: { criadaEm: "asc" } });
+}
 
-  return Promise.all(
-    vigiadas.map(async (v) => {
+export type EmpresaVigiadaLida = Awaited<ReturnType<typeof lerVigiadas>>[number];
+
+/**
+ * Confere nas fontes as empresas já lidas e grava o que mudou, numa transação só. As consultas às APIs ficam fora
+ * de transação: podem demorar e não devem segurar uma conexão do banco. A novidade continua aparecendo por 7 dias
+ * depois de detectada, para não sumir antes de a pessoa ver.
+ */
+export async function conferirEmpresas(usuario: string, vigiadas: EmpresaVigiadaLida[]): Promise<EmpresaNoPainel[]> {
+  const agora = new Date();
+  const gravar: { id: string; estado: string; mudouEm: Date | null }[] = [];
+
+  const empresas = await Promise.all(
+    vigiadas.map(async (v): Promise<EmpresaNoPainel> => {
       const antes = lerEstado(v.estado);
       const atual = await consultar(v.cnpj);
       if (!atual) {
@@ -83,12 +91,7 @@ export async function conferirEmpresas(usuario: string): Promise<EmpresaNoPainel
       const frases = mudancas(antes, atual);
       const mudou = escreverEstado(atual) !== v.estado;
       const mudouEm = frases.length > 0 ? agora : v.mudouEm;
-      if (mudou || !v.checadaEm) {
-        await db.empresaVigiada.update({
-          where: { id: v.id },
-          data: { estado: escreverEstado(atual), checadaEm: agora, mudouEm },
-        });
-      }
+      if (mudou || !v.checadaEm) gravar.push({ id: v.id, estado: escreverEstado(atual), mudouEm });
       const recente = mudouEm && agora.getTime() - mudouEm.getTime() < 7 * 86_400_000;
       return {
         cnpj: v.cnpj,
@@ -100,4 +103,13 @@ export async function conferirEmpresas(usuario: string): Promise<EmpresaNoPainel
       };
     }),
   );
+
+  if (gravar.length > 0) {
+    await comoUsuario(usuario, async (tx) => {
+      for (const g of gravar) {
+        await tx.empresaVigiada.update({ where: { id: g.id }, data: { estado: g.estado, checadaEm: agora, mudouEm: g.mudouEm } });
+      }
+    });
+  }
+  return empresas;
 }

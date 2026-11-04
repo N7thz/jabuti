@@ -10,11 +10,11 @@ import { MeusRepresentantes } from "@/components/meu/representantes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { anoCorrente } from "@/lib/anos";
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { formatarData } from "@/lib/format/datas";
-import { conferirEmpresas } from "@/lib/meu/empresas";
+import { conferirEmpresas, type EmpresaVigiadaLida, lerVigiadas } from "@/lib/meu/empresas";
 import { desdeUltimaVisita, getNovidades } from "@/lib/meu/novidades";
-import { getDono, getPerfil, marcarPainelVisto } from "@/lib/meu/perfil";
+import { getDono, marcarPainelVisto } from "@/lib/meu/perfil";
 import { metadados } from "@/lib/metadados";
 
 export const metadata = metadados({
@@ -47,20 +47,21 @@ async function Painel({ searchParams }: Pick<PageProps<"/meu">, "searchParams">)
   await connection();
 
   const ano = anoCorrente();
-  const perfil = await getPerfil(usuario);
-  const desde = desdeUltimaVisita(perfil?.painelVistoEm ?? null);
-  after(() => marcarPainelVisto(usuario, perfil?.painelVistoEm ?? null));
-
-  const [fixados, seguidos, listas] = await Promise.all([
-    db.fixado.findMany({ where: { usuario, tipo: "PARLAMENTAR" }, select: { chave: true } }),
-    db.seguido.findMany({ where: { usuario, tipo: "PARLAMENTAR" }, select: { chave: true } }),
-    db.lista.findMany({
+  // Todas as leituras pessoais do painel numa transação só: cada transação custa idas e voltas ao banco.
+  const { perfil, fixados, seguidos, listas, vigiadas } = await comoUsuario(usuario, async (tx) => ({
+    perfil: await tx.perfilUsuario.findUnique({ where: { usuario } }),
+    fixados: await tx.fixado.findMany({ where: { usuario, tipo: "PARLAMENTAR" }, select: { chave: true } }),
+    seguidos: await tx.seguido.findMany({ where: { usuario, tipo: "PARLAMENTAR" }, select: { chave: true } }),
+    listas: await tx.lista.findMany({
       where: { usuario },
       orderBy: { criadaEm: "desc" },
       take: 6,
       select: { id: true, nome: true, _count: { select: { itens: true } } },
     }),
-  ]);
+    vigiadas: await lerVigiadas(tx, usuario),
+  }));
+  const desde = desdeUltimaVisita(perfil?.painelVistoEm ?? null);
+  after(() => marcarPainelVisto(usuario, perfil?.painelVistoEm ?? null));
   const chaves = [...new Set([...fixados, ...seguidos].map((f) => f.chave))];
   const texto = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
 
@@ -110,7 +111,7 @@ async function Painel({ searchParams }: Pick<PageProps<"/meu">, "searchParams">)
 
       <Secao id="empresas" titulo="Empresas vigiadas">
         <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-          <EmpresasCarregadas usuario={usuario} />
+          <EmpresasCarregadas usuario={usuario} vigiadas={vigiadas} />
         </Suspense>
       </Secao>
 
@@ -162,8 +163,8 @@ async function NovidadesCarregadas({ chaves, desde, ano }: { chaves: string[]; d
   return <Novidades itens={itens} desde={desde} ano={ano} />;
 }
 
-async function EmpresasCarregadas({ usuario }: { usuario: string }) {
-  return <EmpresasVigiadas empresas={await conferirEmpresas(usuario)} />;
+async function EmpresasCarregadas({ usuario, vigiadas }: { usuario: string; vigiadas: EmpresaVigiadaLida[] }) {
+  return <EmpresasVigiadas empresas={await conferirEmpresas(usuario, vigiadas)} />;
 }
 
 function Secao({ id, titulo, descricao, children }: { id: string; titulo: string; descricao?: string; children: React.ReactNode }) {

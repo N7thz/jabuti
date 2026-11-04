@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { donoDa, LIMITE_FIXADOS } from "@/lib/fixados";
 import { requireSession } from "@/lib/session";
 import { UFS } from "@/lib/ufs";
@@ -24,16 +24,22 @@ export async function alternarFixado(formData: FormData) {
   if (!dados.success) return;
 
   const { tipo, chave, rotulo } = dados.data;
-  const chaveUnica = { usuario_tipo_chave: { usuario: donoDa(sessao), tipo, chave } };
-  const existente = await db.fixado.findUnique({ where: chaveUnica, select: { id: true } });
-
-  if (existente) await db.fixado.delete({ where: { id: existente.id } });
-  else {
-    // No limite, recusa em silêncio: o botão já aparece desabilitado com o aviso (components/fixar.tsx).
-    const total = await db.fixado.count({ where: { usuario: donoDa(sessao) } });
-    if (total >= LIMITE_FIXADOS) return;
-    await db.fixado.create({ data: { usuario: donoDa(sessao), tipo, chave, rotulo } });
-  }
+  const usuario = donoDa(sessao);
+  // Confere, conta e grava numa transação só, uma por vez por pessoa: dois cliques juntos não passam do teto.
+  await comoUsuario(
+    usuario,
+    async (tx) => {
+      const existente = await tx.fixado.findUnique({ where: { usuario_tipo_chave: { usuario, tipo, chave } }, select: { id: true } });
+      if (existente) {
+        await tx.fixado.delete({ where: { id: existente.id } });
+        return;
+      }
+      // No limite, recusa em silêncio: o botão já aparece desabilitado com o aviso (components/fixar.tsx).
+      if ((await tx.fixado.count({ where: { usuario } })) >= LIMITE_FIXADOS) return;
+      await tx.fixado.create({ data: { usuario, tipo, chave, rotulo } });
+    },
+    { umaPorVez: true },
+  );
 
   refresh();
 }

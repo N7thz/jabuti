@@ -209,7 +209,7 @@ if (dryRun) {
   }
 } else {
   const { createPrisma } = await import("@/lib/prisma");
-  const prisma = createPrisma();
+  const prisma = createPrisma({ dono: true });
   try {
     for (const p of passos) {
       const { buscar, gravar } = p as Passo<unknown>;

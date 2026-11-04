@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { donoDa } from "@/lib/fixados";
 import { requireSession } from "@/lib/session";
 
@@ -12,8 +12,9 @@ import { requireSession } from "@/lib/session";
 export async function marcarComoLida(formData: FormData) {
   const sessao = await requireSession();
   const id = formData.get("id");
-  await db.notificacao.updateMany({
-    where: { usuario: donoDa(sessao), lidaEm: null, ...(typeof id === "string" && id ? { id } : {}) },
+  const usuario = donoDa(sessao);
+  await comoUsuario(usuario).notificacao.updateMany({
+    where: { usuario, lidaEm: null, ...(typeof id === "string" && id ? { id } : {}) },
     data: { lidaEm: new Date() },
   });
   refresh();

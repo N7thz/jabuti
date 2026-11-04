@@ -1,6 +1,8 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { cache } from "react";
+
+import { comoUsuario } from "@/lib/como-usuario";
 import type { TipoFixado } from "@/lib/generated/prisma/enums";
 import { getSession } from "@/lib/session";
 
@@ -29,13 +31,17 @@ export interface Fixados {
   tem: (tipo: TipoFixado, chave: string) => boolean;
 }
 
-/** Fixados de quem está logado, em ordem de criação; `null` para visitantes. */
-export async function getFixados(): Promise<Fixados | null> {
+/**
+ * Fixados de quem está logado, em ordem de criação; `null` para visitantes. Memorizado por requisição: a barra
+ * lateral, a página e cada botão "Fixar" fazem uma consulta só.
+ */
+export const getFixados = cache(async (): Promise<Fixados | null> => {
   const sessao = await getSession();
   if (!sessao) return null;
 
-  const linhas = await db.fixado.findMany({
-    where: { usuario: donoDa(sessao) },
+  const usuario = donoDa(sessao);
+  const linhas = await comoUsuario(usuario).fixado.findMany({
+    where: { usuario },
     orderBy: { criadoEm: "asc" },
     select: { tipo: true, chave: true, rotulo: true },
   });
@@ -49,4 +55,4 @@ export async function getFixados(): Promise<Fixados | null> {
     noLimite: linhas.length >= LIMITE_FIXADOS,
     tem: (tipo, chave) => chaves.has(`${tipo}:${chave}`),
   };
-}
+});

@@ -1,9 +1,10 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import type { TipoItemLista } from "@/lib/generated/prisma/enums";
 
-// Listas privadas de quem está logado. Sempre filtradas pelo dono: o id na URL não basta.
+// Listas privadas de quem está logado. Sempre filtradas pelo dono (e o banco confere de novo, pelo RLS): o id na URL
+// não basta.
 
 // Ficam aqui, e não em actions.ts: um arquivo "use server" só pode exportar funções async.
 export const LIMITE_LISTAS = 50;
@@ -19,7 +20,7 @@ export const ROTULO_TIPO: Record<TipoItemLista, string> = {
 };
 
 export function getListas(usuario: string) {
-  return db.lista.findMany({
+  return comoUsuario(usuario).lista.findMany({
     where: { usuario },
     orderBy: { criadaEm: "desc" },
     select: { id: true, nome: true, criadaEm: true, _count: { select: { itens: true } } },
@@ -28,7 +29,7 @@ export function getListas(usuario: string) {
 
 /** Nomes das listas para o "Salvar em lista", e se o item já está em alguma. */
 export async function getListasParaSalvar(usuario: string, tipo: TipoItemLista, chave: string) {
-  const listas = await db.lista.findMany({
+  const listas = await comoUsuario(usuario).lista.findMany({
     where: { usuario },
     orderBy: { criadaEm: "desc" },
     select: { id: true, nome: true, itens: { where: { tipo, chave }, select: { id: true } } },
@@ -37,7 +38,7 @@ export async function getListasParaSalvar(usuario: string, tipo: TipoItemLista, 
 }
 
 export function getLista(usuario: string, id: string) {
-  return db.lista.findFirst({
+  return comoUsuario(usuario).lista.findFirst({
     where: { id, usuario },
     select: {
       id: true,

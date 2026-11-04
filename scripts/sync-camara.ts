@@ -73,7 +73,7 @@ function lerArgumentos(argv: string[]) {
 
 async function main() {
   const { desde, ate, dryRun, limiteDeputados, etapas } = lerArgumentos(process.argv.slice(2));
-  const prisma = dryRun ? null : createPrisma();
+  const prisma = dryRun ? null : createPrisma({ dono: true });
   const inicio = Date.now();
 
   const execucoes: Record<Etapa, { escopo: string; rodar: (c: Contexto) => Promise<Resultado> }> = {

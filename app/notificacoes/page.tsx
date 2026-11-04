@@ -9,7 +9,7 @@ import { Termo } from "@/components/termo";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { donoDa } from "@/lib/fixados";
 import { formatarData } from "@/lib/format/datas";
 import type { TipoNotificacao } from "@/lib/generated/prisma/enums";
@@ -76,8 +76,8 @@ async function Conteudo() {
 
   const usuario = donoDa(sessao);
   const [notificacoes, naoLidas, seguidos] = await Promise.all([
-    db.notificacao.findMany({ where: { usuario }, orderBy: [{ ocorridoEm: "desc" }, { criadaEm: "desc" }], take: NA_PAGINA }),
-    db.notificacao.count({ where: { usuario, lidaEm: null } }),
+    comoUsuario(usuario).notificacao.findMany({ where: { usuario }, orderBy: [{ ocorridoEm: "desc" }, { criadaEm: "desc" }], take: NA_PAGINA }),
+    comoUsuario(usuario).notificacao.count({ where: { usuario, lidaEm: null } }),
     getSeguidos(),
   ]);
   const totalSeguidos = (seguidos?.parlamentares.length ?? 0) + (seguidos?.leis.length ?? 0);
