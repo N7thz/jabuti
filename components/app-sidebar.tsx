@@ -113,8 +113,11 @@ function ApoioComRota() {
   );
 }
 
-/** `fixados`: grupo pessoal de quem está logado, lido no servidor e passado pronto pelo layout. */
-export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
+/**
+ * `fixados`: grupo pessoal de quem está logado; `admin`: grupo só de admin.
+ * Os dois são lidos no servidor e passados prontos pelo layout.
+ */
+export function AppSidebar({ fixados, admin }: { fixados?: React.ReactNode; admin?: React.ReactNode }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
@@ -161,6 +164,7 @@ export function AppSidebar({ fixados }: { fixados?: React.ReactNode }) {
           </SidebarGroupContent>
         </SidebarGroup>
         {fixados}
+        {admin}
       </SidebarContent>
 
       <SidebarFooter>

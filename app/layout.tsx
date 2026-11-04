@@ -15,6 +15,7 @@ import { GuiaSecoes } from "@/components/guia-secoes";
 import { RevelarAoRolar } from "@/components/revelar-ao-rolar";
 import { LogoJabuti } from "@/components/logo-jabuti";
 import { SeloBeta } from "@/components/selo-beta";
+import { SidebarAdmin } from "@/components/sidebar-admin";
 import { SidebarFixados } from "@/components/sidebar-fixados";
 import { SinoNotificacoes } from "@/components/sino-notificacoes";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -103,6 +104,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     fixados={
                       <Suspense fallback={null}>
                         <SidebarFixados />
+                      </Suspense>
+                    }
+                    admin={
+                      <Suspense fallback={null}>
+                        <SidebarAdmin />
                       </Suspense>
                     }
                   />

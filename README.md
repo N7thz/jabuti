@@ -113,7 +113,7 @@ Para ver se o app alcança o banco, abra `GET /api/health`: além de `database: 
 | `FEEDBACK_EMAIL` | Quem recebe as mensagens do `/feedback` (vários separados por vírgula) |
 | `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend, ex.: `Jabuti <contato@portal-jabuti.com.br>`. Sem ele vale o `EMAIL_REMETENTE` e, sem os dois, o remetente de teste `onboarding@resend.dev`, que só entrega ao dono da conta |
 | `EMAIL_REMETENTE` | Remetente dos emails do login, ex.: `Jabuti <avisos@portal-jabuti.com.br>`. Sem ele vale o `FEEDBACK_REMETENTE`, depois o remetente de teste. Endereço de provedor gratuito (gmail, hotmail, outlook, yahoo...) gera aviso no log, porque o Resend não aceita. Todo envio passa por `lib/resend.ts` |
-| `ADMIN_EMAILS` | Emails (separados por vírgula) com acesso ao admin em `/admin/apoiadores`, onde se adicionam e tiram nomes do mural de `/apoie`. Para os outros, a página responde 404 |
+| `ADMIN_EMAILS` | Emails (separados por vírgula) com acesso ao admin em `/admin/apoiadores`, onde se adicionam e tiram nomes do mural de `/apoie`. Para esses emails, o menu lateral mostra um grupo "Admin" com o link; para os outros, o grupo não aparece e a página responde 404 |
 | `APOIO_PIX_CHAVE`, `APOIO_PIX_NOME`, `APOIO_PIX_CIDADE` | Pix de apoio ao projeto em `/apoie` (opcional: sem os três, o Pix não aparece). O portal gera o QR Code e o copia e cola |
 | `APOIO_GITHUB_SPONSORS_URL`, `APOIO_APOIASE_URL` | Links de apoio mensal (opcionais, só `https`) |
 | `NEXT_PUBLIC_REPOSITORIO_URL` | Repositório citado em "contribuir no código" (opcional) |
