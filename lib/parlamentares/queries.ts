@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cacheLife, cacheTag } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
 import { createCamaraClient } from "@/lib/camara/client";
 import { asArray, createSenadoClient } from "@/lib/senado/client";
@@ -41,35 +42,66 @@ function vidaDoCache(ano: number) {
   else cacheLife("hours");
 }
 
+/**
+ * Falha guardada como dado, não como erro. Dentro de "use cache", um erro lançado derruba o prerender do
+ * build (o deploy inteiro cai se a Câmara demorar naquela hora), mesmo que quem chamou use `tentar`. Por isso a
+ * função em cache devolve a falha com vida de segundos (não fica guardada; no build, a seção vira dinâmica) e
+ * quem chama transforma de volta em erro, fora do cache.
+ */
+type FalhaEmCache = { falha: string };
+
+function mensagemDe(erro: unknown) {
+  return erro instanceof Error ? erro.message : String(erro);
+}
+
+function lancarSeFalhou<T>(r: T | FalhaEmCache): T {
+  if (r && typeof r === "object" && "falha" in r) throw new Error(r.falha);
+  return r as T;
+}
+
 // Cada casa tem o seu cache: se uma API cair, a outra continua servindo, e a falha não fica guardada.
 async function deputadosEmExercicio() {
   "use cache";
-  cacheLife("days");
   cacheTag("parlamentares");
 
-  return (await camara.deputadosEmExercicio()).map((d) => ({
-    casa: "camara" as const,
-    id: String(d.id),
-    nome: d.nome,
-    partido: d.siglaPartido,
-    uf: d.siglaUf,
-    fotoUrl: d.urlFoto,
-  }));
+  try {
+    const lista = (await camara.deputadosEmExercicio()).map((d) => ({
+      casa: "camara" as const,
+      id: String(d.id),
+      nome: d.nome,
+      partido: d.siglaPartido,
+      uf: d.siglaUf,
+      fotoUrl: d.urlFoto,
+    }));
+    cacheLife("days");
+    return lista;
+  } catch (erro) {
+    unstable_rethrow(erro);
+    cacheLife("seconds");
+    return { falha: mensagemDe(erro) } satisfies FalhaEmCache;
+  }
 }
 
 async function senadoresEmExercicio() {
   "use cache";
-  cacheLife("days");
   cacheTag("parlamentares");
 
-  return (await senado.senadoresEmExercicio()).map((s) => ({
-    casa: "senado" as const,
-    id: s.codigo,
-    nome: s.nome,
-    partido: s.partido,
-    uf: s.uf,
-    fotoUrl: s.fotoUrl,
-  }));
+  try {
+    const lista = (await senado.senadoresEmExercicio()).map((s) => ({
+      casa: "senado" as const,
+      id: s.codigo,
+      nome: s.nome,
+      partido: s.partido,
+      uf: s.uf,
+      fotoUrl: s.fotoUrl,
+    }));
+    cacheLife("days");
+    return lista;
+  } catch (erro) {
+    unstable_rethrow(erro);
+    cacheLife("seconds");
+    return { falha: mensagemDe(erro) } satisfies FalhaEmCache;
+  }
 }
 
 /**
@@ -78,8 +110,8 @@ async function senadoresEmExercicio() {
  */
 export async function listarParlamentares() {
   const [deputados, senadores] = await Promise.all([
-    tentar("a Câmara dos Deputados", deputadosEmExercicio),
-    tentar("o Senado", senadoresEmExercicio),
+    tentar("a Câmara dos Deputados", async () => lancarSeFalhou(await deputadosEmExercicio())),
+    tentar("o Senado", async () => lancarSeFalhou(await senadoresEmExercicio())),
   ]);
 
   return {
