@@ -15,7 +15,7 @@ async function main() {
   const argumentos = process.argv.slice(2);
   if (argumentos.length > 0) throw new Error(`Argumento desconhecido: ${argumentos.join(" ")}`);
 
-  const prisma = createPrisma();
+  const prisma = createPrisma({ dono: true });
   const log = (mensagem: string) => console.log(mensagem);
   try {
     await gerarNotificacoes({ prisma, camara: createCamaraClient({ minIntervalMs: 150 }), senado: createSenadoClient(), log });

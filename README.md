@@ -96,8 +96,9 @@ Para ver se o app alcança o banco, abra `GET /api/health`.
 | `BETTER_AUTH_SECRET` | Segredo das sessões (`openssl rand -base64 32`) |
 | `BETTER_AUTH_URL` | URL base do app (`http://localhost:3000` no dev). Define os links dos emails de login; em produção é `https://portal-jabuti.com.br` |
 | `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`). Em produção é `https://portal-jabuti.com.br` |
-| `DATABASE_URL` | Conexão do Neon **com pooling** (host com `-pooler`), usada pelo app |
-| `DIRECT_URL` | Conexão **direta**, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
+| `DATABASE_URL` | Conexão do site: Neon **com pooling** (host com `-pooler`) e o papel restrito `portal_app` (ver [Segurança do banco](#segurança-do-banco)) |
+| `DIRECT_URL` | Conexão **direta** do dono do banco, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
+| `DATABASE_URL_DONO` | Conexão do dono com pooling, para rodar os scripts de carga na sua máquina (gravada por `scripts/papel-app.ts`) |
 | `RESEND_API_KEY` | Chave do [Resend](https://resend.com/api-keys), para enviar os emails |
 | `FEEDBACK_EMAIL` | Quem recebe as mensagens do `/feedback` (vários separados por vírgula) |
 | `FEEDBACK_REMETENTE` | Remetente do feedback, de um domínio verificado no Resend, ex.: `Jabuti <contato@portal-jabuti.com.br>`. Sem ele vale o `EMAIL_REMETENTE` e, sem os dois, o remetente de teste `onboarding@resend.dev`, que só entrega ao dono da conta |
@@ -141,9 +142,24 @@ Secrets necessários no repositório (**Settings → Secrets and variables → A
 
 | Secret | Para quê |
 | --- | --- |
-| `DATABASE_URL` | Conexão do Neon com pooling, onde os scripts gravam |
+| `DATABASE_URL` | Conexão do Neon com pooling **do dono do banco** (não a do `portal_app`), onde os scripts gravam |
 | `DIRECT_URL` | Conexão direta do Neon |
 | `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência (emendas) |
+
+## Segurança do banco
+
+O site entra no banco com o papel `portal_app` (papel é um usuário do Postgres), que não é dono de nada: lê os dados públicos, grava só onde o site grava (dados da conta, login, mural de apoiadores) e não cria, altera nem apaga tabelas. O dono do banco fica para as migrações e para as cargas.
+
+Todas as tabelas têm **RLS** (*row level security*, segurança por linha): uma regra do próprio Postgres decide, linha a linha, o que o `portal_app` vê. Nos dados pessoais (fixados, seguidos, notificações, perfil, listas e empresas vigiadas), só aparecem as linhas da pessoa logada, avisada ao banco em cada transação por `comoUsuario(email)` (`lib/como-usuario.ts`). Sem esse aviso, a consulta volta vazia. As tabelas do login (Better Auth) ficam liberadas para o site e fechadas para outros papéis.
+
+```bash
+bunx prisma migrate deploy        # cria o papel (sem login), as permissões e as regras
+bun scripts/papel-app.ts          # liga o login com senha aleatória e grava a conexão no .env.local
+bun scripts/conferir-rls.ts       # acusa tabela sem RLS ou sem regra para o site (sai com erro)
+bun scripts/testar-rls.ts         # teste de integração, só no branch dev do Neon
+```
+
+Em produção, `bun scripts/papel-app.ts --saida <arquivo> --confirmo-producao` grava a conexão num arquivo à parte para colocar na Vercel. Para desfazer tudo: `scripts/sql/reverter-rls.sql`. Tabela nova precisa de `ENABLE ROW LEVEL SECURITY` e de uma policy `TO portal_app` na migração.
 
 ## Scripts do projeto
 

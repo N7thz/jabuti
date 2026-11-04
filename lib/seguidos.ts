@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { donoDa } from "@/lib/fixados";
 import type { TipoSeguido } from "@/lib/generated/prisma/enums";
 import { getSession } from "@/lib/session";
@@ -30,8 +30,9 @@ export const getSeguidos = cache(async (): Promise<Seguidos | null> => {
   const sessao = await getSession();
   if (!sessao) return null;
 
-  const linhas = await db.seguido.findMany({
-    where: { usuario: donoDa(sessao) },
+  const usuario = donoDa(sessao);
+  const linhas = await comoUsuario(usuario).seguido.findMany({
+    where: { usuario },
     orderBy: { criadoEm: "asc" },
     select: { tipo: true, chave: true, rotulo: true },
   });
@@ -50,5 +51,6 @@ export const getSeguidos = cache(async (): Promise<Seguidos | null> => {
 export async function contarNaoLidas() {
   const sessao = await getSession();
   if (!sessao) return 0;
-  return db.notificacao.count({ where: { usuario: donoDa(sessao), lidaEm: null } });
+  const usuario = donoDa(sessao);
+  return comoUsuario(usuario).notificacao.count({ where: { usuario, lidaEm: null } });
 }

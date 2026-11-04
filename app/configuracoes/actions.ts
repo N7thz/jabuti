@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { comoUsuario } from "@/lib/como-usuario";
 import { donoDa } from "@/lib/fixados";
 import { getSession, requireSession } from "@/lib/session";
 
@@ -16,14 +16,15 @@ import { getSession, requireSession } from "@/lib/session";
  */
 function apagarDadosDe(sessao: { user: { email: string } }) {
   const usuario = donoDa(sessao);
-  return db.$transaction([
-    db.fixado.deleteMany({ where: { usuario } }),
-    db.seguido.deleteMany({ where: { usuario } }),
-    db.notificacao.deleteMany({ where: { usuario } }),
-    db.perfilUsuario.deleteMany({ where: { usuario } }),
-    db.lista.deleteMany({ where: { usuario } }),
-    db.empresaVigiada.deleteMany({ where: { usuario } }),
-  ]);
+  // Tudo numa transação, com o banco avisado de quem é a pessoa (RLS, ver lib/rls.ts): apaga tudo ou nada.
+  return comoUsuario(usuario, async (tx) => {
+    await tx.fixado.deleteMany({ where: { usuario } });
+    await tx.seguido.deleteMany({ where: { usuario } });
+    await tx.notificacao.deleteMany({ where: { usuario } });
+    await tx.perfilUsuario.deleteMany({ where: { usuario } });
+    await tx.lista.deleteMany({ where: { usuario } });
+    await tx.empresaVigiada.deleteMany({ where: { usuario } });
+  });
 }
 
 /**

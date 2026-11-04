@@ -8,7 +8,7 @@ import { buscarPopulacaoIbge, sincronizarPopulacao } from "@/lib/ibge/populacao"
 import { createPrisma } from "@/lib/prisma";
 import { registrarSync } from "@/lib/sync/run";
 
-const prisma = createPrisma();
+const prisma = createPrisma({ dono: true });
 
 try {
   const registros = await registrarSync(prisma, "MUNICIPIOS", null, async () => {

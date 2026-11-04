@@ -104,7 +104,7 @@ if (values["dry-run"]) {
   // Sanidade do interpretador com um caso conhecido.
   console.assert(interpretarLocalidade("CAMPINAS - SP", indice).municipioIbge === 3509502);
 } else {
-  const prisma = createPrisma();
+  const prisma = createPrisma({ dono: true });
   try {
     const indice = await carregarIndiceMunicipios(prisma);
     for (const ano of anos) {
