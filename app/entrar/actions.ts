@@ -6,6 +6,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { MENSAGEM_ROBO, pareceRobo } from "@/lib/bot";
 import { CAMPOS_QUE_VOLTAM, destinoSeguro, SCHEMAS_CONTA, type FormularioConta } from "@/lib/conta/schemas";
 import { ipDoPedido, type Regra, todasPermitidas } from "@/lib/limite";
 
@@ -72,6 +73,8 @@ export async function acaoConta(formulario: FormularioConta, _anterior: EstadoCo
     const erros = Object.fromEntries(Object.entries(fieldErrors).map(([campo, lista]) => [campo, (lista as string[] | undefined)?.[0]]));
     return { status: "erro", erros, valores };
   }
+
+  if (await pareceRobo()) return { status: "erro", mensagem: MENSAGEM_ROBO, valores };
 
   const limites = LIMITES[formulario];
   const email = "email" in dados.data ? dados.data.email.toLowerCase() : null;

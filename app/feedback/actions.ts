@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { MENSAGEM_ROBO, pareceRobo } from "@/lib/bot";
 import { enviarFeedback } from "@/lib/feedback/enviar";
 import { CAMPOS_TEXTO, feedbackSchema, type CampoDeTexto, type CampoFeedback } from "@/lib/feedback/schema";
 import { ipDoPedido, tentativaPermitida } from "@/lib/limite";
@@ -35,6 +36,8 @@ export async function enviarFeedbackAction(_anterior: EstadoFeedback, formData: 
     const erros = Object.fromEntries(Object.entries(fieldErrors).map(([campo, lista]) => [campo, lista?.[0]]));
     return { status: "erro", erros, valores };
   }
+
+  if (await pareceRobo()) return { status: "erro", mensagem: MENSAGEM_ROBO, valores };
 
   // Até 5 mensagens por hora de cada endereço: a armadilha `site` pega robô simples, este limite segura
   // quem tenta encher a caixa do portal (e gastar a cota do Resend) com envios em sequência.

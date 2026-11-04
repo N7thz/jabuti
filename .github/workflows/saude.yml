@@ -1,0 +1,39 @@
+name: Saúde do site
+
+# Os logs da Vercel no plano Hobby só ficam guardados por 1 hora. Este job confere o site a cada hora e falha
+# (o GitHub manda email para quem acompanha o repositório) se o banco cair ou se o site deixar de entrar no
+# banco como portal_app, o papel restrito que respeita a segurança por linha (ver scripts/papel-app.ts).
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  saude:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://portal-jabuti.com.br' }}
+    steps:
+      - name: Conferir /api/health
+        run: |
+          resposta=$(curl -sS --retry 3 --retry-delay 20 --retry-all-errors --max-time 30 "$SITE/api/health") || {
+            echo "::error::$SITE/api/health não respondeu."; exit 1; }
+          echo "$resposta"
+          echo "$resposta" | jq -e '.ok == true' > /dev/null || { echo "::error::O site não alcança o banco."; exit 1; }
+          echo "$resposta" | jq -e '.papel == "portal_app"' > /dev/null || {
+            echo "::error::O site entrou no banco como $(echo "$resposta" | jq -r .papel), não como portal_app. Confira a DATABASE_URL de Production na Vercel."; exit 1; }
+
+      - name: Conferir páginas principais
+        run: |
+          falhas=0
+          for caminho in / /parlamentares /estados /empresas /rankings/cota /entrar; do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE$caminho" || echo 000)
+            echo "$caminho $codigo"
+            if [ "$codigo" != "200" ]; then echo "::error::$caminho respondeu $codigo."; falhas=1; fi
+          done
+          exit $falhas

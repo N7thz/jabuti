@@ -1,3 +1,4 @@
+import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
 /**
@@ -39,4 +40,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withBotId: serve o script da Vercel BotID pelo próprio domínio (ver lib/bot.ts).
+export default withBotId(nextConfig);

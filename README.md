@@ -7,7 +7,7 @@
 [![Licença: AGPL-3.0](https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-blue)](LICENSE)
 [![Contribuições bem-vindas](https://img.shields.io/badge/contribui%C3%A7%C3%B5es-bem--vindas-brightgreen)](#como-contribuir)
 
-Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públicos oficiais: emendas parlamentares, gastos de gabinete, presença, campanhas eleitorais e as contas de estados e municípios. Ele foi feito para quem não é especialista. Todo termo técnico tem uma explicação a um clique (veja [Glossário](#glossário)), e a acessibilidade vem antes de tudo.
+Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públicos oficiais: emendas parlamentares, gastos de gabinete, presença, campanhas eleitorais e as contas de estados e municípios. O portal está em **Beta** (selo no cabeçalho): ainda em teste, então pode haver erros. Ele foi feito para quem não é especialista. Todo termo técnico tem uma explicação a um clique (veja [Glossário](#glossário)), e a acessibilidade vem antes de tudo.
 
 **Por que Jabuti?** Na política brasileira, "jabuti" é o trecho enfiado num projeto de lei que não tem nada a ver com ele. O nome vem do ditado: *jabuti não sobe em árvore; se está lá, foi enchente ou mão de gente*. O portal existe para isso: mostrar quem colocou cada coisa onde está.
 
@@ -27,7 +27,7 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 | Orçamento | `/orcamento`, `/orcamento/loa` | Emendas no orçamento e a Lei Orçamentária Anual |
 | Emendas Pix | `/emendas-pix/[id]` | Transferência especial (Transferegov): plano de ação e quem executa o dinheiro |
 | Votação | `/votacoes/[casa]/[id]` | Placar de uma votação nominal: total, por partido, por estado o voto de cada parlamentar e a comparação com a consulta popular (o que a população disse e para que lado o plenário foi) |
-| Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação, as leis mais recentes e o placar da consulta popular (e-Cidadania e enquetes da Câmara) |
+| Leis e projetos | `/leis` | Projetos de lei de Câmara e Senado por etapa da tramitação (as consultas às APIs têm prazo: se uma demorar demais, a página abre sem ela em vez de travar; a etapa "novos" mostra os projetos da Câmara dos últimos 30 dias), as leis mais recentes e o placar da consulta popular (e-Cidadania e enquetes da Câmara) |
 | Comparar | `/comparar` | Dois parlamentares lado a lado no ano escolhido (`?ano=`), com a concordância nos votos e a média da Casa como base |
 | Ranking da cota | `/rankings/cota` | Quem mais gastou da cota no ano (com links entre os anos), no total ou por tipo de gasto |
 | Glossário | `/glossario` | Todos os termos explicados em linguagem simples |
@@ -42,6 +42,10 @@ Um portal para qualquer pessoa acompanhar e cobrar os políticos com dados públ
 O login é **opcional**, com Google ou com email e senha (`/entrar`, `/cadastrar`, com confirmação de email e recuperação de senha): serve só para fixar os parlamentares, partidos ou bancadas estaduais que você quer acompanhar. Os fixados viram atalhos e também filtros em `/parlamentares`. Também dá para **seguir** parlamentares e projetos de lei (botão "Seguir" no perfil do senador ou deputado e em cada item de `/leis`): uma vez por dia, depois da carga, o portal gera notificações com o voto de cada parlamentar seguido nas votações nominais, os projetos que ele apresentou e as mudanças de situação dos projetos seguidos. Elas ficam só dentro do portal, em `/notificacoes` (com o contador no sino do cabeçalho); não há envio por email. As preferências de leitura funcionam sem login; com login, elas (e o menu) passam a valer em todos os aparelhos.
 
 Em `/meu` ficam as **empresas vigiadas** (até 20 CNPJs): a cada visita o painel confere sanções (CEIS, CNEP e TCU) e contratos novos no Portal da Transparência e mostra o que mudou desde a última vez. Na seção "Mais" de `/meu` dá para baixar tudo o que o portal guarda da conta num JSON (`/api/meus-dados`, direito previsto na LGPD, art. 18). Login, envio de links e feedback têm limite de tentativas (`lib/limite.ts`), contado no banco para valer em todas as instâncias.
+
+Contra robôs, os formulários de conta e de feedback usam o [Vercel BotID](https://vercel.com/docs/botid), uma checagem invisível que separa pessoas de programas automáticos (`lib/bot.ts`). Sem JavaScript os formulários continuam funcionando; nesse caso vale só o limite por IP. Além disso, uma regra de firewall da Vercel aceita no máximo 20 envios por minuto, por IP, nos formulários e em `/api/auth`.
+
+Para saber como o portal é usado, ele conta visitas e velocidade com o Vercel Analytics e o Speed Insights, **sem cookies** e sem identificar ninguém.
 
 O menu lateral mostra sempre Parlamentares, Leis e projetos e Estados e cidades; os outros assuntos (Consulta CNPJ, Comparar, Ranking da cota, Emendas, LOA e Glossário) a pessoa liga em "Personalizar menu", no fim da lista. A escolha fica neste aparelho (localStorage, `lib/menu.ts`) e a página aberta sempre aparece no menu. Para quem está logado, a sidebar também mostra **Minha cidade** (a escolhida em "Meus representantes", com atalho para `/meu`) e os **Fixados**.
 
@@ -70,6 +74,7 @@ Sempre que possível, o app consulta a API oficial direto. O banco guarda só o 
 - [Better Auth](https://www.better-auth.com) com login Google ou email e senha
 - [Resend](https://resend.com) para os emails (feedback, confirmação de email e redefinição de senha), enviados do domínio próprio `portal-jabuti.com.br` (verificado no Resend, região `sa-east-1`)
 - [react-email](https://react.email) no layout dos emails: os modelos ficam em `emails/` e cada email sai em HTML e também em texto puro (`emails/renderizar.ts`)
+- [Vercel Analytics e Speed Insights](https://vercel.com/docs/analytics) para contar visitas e medir a velocidade, sem cookies, e [Vercel BotID](https://vercel.com/docs/botid) contra robôs nos formulários
 - [Motion](https://motion.dev) nas animações, que respeitam a preferência de movimento reduzido
 - [Biome](https://biomejs.dev) como linter
 - react-hook-form + zod nos formulários (que também funcionam sem JavaScript)
@@ -87,6 +92,8 @@ bun run db:deploy      # aplica as migrations no banco
 bun dev                # http://localhost:3000
 ```
 
+Os deploys de preview (de branches e PRs na Vercel) não têm as variáveis de produção: para funcionarem, configure no ambiente Preview a `DATABASE_URL` do branch `dev` do Neon, nunca a do banco de produção.
+
 Para ver se o app alcança o banco, abra `GET /api/health`: além de `database: "up"`, ele mostra o `papel` com que o site entrou (em produção tem de ser `portal_app`; senão sai um aviso no log).
 
 ### Variáveis de ambiente
@@ -98,6 +105,7 @@ Para ver se o app alcança o banco, abra `GET /api/health`: além de `database: 
 | `BETTER_AUTH_SECRET` | Segredo das sessões (`openssl rand -base64 32`) |
 | `BETTER_AUTH_URL` | URL base do app (`http://localhost:3000` no dev). Define os links dos emails de login; em produção é `https://portal-jabuti.com.br` |
 | `NEXT_PUBLIC_SITE_URL` | Endereço público do portal, usado no sitemap, nas imagens e nos links de compartilhar (opcional: sem ele vale o `BETTER_AUTH_URL`). Em produção é `https://portal-jabuti.com.br` |
+| `REVALIDAR_SEGREDO` | Senha da rota `POST /api/revalidar`, que a carga de dados chama ao terminar para o site esquecer o cache antigo e mostrar os números novos (`openssl rand -base64 32`). Vai na Vercel (Production) e também como secret no GitHub. Sem ela a rota responde 503 e o cache se renova sozinho quando vence |
 | `DATABASE_URL` | Conexão do site: Neon **com pooling** (host com `-pooler`) e o papel restrito `portal_app` (ver [Segurança do banco](#segurança-do-banco)) |
 | `DIRECT_URL` | Conexão **direta** do dono do banco, usada por `prisma migrate` e `prisma studio` (aceita `DATABASE_URL_UNPOOLED`) |
 | `DATABASE_URL_DONO` | Conexão do dono com pooling, para rodar os scripts de carga na sua máquina (gravada por `scripts/papel-app.ts`) |
@@ -138,6 +146,10 @@ O workflow [`.github/workflows/sync.yml`](.github/workflows/sync.yml) roda as ca
 
 Outro workflow, [`.github/workflows/verificar-html.yml`](.github/workflows/verificar-html.yml), roda todo dia às 10:30 UTC `bun scripts/verificar-html.ts`: o placar das consultas populares e as ideias legislativas não têm API e são lidos do HTML do Senado e da Câmara, então o script confere páginas conhecidas e falha (o GitHub avisa por email) se algum leitor parar de achar os dados. Não precisa de banco nem de secrets.
 
+O workflow [`.github/workflows/saude.yml`](.github/workflows/saude.yml) roda a cada hora e confere o site no ar: `/api/health` tem de mostrar o banco ligado e o papel `portal_app`, e as páginas principais (`/`, `/parlamentares`, `/estados`, `/empresas`, `/rankings/cota`, `/entrar`) têm de responder 200. Se algo falhar, o GitHub avisa por email. Existe porque os logs da Vercel no plano gratuito só duram 1 hora.
+
+No fim de cada job que deu certo, o workflow chama `POST /api/revalidar` (ação `.github/actions/revalidar`) para renovar o cache das páginas que leem o que foi gravado. Se o secret `REVALIDAR_SEGREDO` faltar ou a chamada falhar depois de 3 tentativas, o passo só deixa um aviso no job: os dados já foram gravados e os números novos aparecem quando o cache vencer.
+
 Cada fonte é um job separado, e duas cargas da mesma fonte nunca rodam ao mesmo tempo (a segunda espera a primeira). Para rodar na mão, use **Actions → Carga de dados → Run workflow**, escolha a fonte e, se quiser, passe argumentos extras (ex.: `--anos 2020-2025` para emendas).
 
 Secrets necessários no repositório (**Settings → Secrets and variables → Actions**):
@@ -147,6 +159,9 @@ Secrets necessários no repositório (**Settings → Secrets and variables → A
 | `DATABASE_URL` | Conexão do Neon com pooling **do dono do banco** (não a do `portal_app`), onde os scripts gravam |
 | `DIRECT_URL` | Conexão direta do Neon |
 | `PORTAL_TRANSPARENCIA_API_KEY` | Chave da API do Portal da Transparência (emendas) |
+| `REVALIDAR_SEGREDO` | O mesmo valor da variável na Vercel, para renovar o cache ao fim de cada carga |
+
+Opcional, em **Variables** (não é secret): `NEXT_PUBLIC_SITE_URL`, o endereço para onde a carga e o workflow de saúde chamam. Vazia, vale `https://portal-jabuti.com.br`.
 
 ## Segurança do banco
 
