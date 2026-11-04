@@ -370,10 +370,17 @@ export async function gravarDespesas(
     });
     if (data.length === 0) continue;
 
-    await prisma.$transaction([
-      prisma.despesaCota.deleteMany({ where: { ano, parlamentar: { casa: "SENADO" } } }),
-      ...emLotes(data, 1000).map((lote) => prisma.despesaCota.createMany({ data: lote, skipDuplicates: true })),
-    ], { timeout: TIMEOUT_DESPESAS_MS, maxWait: 10_000 });
+    // Forma interativa de propósito: com o adapter do Neon, a forma em lote (`$transaction([...])`)
+    // com ~17 `createMany` de 1000 linhas levou ~105 s no dev; a interativa, ~5 s.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.despesaCota.deleteMany({ where: { ano, parlamentar: { casa: "SENADO" } } });
+        for (const lote of emLotes(data, 1000)) {
+          await tx.despesaCota.createMany({ data: lote, skipDuplicates: true });
+        }
+      },
+      { timeout: TIMEOUT_DESPESAS_MS, maxWait: 10_000 },
+    );
     registros += data.length;
   }
   return registros;
