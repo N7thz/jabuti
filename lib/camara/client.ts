@@ -1,4 +1,5 @@
 import { createFetcher, type OpcoesFetcher } from "../sync/run";
+import { legislaturaPelaData } from "./legislatura";
 import type {
   AutorProposicaoApi,
   Despesa,
@@ -6,7 +7,6 @@ import type {
   Detalhe,
   Evento,
   HistoricoDeputadoApi,
-  Legislatura,
   MandatoExternoApi,
   OrientacaoApi,
   Pagina,
@@ -60,16 +60,11 @@ export function createCamaraClient({ minIntervalMs = 150, ...opcoes }: OpcoesFet
   }
 
   return {
-    /** Legislatura que cobre a data (padrão: hoje); cai para a mais recente já iniciada. */
-    async legislaturaAtual(hoje = new Date()) {
-      const dia = hoje.toISOString().slice(0, 10);
-      const { dados: recentes } = await get<Pagina<Legislatura>>(
-        montar("/legislaturas", { ordem: "DESC", ordenarPor: "id", itens: 5 }),
-      );
-      const atual = recentes.find((l) => l.dataInicio <= dia && dia <= l.dataFim) ?? recentes.find((l) => l.dataInicio <= dia);
-      if (!atual) throw new Error("Nenhuma legislatura encontrada na API da Câmara.");
-      return atual;
-    },
+    /**
+     * Legislatura que cobre a data (padrão: hoje). Calculada pela data, sem consultar a API: /legislaturas
+     * fica fora do ar por dias e derrubava a carga (ver lib/camara/legislatura.ts).
+     */
+    legislaturaAtual: (hoje = new Date()) => Promise.resolve(legislaturaPelaData(hoje.toISOString().slice(0, 10))),
 
     /** Todos que exerceram mandato na legislatura (inclui quem saiu e suplentes). */
     deputados: (idLegislatura: number) => paginar<DeputadoResumo>("/deputados", { idLegislatura }),
