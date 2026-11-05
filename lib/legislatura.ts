@@ -1,9 +1,10 @@
-import type { Legislatura } from "./types";
+import type { Legislatura } from "./camara/types";
 
-// Legislatura da Câmara calculada pela data, sem consultar a API.
+// Legislatura do Congresso calculada pela data, sem consultar a API. É a mesma numeração na Câmara e no Senado.
 // Cada legislatura dura 4 anos e começa em 1º de fevereiro do ano seguinte à eleição (Constituição, art. 44):
-// a 57ª vai de 01/02/2023 a 31/01/2027. A API tem /legislaturas, mas esse recurso fica fora do ar (504) por
-// dias enquanto o resto responde, e derrubava a carga inteira de deputados, despesas e proposições.
+// a 57ª vai de 01/02/2023 a 31/01/2027. As duas Casas têm um recurso de legislaturas na API (Câmara:
+// /legislaturas; Senado: /plenario/legislatura/{data}), mas eles ficam fora do ar (504/503) por dias enquanto
+// o resto responde, e derrubavam as cargas inteiras.
 
 const REFERENCIA = { id: 57, ano: 2023 };
 

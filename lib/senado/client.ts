@@ -1,3 +1,4 @@
+import { legislaturaPelaData } from "../legislatura";
 import { createFetcher, type OpcoesFetcher } from "../sync/run";
 import type {
   AgendaComissaoApi,
@@ -7,7 +8,6 @@ import type {
   DetalheSenadorApi,
   FiliacoesSenadorApi,
   FiltrosProcesso,
-  LegislaturaApi,
   ListaAtualApi,
   MandatoSenado,
   MandatosSenadorApi,
@@ -236,11 +236,11 @@ export function createSenadoClient({ minIntervalMs = 250, ...opcoes }: OpcoesFet
         .sort((a, b) => a.inicio.localeCompare(b.inicio));
     },
 
-    /** Número da legislatura vigente na data (AAAA-MM-DD). */
-    async legislatura(data: string): Promise<number | null> {
-      const r = await get<LegislaturaApi>(`/plenario/legislatura/${compacta(data)}`);
-      return numero(asArray(r.ListaLegislatura.Legislaturas?.Legislatura)[0]?.NumeroLegislatura);
-    },
+    /**
+     * Número da legislatura vigente na data (AAAA-MM-DD). Calculado pela data, sem consultar a API:
+     * /plenario/legislatura fica fora do ar por dias e derrubava a carga (ver lib/legislatura.ts).
+     */
+    legislatura: (data: string): Promise<number | null> => Promise.resolve(legislaturaPelaData(data).id),
 
     /**
      * Votações do plenário com voto nominal de cada senador (em secretas, só "Votou").

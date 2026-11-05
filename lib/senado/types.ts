@@ -63,16 +63,6 @@ export interface DetalheSenadorApi {
   };
 }
 
-// ---------- plenario/legislatura/{data} ----------
-
-export interface LegislaturaApi {
-  ListaLegislatura: {
-    Legislaturas?: {
-      Legislatura: UmOuVarios<{ NumeroLegislatura: string; DataInicio: string; DataFim: string }>;
-    };
-  };
-}
-
 // ---------- /votacao (serviço novo; substitui plenario/lista/votacao, depreciado) ----------
 
 export interface VotoParlamentarApi {

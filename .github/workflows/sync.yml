@@ -114,7 +114,7 @@ jobs:
         with: { fonte: tse, segredo: "${{ secrets.REVALIDAR_SEGREDO }}", site: "${{ env.SITE_URL }}" }
 
   # Depois da carga da Câmara e do Senado: votos e projetos novos de quem é seguido viram notificações,
-  # a situação dos projetos seguidos é conferida na API, e saem os resumos por email que estão na hora.
+  # e a situação dos projetos seguidos é conferida na API. As notificações ficam só no portal (sem email).
   notificar:
     needs: [camara, senado]
     # Roda mesmo se uma das cargas falhar (a outra pode ter trazido novidades); não roda se foram puladas à mão.

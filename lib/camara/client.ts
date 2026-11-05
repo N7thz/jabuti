@@ -1,5 +1,5 @@
 import { createFetcher, type OpcoesFetcher } from "../sync/run";
-import { legislaturaPelaData } from "./legislatura";
+import { legislaturaPelaData } from "../legislatura";
 import type {
   AutorProposicaoApi,
   Despesa,
